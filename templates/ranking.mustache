@@ -1,0 +1,82 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_playercross/ranking
+
+    Top-5 ranking page for a PlayerCross activity (deliberately capped, not paginated).
+
+    Example context (json):
+    {
+        "activityname": "Vocabulário — Revolução Industrial",
+        "activityurl": "https://example.com/mod/playercross/view.php?id=1",
+        "backlabel": "Back to game",
+        "rankingtitle": "Ranking",
+        "rankingpositionlabel": "Position",
+        "rankingplayerlabel": "Player",
+        "rankingpointslabel": "Points",
+        "rankingrows": [
+            {"position": 1, "fullname": "Ana Silva", "totalscore": 300, "iscurrentuser": false},
+            {"position": 2, "fullname": "João Souza", "totalscore": 200, "iscurrentuser": true},
+            {"position": 3, "fullname": "Maria Costa", "totalscore": 100, "iscurrentuser": false}
+        ],
+        "rankinghasoutsider": false,
+        "rankingoutsiderrow": null,
+        "rankingempty": false,
+        "rankingemptylabel": "No rounds completed yet.",
+        "rankingtiebreaktext": "Ties are broken by fewer attempts used on average, then less time spent on average."
+    }
+}}
+<div class="mod-playercross-ranking-page">
+    <p>
+        <a href="{{activityurl}}" class="btn btn-secondary btn-sm">{{backlabel}}</a>
+    </p>
+    <h2>{{rankingtitle}}</h2>
+    <p class="text-muted">{{rankingtiebreaktext}}</p>
+    {{#rankingempty}}
+        <p class="text-muted">{{rankingemptylabel}}</p>
+    {{/rankingempty}}
+    {{^rankingempty}}
+        <table class="table mod-playercross-ranking-table">
+            <thead>
+                <tr>
+                    <th scope="col"><i class="fa fa-trophy" role="img" aria-label="{{rankingpositionlabel}}"></i></th>
+                    <th scope="col">{{rankingplayerlabel}}</th>
+                    <th scope="col" class="text-end">{{rankingpointslabel}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#rankingrows}}
+                    <tr class="{{#iscurrentuser}}pc-ranking-you{{/iscurrentuser}}">
+                        <td>{{position}}</td>
+                        <td>{{fullname}}</td>
+                        <td class="text-end">{{totalscore}}</td>
+                    </tr>
+                {{/rankingrows}}
+                {{#rankinghasoutsider}}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted pc-ranking-sep">&hellip;</td>
+                    </tr>
+                    <tr class="pc-ranking-you">
+                        <td>{{rankingoutsiderrow.position}}</td>
+                        <td>{{rankingoutsiderrow.fullname}}</td>
+                        <td class="text-end">{{rankingoutsiderrow.totalscore}}</td>
+                    </tr>
+                {{/rankinghasoutsider}}
+            </tbody>
+        </table>
+    {{/rankingempty}}
+</div>

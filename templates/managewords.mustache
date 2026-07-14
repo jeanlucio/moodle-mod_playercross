@@ -1,0 +1,356 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_playercross/managewords
+
+    Word pool management page for a PlayerCross activity.
+
+    Example context (json):
+    {
+        "cmid": 1,
+        "sesskey": "abc123",
+        "backtogameurl": "https://example.com/mod/playercross/view.php?id=1",
+        "backtogamebutton": "Back to game",
+        "cansyncglossary": true,
+        "syncglossarybutton": "Sync with glossary",
+        "managewordslabel": "Word pool",
+        "manualwordlabel": "Word",
+        "manualhintlabel": "Hint",
+        "manualwordplaceholder": "Enter a word",
+        "manualhintplaceholder": "Optional hint for students",
+        "addwordbutton": "Add word",
+        "hasai": true,
+        "aigeneratetitle": "Generate words with AI",
+        "aigeneratetopic": "Topic",
+        "aigeneratecount": "Number of words",
+        "aigeneratebutton": "Generate with AI",
+        "recentwordslabel": "Word pool",
+        "nowordsyet": "No words have been added yet.",
+        "wordcolumnlabel": "Word",
+        "sourcecolumnlabel": "Source",
+        "statuscolumnlabel": "Status",
+        "drawcountcolumnlabel": "Times drawn",
+        "actionscolumnlabel": "Actions",
+        "deletewordbutton": "Delete",
+        "deletewordconfirm": "Are you sure you want to delete this word? This action cannot be undone.",
+        "deletewordtitle": "Delete word",
+        "bulkapprovebutton": "Approve selected",
+        "bulkapprovebuttontitle": "Approve selected words",
+        "bulkapproveconfirm": "Are you sure you want to approve the selected words?",
+        "bulkdeletebutton": "Delete selected",
+        "bulkdeleteconfirm": "Are you sure you want to delete the selected words? This action cannot be undone.",
+        "editwordbutton": "Edit",
+        "editwordlabel": "Edit word",
+        "savewordbutton": "Save",
+        "cancelbutton": "Cancel",
+        "selectall": "Select all",
+        "selectword": "Select",
+        "currentsort": "id",
+        "currentdir": "DESC",
+        "sort_word_url": "https://example.com/mod/playercross/managewords.php?id=1&sort=word&dir=ASC",
+        "sort_word_icon": "fa-sort",
+        "sort_source_url": "https://example.com/mod/playercross/managewords.php?id=1&sort=source&dir=ASC",
+        "sort_source_icon": "fa-sort",
+        "sort_approved_url": "https://example.com/mod/playercross/managewords.php?id=1&sort=approved&dir=ASC",
+        "sort_approved_icon": "fa-sort",
+        "haseditword": false,
+        "editword_id": 0,
+        "editword_word": "",
+        "editword_hint": "",
+        "cancelediteurl": "https://example.com/mod/playercross/managewords.php?id=1",
+        "hasrecentwords": true,
+        "recentwords": [
+            {
+                "id": 1,
+                "word": "escola",
+                "source": "Manual insertion",
+                "approved": "Approved",
+                "ispending": false,
+                "editwordurl": "https://example.com/mod/playercross/managewords.php?id=1&editwordid=1",
+                "isfragmentedconcept": false,
+                "fragmentedconceptwarning": "",
+                "drawcount": 12
+            },
+            {
+                "id": 2,
+                "word": "cosmos",
+                "source": "AI extraction",
+                "approved": "Pending",
+                "ispending": true,
+                "editwordurl": "https://example.com/mod/playercross/managewords.php?id=1&editwordid=2",
+                "isfragmentedconcept": false,
+                "fragmentedconceptwarning": "",
+                "drawcount": 0
+            },
+            {
+                "id": 3,
+                "word": "second",
+                "source": "Glossary sync (Course glossary)",
+                "approved": "Approved",
+                "ispending": false,
+                "editwordurl": "https://example.com/mod/playercross/managewords.php?id=1&editwordid=3",
+                "isfragmentedconcept": true,
+                "fragmentedconceptwarning": "This word is one of several extracted from the same glossary concept (\"Second World War\") — review whether it makes sense on its own.",
+                "drawcount": 3
+            }
+        ]
+    }
+}}
+<p>
+    <a href="{{{backtogameurl}}}" class="btn btn-link mb-3">{{backtogamebutton}}</a>
+</p>
+
+{{#cansyncglossary}}
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="post" action="{{{config.wwwroot}}}/mod/playercross/managewords.php">
+            <input type="hidden" name="id" value="{{cmid}}">
+            <input type="hidden" name="syncglossary" value="1">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="sort" value="{{currentsort}}">
+            <input type="hidden" name="dir" value="{{currentdir}}">
+            <button type="submit" class="btn btn-outline-secondary">{{syncglossarybutton}}</button>
+        </form>
+    </div>
+</div>
+{{/cansyncglossary}}
+
+{{#haseditword}}
+<div class="card mb-3">
+    <div class="card-body">
+        <h3 class="h5">{{editwordlabel}}</h3>
+        <form method="post" action="{{{config.wwwroot}}}/mod/playercross/managewords.php">
+            <input type="hidden" name="id" value="{{cmid}}">
+            <input type="hidden" name="saveword" value="1">
+            <input type="hidden" name="wordid" value="{{editword_id}}">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="sort" value="{{currentsort}}">
+            <input type="hidden" name="dir" value="{{currentdir}}">
+
+            <label for="playercross-editword" class="form-label">{{manualwordlabel}}</label>
+            <input
+                type="text"
+                id="playercross-editword"
+                name="manualword"
+                class="form-control"
+                value="{{editword_word}}"
+                required
+            >
+
+            <label for="playercross-edithint" class="form-label mt-2">{{manualhintlabel}}</label>
+            <input
+                type="text"
+                id="playercross-edithint"
+                name="manualhint"
+                class="form-control"
+                value="{{editword_hint}}"
+            >
+
+            <div class="mt-2">
+                <button type="submit" class="btn btn-secondary">{{savewordbutton}}</button>
+                <a href="{{{cancelediteurl}}}" class="btn btn-link">{{cancelbutton}}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{{/haseditword}}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h3 class="h5">{{managewordslabel}}</h3>
+        <form method="post" action="{{{config.wwwroot}}}/mod/playercross/managewords.php">
+            <input type="hidden" name="id" value="{{cmid}}">
+            <input type="hidden" name="addword" value="1">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="sort" value="{{currentsort}}">
+            <input type="hidden" name="dir" value="{{currentdir}}">
+
+            <label for="playercross-manualword" class="form-label">{{manualwordlabel}}</label>
+            <input
+                type="text"
+                id="playercross-manualword"
+                name="manualword"
+                class="form-control"
+                placeholder="{{manualwordplaceholder}}"
+                required
+            >
+
+            <label for="playercross-manualhint" class="form-label mt-2">{{manualhintlabel}}</label>
+            <input
+                type="text"
+                id="playercross-manualhint"
+                name="manualhint"
+                class="form-control"
+                placeholder="{{manualhintplaceholder}}"
+            >
+
+            <button type="submit" class="btn btn-secondary mt-2">{{addwordbutton}}</button>
+        </form>
+    </div>
+</div>
+
+{{#hasai}}
+<div class="card mb-3">
+    <div class="card-body">
+        <h3 class="h5">{{aigeneratetitle}}</h3>
+        <form method="post" action="{{{config.wwwroot}}}/mod/playercross/managewords.php">
+            <input type="hidden" name="id" value="{{cmid}}">
+            <input type="hidden" name="generateai" value="1">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="sort" value="{{currentsort}}">
+            <input type="hidden" name="dir" value="{{currentdir}}">
+
+            <label for="playercross-aitopic" class="form-label">{{aigeneratetopic}}</label>
+            <input
+                type="text"
+                id="playercross-aitopic"
+                name="aitopic"
+                class="form-control"
+                required
+            >
+
+            <label for="playercross-aicount" class="form-label mt-2">{{aigeneratecount}}</label>
+            <input
+                type="number"
+                id="playercross-aicount"
+                name="aicount"
+                class="form-control"
+                value="10"
+                min="1"
+                max="20"
+            >
+
+            <button type="submit" class="btn btn-outline-primary mt-2">{{aigeneratebutton}}</button>
+        </form>
+    </div>
+</div>
+{{/hasai}}
+
+<div class="card">
+    <div class="card-body">
+        <h3 class="h6">{{recentwordslabel}}</h3>
+        {{#hasrecentwords}}
+            <form id="playercross-bulk-form"
+                  method="post"
+                  action="{{{config.wwwroot}}}/mod/playercross/managewords.php">
+                <input type="hidden" name="id" value="{{cmid}}">
+                <input type="hidden" id="playercross-bulk-action" name="bulkaction" value="">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="sort" value="{{currentsort}}">
+                <input type="hidden" name="dir" value="{{currentdir}}">
+
+                <div class="mb-2">
+                    <button type="button"
+                            id="playercross-bulk-approve-btn"
+                            class="btn btn-outline-success btn-sm me-2"
+                            data-labelbase="{{bulkapprovebutton}}"
+                            data-title="{{bulkapprovebuttontitle}}"
+                            data-confirm="{{bulkapproveconfirm}}"
+                            disabled>
+                        {{bulkapprovebutton}}
+                    </button>
+                    <button type="button"
+                            id="playercross-bulk-delete-btn"
+                            class="btn btn-outline-danger btn-sm"
+                            data-labelbase="{{bulkdeletebutton}}"
+                            data-title="{{deletewordtitle}}"
+                            data-confirm="{{bulkdeleteconfirm}}"
+                            disabled>
+                        {{bulkdeletebutton}}
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th scope="col">
+                                    <input type="checkbox"
+                                           id="playercross-select-all"
+                                           class="form-check-input"
+                                           aria-label="{{selectall}}">
+                                </th>
+                                <th scope="col">
+                                    <a href="{{{sort_word_url}}}" class="text-reset text-decoration-none">
+                                        {{wordcolumnlabel}}
+                                        <i class="fa {{sort_word_icon}}" aria-hidden="true"></i>
+                                    </a>
+                                </th>
+                                <th scope="col">
+                                    <a href="{{{sort_source_url}}}" class="text-reset text-decoration-none">
+                                        {{sourcecolumnlabel}}
+                                        <i class="fa {{sort_source_icon}}" aria-hidden="true"></i>
+                                    </a>
+                                </th>
+                                <th scope="col">
+                                    <a href="{{{sort_approved_url}}}" class="text-reset text-decoration-none">
+                                        {{statuscolumnlabel}}
+                                        <i class="fa {{sort_approved_icon}}" aria-hidden="true"></i>
+                                    </a>
+                                </th>
+                                <th scope="col">{{drawcountcolumnlabel}}</th>
+                                <th scope="col">{{actionscolumnlabel}}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{#recentwords}}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox"
+                                               name="bulk_ids[]"
+                                               value="{{id}}"
+                                               class="form-check-input playercross-bulk-check"
+                                               aria-label="{{selectword}} {{word}}"
+                                               {{#ispending}}data-pending="1"{{/ispending}}>
+                                    </td>
+                                    <td>
+                                        {{word}}
+                                        {{#isfragmentedconcept}}
+                                            <i class="fa fa-exclamation-triangle pc-fragmented-concept-icon"
+                                               role="img"
+                                               aria-label="{{fragmentedconceptwarning}}"
+                                               title="{{fragmentedconceptwarning}}"></i>
+                                        {{/isfragmentedconcept}}
+                                    </td>
+                                    <td>{{source}}</td>
+                                    <td>{{approved}}</td>
+                                    <td>{{drawcount}}</td>
+                                    <td>
+                                        <a href="{{{editwordurl}}}"
+                                           class="btn btn-outline-secondary btn-sm me-1">
+                                            {{editwordbutton}}
+                                        </a>
+                                        <button type="button"
+                                                class="btn btn-outline-danger btn-sm playercross-single-delete-btn"
+                                                data-wordid="{{id}}"
+                                                data-title="{{deletewordtitle}}"
+                                                data-confirm="{{deletewordconfirm}}">
+                                            {{deletewordbutton}}
+                                        </button>
+                                    </td>
+                                </tr>
+                            {{/recentwords}}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        {{/hasrecentwords}}
+        {{^hasrecentwords}}
+            <p class="mb-0">{{nowordsyet}}</p>
+        {{/hasrecentwords}}
+    </div>
+</div>

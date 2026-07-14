@@ -361,7 +361,7 @@ class round_presenter {
         }
 
         return [
-            'cluestotal' => (int)$state['cluestotal'],
+            'cluesthisround' => get_string('cluesthisround', 'mod_playercross', (int)$state['cluestotal']),
             'timerenabled' => ((int)$instance->timer_seconds > 0),
             'lobbytimerinfo' => (
                 (int)$instance->timer_seconds > 0

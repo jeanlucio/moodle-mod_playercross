@@ -124,6 +124,11 @@ class view_page_service {
                 '/mod/playercross/attemptsreport.php',
                 ['id' => $cm->id]
             ))->out(false),
+            'toolbarmanagewords' => get_string('toolbarmanagewords', 'mod_playercross'),
+            'managewordsurl' => (new \moodle_url('/mod/playercross/managewords.php', ['id' => $cm->id]))->out(false),
+            'showranking' => !empty($instance->show_ranking),
+            'toolbarranking' => get_string('toolbarranking', 'mod_playercross'),
+            'rankingurl' => (new \moodle_url('/mod/playercross/ranking.php', ['id' => $cm->id]))->out(false),
         ]
             + self::build_help_context($instance)
             + $inner;

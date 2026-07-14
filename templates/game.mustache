@@ -41,6 +41,11 @@
         "canmanage": true,
         "toolbarreport": "Report",
         "attemptsreporturl": "https://example.com/mod/playercross/attemptsreport.php?id=1",
+        "toolbarmanagewords": "Manage words",
+        "managewordsurl": "https://example.com/mod/playercross/managewords.php?id=1",
+        "showranking": true,
+        "toolbarranking": "Ranking",
+        "rankingurl": "https://example.com/mod/playercross/ranking.php?id=1",
         "showforfeit": true,
         "forfeitlabel": "Give up",
         "forfeitconfirm": "Are you sure you want to give up?",
@@ -115,7 +120,11 @@
                 <i class="fa fa-question-circle" aria-hidden="true"></i> {{helptitle}}
             </button>
             <a href="{{myattemptsurl}}" class="btn btn-link p-0">{{toolbarmyattempts}}</a>
+            {{#showranking}}
+                <a href="{{rankingurl}}" class="btn btn-link p-0">{{toolbarranking}}</a>
+            {{/showranking}}
             {{#canmanage}}
+                <a href="{{managewordsurl}}" class="btn btn-link p-0">{{toolbarmanagewords}}</a>
                 <a href="{{attemptsreporturl}}" class="btn btn-link p-0">{{toolbarreport}}</a>
             {{/canmanage}}
             {{#showforfeit}}

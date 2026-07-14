@@ -21,7 +21,7 @@
 
     Example context (json):
     {
-        "cluestotal": 5,
+        "cluesthisround": "5 clues this round.",
         "timerenabled": true,
         "lobbytimerinfo": "You have 1 min to solve the puzzle.",
         "hudstartcost": true,
@@ -34,7 +34,7 @@
     }
 }}
 <div id="playercross-lobby-body" class="mod-playercross-lobby text-center my-3">
-    <p class="text-muted">{{#cluestotal}}{{cluestotal}}{{/cluestotal}} clues this round.</p>
+    <p class="text-muted">{{cluesthisround}}</p>
     {{#timerenabled}}
         <p class="text-muted">{{lobbytimerinfo}}</p>
     {{/timerenabled}}
