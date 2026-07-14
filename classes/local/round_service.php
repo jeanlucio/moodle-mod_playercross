@@ -46,7 +46,10 @@ class round_service {
     private const TIMEOUT_TOLERANCE_SECONDS = 5;
 
     /**
-     * Gets session state, creating defaults when missing.
+     * Gets session state, creating defaults when missing. Also discards state left
+     * over from an older, structurally incompatible version of puzzle_builder — see
+     * state_is_valid() — so a round that was mid-play across a plugin upgrade starts
+     * fresh instead of fataling the next time it is rendered.
      *
      * @param int $cmid Course module id.
      * @param int $userid User id.
@@ -59,11 +62,32 @@ class round_service {
         if (!isset($SESSION->mod_playercross)) {
             $SESSION->mod_playercross = [];
         }
-        if (!isset($SESSION->mod_playercross[$sessionkey])) {
+        if (!isset($SESSION->mod_playercross[$sessionkey]) || !self::state_is_valid($SESSION->mod_playercross[$sessionkey])) {
             $SESSION->mod_playercross[$sessionkey] = self::default_state();
         }
 
         return $SESSION->mod_playercross[$sessionkey];
+    }
+
+    /**
+     * Checks that a round's state still matches the shape the current code expects —
+     * specifically, that every clue's per-position slots array is exactly as long as
+     * its own word. A round started under an older version of puzzle_builder (before
+     * slots became a round-wide, per-position map, see SCOPE.md §20.2 v1.7) can still
+     * be sitting in a live PHP session at the moment the plugin is upgraded; without
+     * this check, round_presenter would fatal on an undefined array key the first time
+     * that stale round is rendered, instead of transparently starting a fresh one.
+     *
+     * @param array $state Session state.
+     * @return bool
+     */
+    private static function state_is_valid(array $state): bool {
+        foreach ($state['clues'] ?? [] as $clue) {
+            if (!isset($clue['slots'], $clue['word']) || count($clue['slots']) !== count(word_normalizer::chars($clue['word']))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

@@ -86,6 +86,62 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * load_state() discards a round left over from an older, structurally
+     * incompatible puzzle_builder version — a clue whose slots array is too short for
+     * its own word (the old distinct-set-of-theme-slots shape, before slots became a
+     * round-wide, per-position map, SCOPE.md §20.2 v1.7) — instead of returning it
+     * as-is and letting round_presenter fatal on it the next time it is rendered.
+     *
+     * @covers \mod_playercross\local\round_service::load_state
+     * @return void
+     */
+    public function test_load_state_discards_structurally_stale_state(): void {
+        global $SESSION;
+
+        $cmid = 42;
+        $sessionkey = gameplay_service::build_session_key($cmid, $this->user->id);
+        $SESSION->mod_playercross = [
+            $sessionkey => [
+                'themewordid'      => 1,
+                'themeword'        => 'escola',
+                'themeslots'       => [1, 2, 3, 4, 5, 6],
+                'slotcount'        => 6,
+                'revealedslots'    => [],
+                'clues'            => [
+                    [
+                        'wordid'       => 2,
+                        'word'         => 'livro',
+                        'hint'         => 'dica',
+                        // Old shape: a distinct set of theme slots, too short for
+                        // "livro"'s 5 characters.
+                        'slots'        => [4, 5],
+                        'resolved'     => false,
+                        'attemptsused' => 0,
+                        'exhausted'    => false,
+                    ],
+                ],
+                'cluestotal'       => 1,
+                'cluesresolved'    => 0,
+                'scoreaccumulated' => 0.0,
+                'attemptsused'     => 0,
+                'starttime'        => 0,
+                'endtime'          => 0,
+                'roundstarted'     => false,
+                'finished'         => false,
+                'won'              => false,
+                'forfeited'        => false,
+                'timedout'         => false,
+                'finalguessed'     => false,
+            ],
+        ];
+
+        $state = round_service::load_state($cmid, $this->user->id);
+
+        $this->assertSame(0, $state['themewordid']);
+        $this->assertSame([], $state['clues']);
+    }
+
+    /**
      * ensure_round_state() builds a real puzzle from the approved pool.
      *
      * @covers \mod_playercross\local\round_service::ensure_round_state
