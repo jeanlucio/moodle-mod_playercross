@@ -24,6 +24,8 @@
 
 require(__DIR__ . '/../../config.php');
 
+use mod_playercross\local\view_page_service;
+
 $id = required_param('id', PARAM_INT);
 $cm = get_coursemodule_from_id('playercross', $id, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
@@ -42,6 +44,16 @@ $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
 $PAGE->requires->css('/mod/playercross/styles.css');
 
+$pagedata = view_page_service::build_page_data($cm, $instance, $context, (int)$USER->id);
+
+$PAGE->requires->js_call_amd('mod_playercross/game', 'init', [
+    (int)($pagedata['cooldownuntil'] ?? 0),
+    (int)($pagedata['timeleft'] ?? 0),
+    (int)($pagedata['timertotal'] ?? 0),
+    (int)$cm->id,
+    (bool)($pagedata['shouldautoshowintro'] ?? false),
+]);
+
 echo $OUTPUT->header();
-echo html_writer::div(get_string('viewplaceholder', 'mod_playercross'), 'mod-playercross-placeholder');
+echo $OUTPUT->render_from_template('mod_playercross/game', $pagedata['templatecontext']);
 echo $OUTPUT->footer();

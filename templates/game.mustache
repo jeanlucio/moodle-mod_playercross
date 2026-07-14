@@ -1,0 +1,155 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_playercross/game
+
+    Game interface for a PlayerCross round.
+
+    Example context (json):
+    {
+        "helptitle": "How to play",
+        "introtext": "Solve clues about course concepts. Each correct answer reveals shared letters of the mystery phrase.",
+        "legendrevealedlabel": "Revealed: this letter is known.",
+        "legendhiddenlabel": "Hidden: this letter is not known yet.",
+        "cluestext": "Each clue is a separate word; guess it in the box next to it.",
+        "hinttext": "A hint may be available for each clue, depending on how the teacher configured the activity.",
+        "finalguesstext": "You can guess the mystery phrase directly at any time, even with clues still pending.",
+        "timertext": "Some activities have a time limit per round.",
+        "showhud": true,
+        "hudtext": "This activity may require PlayerHUD items to start a round or reveal a hint, and can reward you with an item for winning a round.",
+        "showgrading": true,
+        "gradingtext": "Grading method: Highest grade.",
+        "reviewhint": "You can review these instructions anytime by clicking the help icon at the top of the game.",
+        "hastheme": true,
+        "nogamewords": "No approved words are available for this activity yet.",
+        "showforfeit": true,
+        "forfeitlabel": "Give up",
+        "forfeitconfirm": "Are you sure you want to give up?",
+        "showlobby": false,
+        "roundstarted": true,
+        "themetiles": [
+            {"letter": "E", "revealed": true, "arialabel": "E, revealed"},
+            {"letter": "", "revealed": false, "arialabel": "Hidden letter"}
+        ],
+        "themelabel": "Mystery phrase",
+        "clues": [
+            {
+                "clueid": 12,
+                "resolved": false,
+                "exhausted": false,
+                "attemptsused": 1,
+                "wordlength": 4,
+                "revealword": "",
+                "canguess": true,
+                "showhint": false,
+                "hintvalue": "",
+                "canhint": true,
+                "hudhintcost": false,
+                "hudhintcostlabel": "",
+                "canaffordhint": true
+            }
+        ],
+        "cluelabel": "Clue",
+        "cluesresolved": 0,
+        "cluestotal": 5,
+        "cluesprogresslabel": "0 of 5 clues resolved",
+        "timerenabled": false,
+        "timerlabel": "Time left:",
+        "timeleft": 0,
+        "roundfinished": false,
+        "guesslabel": "Your guess",
+        "guessplaceholder": "Type a word",
+        "submitclueguess": "Submit",
+        "hintbuttonlabel": "Hint",
+        "canfinalguess": true,
+        "finalguesslabel": "Mystery phrase",
+        "finalguessplaceholder": "Type the mystery phrase",
+        "submitfinalguess": "Guess the mystery phrase",
+        "feedbackmessage": "",
+        "revealthemeword": "",
+        "revealthemewordlabel": "The mystery phrase was:",
+        "scoreachieved": "",
+        "scoreachievedlabel": "Score achieved:",
+        "cooldowntext": "",
+        "cooldowncountdownlabel": "Next round in",
+        "cooldownactive": false,
+        "newroundlabel": "Start a new round",
+        "showgradesofar": false,
+        "gradesofarmessage": "",
+        "roundsplayedlabel": "",
+        "huditemrewardedlabel": "",
+        "timerenabled_lobby": false,
+        "lobbytimerinfo": "",
+        "hudstartcost": false,
+        "hudstartcostlabel": "",
+        "canstart": true,
+        "startlabel": "Start round",
+        "showgradingmethodinfo": false,
+        "gradingmethodinfo": "",
+        "roundsplayedlabel_lobby": ""
+    }
+}}
+<div class="mod-playercross-game">
+    <div class="pc-header">
+        <div class="pc-toolbar">
+            <button type="button" id="playercross-help-button" class="btn btn-link p-0" data-title="{{helptitle}}">
+                <i class="fa fa-question-circle" aria-hidden="true"></i> {{helptitle}}
+            </button>
+            {{#showforfeit}}
+                <button type="button"
+                        id="playercross-forfeit-button"
+                        class="btn btn-link p-0 text-danger"
+                        data-title="{{forfeitlabel}}"
+                        data-confirm="{{forfeitconfirm}}">
+                    {{forfeitlabel}}
+                </button>
+            {{/showforfeit}}
+        </div>
+        {{#timerenabled}}
+            <span id="playercross-timer-wrapper" class="pc-header-timer"
+                {{#showlobby}}hidden{{/showlobby}}
+                {{#roundfinished}}hidden{{/roundfinished}}>
+                <i class="fa fa-clock-o" aria-hidden="true"></i>
+                <span id="playercross-timer-countdown" aria-label="{{timerlabel}}">{{timeleft}}</span>
+            </span>
+        {{/timerenabled}}
+    </div>
+
+    {{^hastheme}}
+        <div class="alert alert-warning">{{nogamewords}}</div>
+    {{/hastheme}}
+
+    {{#hastheme}}
+        <div id="playercross-stage">
+            {{#showlobby}}
+                {{> mod_playercross/lobby}}
+            {{/showlobby}}
+            {{^showlobby}}
+                {{> mod_playercross/round_panel}}
+            {{/showlobby}}
+        </div>
+    {{/hastheme}}
+
+    <div id="playercross-live-region"
+         class="visually-hidden"
+         aria-live="polite"
+         aria-atomic="true"></div>
+
+    <div id="playercross-help-content" hidden>
+        {{> mod_playercross/help_body}}
+    </div>
+</div>

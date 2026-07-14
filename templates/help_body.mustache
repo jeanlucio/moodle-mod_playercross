@@ -1,0 +1,56 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_playercross/help_body
+
+    How-to-play help content for a PlayerCross activity, shown inside a modal
+    opened from the in-game toolbar (see amd/src/game.js).
+
+    Example context (json):
+    {
+        "introtext": "Solve clues about course concepts. Each correct answer reveals shared letters of the mystery phrase.",
+        "legendrevealedlabel": "Revealed: this letter is known.",
+        "legendhiddenlabel": "Hidden: this letter is not known yet.",
+        "cluestext": "Each clue is a separate word; guess it in the box next to it.",
+        "hinttext": "A hint may be available for each clue, depending on how the teacher configured the activity.",
+        "finalguesstext": "You can guess the mystery phrase directly at any time, even with clues still pending.",
+        "timertext": "Some activities have a time limit per round.",
+        "showhud": true,
+        "hudtext": "This activity may require PlayerHUD items to start a round or reveal a hint, and can reward you with an item for winning a round.",
+        "showgrading": true,
+        "gradingtext": "Grading method: Highest grade.",
+        "reviewhint": "You can review these instructions anytime by clicking the help icon at the top of the game."
+    }
+}}
+<div class="mod-playercross-help-body">
+    <p>{{introtext}}</p>
+    <ul class="mod-playercross-help-legend">
+        <li><span class="pc-legend-swatch is-revealed" aria-hidden="true">A</span> {{legendrevealedlabel}}</li>
+        <li><span class="pc-legend-swatch is-hidden" aria-hidden="true">A</span> {{legendhiddenlabel}}</li>
+    </ul>
+    <p>{{cluestext}}</p>
+    <p>{{hinttext}}</p>
+    <p>{{finalguesstext}}</p>
+    <p>{{timertext}}</p>
+    {{#showhud}}
+        <p>{{hudtext}}</p>
+    {{/showhud}}
+    {{#showgrading}}
+        <p>{{gradingtext}}</p>
+    {{/showgrading}}
+    <p>{{reviewhint}}</p>
+</div>

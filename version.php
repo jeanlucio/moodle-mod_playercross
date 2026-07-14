@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_playercross';
-$plugin->version   = 2026071400;
+$plugin->version   = 2026071401;
 $plugin->requires  = 2024100700; // Moodle 4.5+.
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

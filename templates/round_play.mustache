@@ -1,0 +1,136 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_playercross/round_play
+
+    Clue guess forms and the mystery-phrase final-guess form for an active round.
+    Both use event delegation in amd/src/game.js (form submit on
+    #playercross-clues-list and #playercross-final-guess-form), so this partial can be
+    re-rendered wholesale after every action without re-wiring individual listeners.
+
+    Example context (json):
+    {
+        "clues": [
+            {
+                "clueid": 12,
+                "resolved": false,
+                "exhausted": false,
+                "attemptsused": 1,
+                "wordlength": 4,
+                "revealword": "",
+                "canguess": true,
+                "showhint": false,
+                "hintvalue": "",
+                "canhint": true,
+                "hintbuttonlabel": "Hint",
+                "hudhintcost": false,
+                "hudhintcostlabel": "",
+                "canaffordhint": true
+            },
+            {
+                "clueid": 13,
+                "resolved": true,
+                "exhausted": false,
+                "attemptsused": 1,
+                "wordlength": 6,
+                "revealword": "ESCOLA",
+                "canguess": false,
+                "showhint": false,
+                "hintvalue": "",
+                "canhint": false,
+                "hintbuttonlabel": "Hint",
+                "hudhintcost": false,
+                "hudhintcostlabel": "",
+                "canaffordhint": true
+            }
+        ],
+        "cluelabel": "Clue",
+        "guesslabel": "Your guess",
+        "guessplaceholder": "Type a word",
+        "submitclueguess": "Submit",
+        "hintbuttonlabel": "Hint",
+        "canfinalguess": true,
+        "finalguesslabel": "Mystery phrase",
+        "finalguessplaceholder": "Type the mystery phrase",
+        "submitfinalguess": "Guess the mystery phrase"
+    }
+}}
+<div id="playercross-round-play">
+    <ul id="playercross-clues-list" class="mod-playercross-clues list-unstyled">
+        {{#clues}}
+            <li class="mod-playercross-clue{{#resolved}} is-resolved{{/resolved}}{{#exhausted}} is-exhausted{{/exhausted}}"
+                data-clue-id="{{clueid}}">
+                <div class="mod-playercross-clue-header">
+                    <span class="mod-playercross-clue-label">{{cluelabel}} ({{wordlength}})</span>
+                    {{#resolved}}
+                        <span class="mod-playercross-clue-answer">{{revealword}}</span>
+                    {{/resolved}}
+                    {{#exhausted}}
+                        <span class="text-muted small">{{attemptsused}}</span>
+                    {{/exhausted}}
+                </div>
+                {{#canguess}}
+                    <form class="mod-playercross-clue-form" data-clue-id="{{clueid}}">
+                        <label for="playercross-clue-guess-{{clueid}}" class="visually-hidden">{{guesslabel}}</label>
+                        <input
+                            type="text"
+                            id="playercross-clue-guess-{{clueid}}"
+                            class="form-control form-control-sm"
+                            placeholder="{{guessplaceholder}}"
+                            autocomplete="off"
+                            required
+                        >
+                        <button type="submit" class="btn btn-sm btn-primary">{{submitclueguess}}</button>
+                        {{#canhint}}
+                            <button type="button"
+                                    class="btn btn-sm btn-link playercross-hint-button"
+                                    data-clue-id="{{clueid}}"
+                                    {{#hudhintcost}}
+                                        title="{{hudhintcostlabel}}"
+                                        data-hud-confirm-title="{{hintbuttonlabel}}"
+                                        data-hud-confirm-body="{{hudhintcostlabel}}"
+                                        {{^canaffordhint}}data-hud-confirm-insufficient="1"{{/canaffordhint}}
+                                    {{/hudhintcost}}>
+                                {{hintbuttonlabel}}
+                            </button>
+                        {{/canhint}}
+                    </form>
+                {{/canguess}}
+                {{#showhint}}
+                    <p class="mod-playercross-clue-hint text-muted small mb-0">{{hintvalue}}</p>
+                {{/showhint}}
+            </li>
+        {{/clues}}
+    </ul>
+
+    {{#canfinalguess}}
+        <form id="playercross-final-guess-form" class="mod-playercross-final-guess mt-3">
+            <label for="playercross-final-guess" class="fw-bold">{{finalguesslabel}}</label>
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="playercross-final-guess"
+                    class="form-control"
+                    placeholder="{{finalguessplaceholder}}"
+                    autocomplete="off"
+                    required
+                >
+                <button type="submit" class="btn btn-success">{{submitfinalguess}}</button>
+            </div>
+        </form>
+    {{/canfinalguess}}
+</div>

@@ -1,0 +1,70 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_playercross/round_result
+
+    Post-round panel: feedback message, mystery-phrase reveal, score, cooldown
+    countdown and the new-round action.
+
+    Example context (json):
+    {
+        "feedbackmessage": "You solved the mystery phrase!",
+        "revealthemewordlabel": "The mystery phrase was:",
+        "revealthemeword": "ESCOLA",
+        "scoreachievedlabel": "Score achieved:",
+        "scoreachieved": "85.00",
+        "cooldowntext": "23h 59m 45s",
+        "cooldowncountdownlabel": "Next round in",
+        "cooldownactive": false,
+        "newroundlabel": "Start a new round",
+        "showgradesofar": true,
+        "gradesofarmessage": "Average grade: 6.50 / 10.00.",
+        "roundsplayedlabel": "Rounds played: 3 / 10.",
+        "huditemrewardedlabel": "You received 1× Gold Key!"
+    }
+}}
+<div id="playercross-round-result" tabindex="-1">
+    {{#feedbackmessage}}
+        <p class="mod-playercross-feedback fw-bold mt-3 text-center">{{feedbackmessage}}</p>
+    {{/feedbackmessage}}
+    <div class="mod-playercross-reveal alert alert-secondary mt-3 text-center">
+        <p class="mb-1"><strong>{{revealthemewordlabel}}</strong> {{revealthemeword}}</p>
+        <p class="mb-0">{{scoreachievedlabel}} {{scoreachieved}}</p>
+    </div>
+    {{#showgradesofar}}
+        <p class="mt-2 text-center">{{gradesofarmessage}}</p>
+    {{/showgradesofar}}
+    {{#huditemrewardedlabel}}
+        <p class="mt-2 text-center">{{huditemrewardedlabel}}</p>
+    {{/huditemrewardedlabel}}
+    {{#roundsplayedlabel}}
+        <p class="text-muted small mt-1 text-center">{{roundsplayedlabel}}</p>
+    {{/roundsplayedlabel}}
+    {{#cooldowntext}}
+        <p class="text-muted mt-2 text-center">
+            {{cooldowncountdownlabel}}
+            <strong>
+                <span id="playercross-cooldown-countdown">{{cooldowntext}}</span>
+            </strong>
+        </p>
+    {{/cooldowntext}}
+    {{^cooldownactive}}
+    <div class="text-center">
+        <button type="button" id="playercross-new-round-button" class="btn btn-secondary mt-2">{{newroundlabel}}</button>
+    </div>
+    {{/cooldownactive}}
+</div>
