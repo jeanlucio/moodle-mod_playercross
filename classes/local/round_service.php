@@ -295,11 +295,19 @@ class round_service {
     }
 
     /**
-     * Reveals one still-hidden mystery-phrase slot, optionally consuming a PlayerHUD
-     * item cost. A global action, not scoped to any single clue: the revealed slot
-     * lights up in the mystery phrase and in every pending clue that shares it, exactly
-     * like solving a clue would — this reuses the same revealedslots set submit_clue_guess()
-     * already writes to, so no separate per-clue "hint revealed" state is needed.
+     * Reveals one still-hidden letter anywhere in the round, optionally consuming a
+     * PlayerHUD item cost. A global action, not scoped to any single clue or to the
+     * mystery phrase specifically: the revealed slot lights up in the mystery phrase
+     * and in every pending clue that shares it, exactly like solving a clue would —
+     * this reuses the same revealedslots set submit_clue_guess() already writes to, so
+     * no separate per-clue "hint revealed" state is needed.
+     *
+     * Candidates are every slot in the round-wide slot map (state['slotcount']), which
+     * also numbers letters exclusive to a clue that never appear in the mystery phrase
+     * at all (SCOPE.md §20.2 v1.7) — a hint can therefore reveal a letter inside a
+     * single clue's own word without touching the mystery phrase's own tile row. This
+     * keeps the action useful even after the whole mystery phrase is already revealed,
+     * as long as any clue still has a hidden letter of its own.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.

@@ -43,8 +43,7 @@
                 "attemptsused": 0,
                 "revealword": "",
                 "tiles": [
-                    {"letter": "", "revealed": false, "shared": true, "slotnum": "3", "arialabel": "Hidden letter, slot 3"},
-                    {"letter": "", "revealed": false, "shared": false, "slotnum": "", "arialabel": "Hidden letter, not shared"}
+                    {"letter": "", "revealed": false, "slotnum": "3", "arialabel": "Hidden letter, slot 3"}
                 ],
                 "canguess": true
             }
@@ -52,7 +51,6 @@
         "guesslabel": "Your answer",
         "submitclueguess": "Submit",
         "canfinalguess": true,
-        "finalguesslabel": "Mystery phrase",
         "finalguesslength": 6,
         "submitfinalguess": "Guess the mystery phrase",
         "keyboardlabel": "Virtual keyboard",
@@ -77,14 +75,30 @@
     }
 }}
 <div id="playercross-round-panel">
-    <div class="mod-playercross-theme mb-2" role="img" aria-label="{{themelabel}}">
-        {{#themetiles}}
-            <div class="mod-playercross-tile-wrap">
-                <span class="mod-playercross-tile{{#revealed}} is-revealed{{/revealed}}" aria-label="{{arialabel}}">{{letter}}</span>
-                <span class="mod-playercross-tile-num">{{slotnum}}</span>
-            </div>
-        {{/themetiles}}
-    </div>
+    <form id="playercross-final-guess-form" class="mod-playercross-theme-form mod-playercross-guess-form mb-2">
+        <label {{#canfinalguess}}for="playercross-final-guess" {{/canfinalguess}}class="fw-bold d-block text-center mb-1">
+            {{themelabel}}
+        </label>
+        <div class="mod-playercross-theme">
+            {{#themetiles}}
+                <div class="mod-playercross-tile-wrap">
+                    <span class="mod-playercross-tile{{#revealed}} is-revealed{{/revealed}}" aria-label="{{arialabel}}">{{letter}}</span>
+                    <span class="mod-playercross-tile-num">{{slotnum}}</span>
+                </div>
+            {{/themetiles}}
+        </div>
+        {{#canfinalguess}}
+            <input
+                type="text"
+                id="playercross-final-guess"
+                class="mod-playercross-guess-input"
+                inputmode="none"
+                autocomplete="off"
+                data-length="{{finalguesslength}}"
+            >
+            <button type="submit" class="visually-hidden">{{submitfinalguess}}</button>
+        {{/canfinalguess}}
+    </form>
 
     {{#showglobalhint}}
         <div class="text-center mb-2">

@@ -197,19 +197,7 @@ class submit_clue_guess extends external_api {
                         'This clue\'s word, empty unless resolved or the round finished'
                     ),
                     'tiles' => new external_multiple_structure(
-                        new external_single_structure([
-                            'letter'    => new external_value(PARAM_TEXT, 'Uppercase letter, empty when not revealed'),
-                            'revealed'  => new external_value(PARAM_BOOL, 'Whether this position is revealed'),
-                            'shared'    => new external_value(
-                                PARAM_BOOL,
-                                'Whether this letter corresponds to a mystery-phrase slot at all'
-                            ),
-                            'slotnum'   => new external_value(
-                                PARAM_TEXT,
-                                'Mystery-phrase slot number, empty when revealed or not shared'
-                            ),
-                            'arialabel' => new external_value(PARAM_TEXT, 'Accessible label for this tile'),
-                        ]),
+                        $tilestructure,
                         'This clue\'s own letter-by-letter tile row'
                     ),
                     'canguess' => new external_value(PARAM_BOOL, 'Whether a guess can still be submitted'),
@@ -231,7 +219,6 @@ class submit_clue_guess extends external_api {
             'hudhintcostlabel'   => new external_value(PARAM_TEXT, 'PlayerHUD hint cost label'),
             'canaffordhint'      => new external_value(PARAM_BOOL, 'Whether the user can afford the hint'),
             'canfinalguess'      => new external_value(PARAM_BOOL, 'Whether a final guess can still be submitted'),
-            'finalguesslabel'    => new external_value(PARAM_TEXT, 'Final guess input label'),
             'finalguesslength'   => new external_value(PARAM_INT, 'Mystery phrase length, in characters'),
             'submitfinalguess'   => new external_value(PARAM_TEXT, 'Submit final guess button label'),
             'keyboardlabel' => new external_value(PARAM_TEXT, 'Virtual keyboard accessible group label'),

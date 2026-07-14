@@ -31,11 +31,21 @@ use core_external\external_api;
  * Tests for the mod_playercross_reveal_hint web service.
  *
  * reveal_hint is a round-wide action (SCOPE.md §20.2 v1.5), not scoped to any single
- * clue: it reveals one still-hidden mystery-phrase slot, the same way solving a clue
- * would. make_instance_with_pool() seeds a deterministic two-word pool where the only
- * clue ("livro") covers just 2 of the theme's 6 slots — the other 4 are always-revealed
- * from the start (puzzle_builder's graceful degradation), so exactly 2 reveal_hint
- * calls exhaust the hidden pool, making "no more hints" easy to reach deterministically.
+ * clue or to the mystery phrase specifically (v1.8: it can reveal a letter exclusive
+ * to a clue too) — it always picks the smallest still-hidden slot number anywhere in
+ * the round, the same way solving a clue would reveal its own letters.
+ *
+ * make_instance_with_pool() seeds a deterministic two-word pool: theme "escola" (slots
+ * 1..6) and the sole clue "livro" (l,i,v,r,o), which shares l and o with the theme
+ * (slots 5 and 4) and introduces i, v, r as its own exclusive slots (7, 8, 9 — always
+ * numbered after every theme slot, see puzzle_builder::expand_slots_by_letter()). The
+ * other 4 theme letters (e,s,c,a) are never covered by any clue, so they are
+ * always-revealed from the start (puzzle_builder's graceful degradation). That leaves
+ * exactly 5 slots hidden (4, 5, 7, 8, 9) — 5 reveal_hint calls exhaust them, making "no
+ * more hints" easy to reach deterministically. Because slots are always numbered
+ * lowest-first for the theme, the first two calls specifically land on the theme's own
+ * 4 and 5 (revealing the whole mystery phrase) before ever touching livro's exclusive
+ * 7, 8, 9 — a useful, deterministic ordering this suite relies on more than once below.
  */
 final class reveal_hint_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -147,7 +157,38 @@ final class reveal_hint_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that revealing a hint reveals exactly one more mystery-phrase tile.
+     * Returns every slot number still shown as hidden anywhere in a panel response —
+     * the mystery phrase's own tile row plus every clue's own tile row. A single
+     * successful hint always removes exactly one distinct slot number from this set,
+     * however many tile positions that slot maps to (a repeated letter reveals more
+     * than one position from the same call).
+     *
+     * @param array $panel Panel data from the response.
+     * @return string[] Distinct hidden slot numbers.
+     */
+    private function hidden_slotnums(array $panel): array {
+        $nums = [];
+        foreach ($panel['themetiles'] as $tile) {
+            if ($tile['slotnum'] !== '') {
+                $nums[] = $tile['slotnum'];
+            }
+        }
+        foreach ($panel['clues'] as $clue) {
+            foreach ($clue['tiles'] as $tile) {
+                if ($tile['slotnum'] !== '') {
+                    $nums[] = $tile['slotnum'];
+                }
+            }
+        }
+        return array_values(array_unique($nums));
+    }
+
+    /**
+     * Tests that revealing a hint reveals exactly one more mystery-phrase tile. Valid
+     * for the first two calls specifically because the theme's own slots (4, 5) are
+     * always numbered lower than livro's exclusive ones (7, 8, 9) — see class docblock
+     * — so they are always exhausted first, before the hint ever touches a slot that
+     * would not show up in the mystery phrase's own tile row.
      *
      * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
@@ -169,8 +210,9 @@ final class reveal_hint_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that once every mystery-phrase slot is revealed, a further call is rejected
-     * instead of erroring — the pool here only has 2 slots left to hint (see class docblock).
+     * Tests that once every slot in the round is revealed, a further call is rejected
+     * instead of erroring — the pool here has exactly 5 slots left to hint (see class
+     * docblock): livro's own 2 shared theme letters plus its 3 exclusive ones.
      *
      * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
@@ -179,15 +221,18 @@ final class reveal_hint_test extends \advanced_testcase {
         $instance = $this->make_instance_with_pool();
         $this->setUser($this->student);
 
-        $this->call_reveal_hint($instance->cmid);
-        $exhausted = $this->call_reveal_hint($instance->cmid);
-        $this->assertSame(6, $this->count_revealed_tiles($exhausted['data']['panel']));
+        $panel = null;
+        for ($i = 0; $i < 5; $i++) {
+            $response = $this->call_reveal_hint($instance->cmid);
+            $panel = $response['data']['panel'];
+        }
+        $this->assertSame([], $this->hidden_slotnums($panel));
 
         $rejected = $this->call_reveal_hint($instance->cmid);
 
         $this->assertFalse($rejected['error']);
         $this->assertSame('warning', $rejected['data']['notificationtype']);
-        $this->assertSame(6, $this->count_revealed_tiles($rejected['data']['panel']));
+        $this->assertSame([], $this->hidden_slotnums($rejected['data']['panel']));
     }
 
     /**

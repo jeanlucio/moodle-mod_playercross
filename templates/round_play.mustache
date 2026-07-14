@@ -17,16 +17,24 @@
 {{!
     @template mod_playercross/round_play
 
-    Clue guess forms and the mystery-phrase final-guess form for an active round.
-    Both use event delegation in amd/src/game.js (form submit on
-    #playercross-clues-list and #playercross-final-guess-form), so this partial can be
-    re-rendered wholesale after every action without re-wiring individual listeners.
+    Clue guess forms and the shared virtual keyboard for an active round. The
+    mystery-phrase's own guess form lives in mod_playercross/round_panel, not here —
+    both share the .mod-playercross-guess-form class so amd/src/game.js can wire click-
+    to-activate, live tile mirroring and submission with a single set of delegated
+    listeners on #playercross-stage, re-rendered wholesale after every action without
+    re-wiring individual listeners.
 
     Each clue's phrase is always shown — it is the question itself, not an optional
     reveal. The answer is typed into a real text input (inputmode="none", so the
-    device's own on-screen keyboard never appears — see amd/src/game.js's own virtual
-    keyboard), and mirrored live as a row of tiles: revealed and hidden-with-slot-number
-    for letters shared with the mystery phrase, a plain marker for letters that are not.
+    device's own on-screen keyboard never appears — see the virtual keyboard below),
+    and mirrored live as a row of tiles, each hidden position carrying the slot number
+    it shares with every other word in the round that also contains that letter.
+
+    No guess form carries a visible submit button — every guess is confirmed via the
+    virtual keyboard's own Enviar key (or a physical Enter key), never a separate
+    on-screen button. Each form still keeps a `.visually-hidden` submit button so a
+    lone text field still submits on Enter and screen readers have a discoverable
+    action, even though nothing is painted on screen for it.
 
     Example context (json):
     {
@@ -39,9 +47,8 @@
                 "attemptsused": 1,
                 "revealword": "",
                 "tiles": [
-                    {"letter": "", "revealed": false, "shared": true, "slotnum": "3", "arialabel": "Hidden letter, slot 3"},
-                    {"letter": "A", "revealed": true, "shared": true, "slotnum": "", "arialabel": "A, revealed"},
-                    {"letter": "", "revealed": false, "shared": false, "slotnum": "", "arialabel": "Hidden letter, not shared"}
+                    {"letter": "", "revealed": false, "slotnum": "3", "arialabel": "Hidden letter, slot 3"},
+                    {"letter": "A", "revealed": true, "slotnum": "", "arialabel": "A, revealed"}
                 ],
                 "canguess": true
             },
@@ -58,10 +65,6 @@
         ],
         "guesslabel": "Your answer",
         "submitclueguess": "Submit",
-        "canfinalguess": true,
-        "finalguesslabel": "Mystery phrase",
-        "finalguesslength": 6,
-        "submitfinalguess": "Guess the mystery phrase",
         "keyboardlabel": "Virtual keyboard",
         "keyboardenterlabel": "Submit",
         "keyboardentertext": "Send",
@@ -82,7 +85,7 @@
                     <span class="text-muted small">{{attemptsused}}</span>
                 {{/exhausted}}
                 {{#canguess}}
-                    <form class="mod-playercross-clue-form" data-clue-id="{{clueid}}">
+                    <form class="mod-playercross-clue-form mod-playercross-guess-form" data-clue-id="{{clueid}}">
                         <label for="playercross-clue-guess-{{clueid}}" class="visually-hidden">{{guesslabel}}</label>
                         <input
                             type="text"
@@ -95,35 +98,18 @@
                         <div class="mod-playercross-clue-tiles" data-clue-tiles="{{clueid}}">
                             {{#tiles}}
                                 <div class="mod-playercross-tile-wrap small">
-                                    <span class="mod-playercross-tile{{#revealed}} is-revealed{{/revealed}}{{^shared}} is-unshared{{/shared}}"
+                                    <span class="mod-playercross-tile{{#revealed}} is-revealed{{/revealed}}"
                                           aria-label="{{arialabel}}">{{letter}}</span>
                                     <span class="mod-playercross-tile-num">{{slotnum}}</span>
                                 </div>
                             {{/tiles}}
                         </div>
-                        <button type="submit" class="mod-playercross-submit-btn">{{submitclueguess}}</button>
+                        <button type="submit" class="visually-hidden">{{submitclueguess}}</button>
                     </form>
                 {{/canguess}}
             </li>
         {{/clues}}
     </ul>
-
-    {{#canfinalguess}}
-        <form id="playercross-final-guess-form" class="mod-playercross-final-guess mt-3">
-            <label for="playercross-final-guess" class="fw-bold">{{finalguesslabel}}</label>
-            <input
-                type="text"
-                id="playercross-final-guess"
-                class="mod-playercross-guess-input"
-                inputmode="none"
-                autocomplete="off"
-                data-length="{{finalguesslength}}"
-                required
-            >
-            <div class="mod-playercross-clue-tiles" data-final-tiles="1"></div>
-            <button type="submit" class="mod-playercross-submit-btn primary">{{submitfinalguess}}</button>
-        </form>
-    {{/canfinalguess}}
 
     <div id="playercross-keyboard" class="mod-playercross-keyboard" role="group" aria-label="{{keyboardlabel}}">
         <div class="mod-playercross-keyboard-row">

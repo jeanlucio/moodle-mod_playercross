@@ -24,13 +24,16 @@
  * Templates.replaceNodeContents()), so delegation survives every AJAX round-trip
  * without needing to be rewired.
  *
- * A single virtual keyboard writes into whichever clue's (or the final guess's) real
- * <input> last received focus, tracked in activeInput below. Each clue keeps its own
- * source-of-truth <input> (inputmode="none", so the device's own keyboard never
- * appears); typed letters are mirrored live into that clue's tile row for visual
- * feedback, overlaying whatever the server originally rendered there (a revealed
- * letter or a hidden slot's number), restored once the typed text no longer reaches
- * that position.
+ * A single virtual keyboard writes into whichever guess input last received focus,
+ * tracked in activeInput below — a clue's own input, or the mystery phrase's own
+ * (rendered inline above the clue list, not a separate section: see
+ * mod_playercross/round_panel). Every guess row keeps its own source-of-truth <input>
+ * (inputmode="none", so the device's own keyboard never appears); typed letters are
+ * mirrored live into that row's tile row for visual feedback, overlaying whatever the
+ * server originally rendered there (a revealed letter or a hidden slot's number),
+ * restored once the typed text no longer reaches that position. No row carries a
+ * visible submit button — every guess is confirmed via the keyboard's own Enviar key
+ * or a physical Enter key.
  *
  * @module     mod_playercross/game
  * @copyright  2026 Jean Lúcio
@@ -264,7 +267,7 @@ const initForfeit = (cmid) => {
 };
 
 /**
- * Returns how many letters a guess input accepts: the final-guess input carries its
+ * Returns how many letters a guess input accepts: the mystery-phrase input carries its
  * own data-length attribute, while a clue input has none — its length is exactly the
  * number of tiles already rendered for that clue.
  *
@@ -275,46 +278,24 @@ const getMaxLength = (input) => {
     if (input.dataset.length) {
         return parseInt(input.dataset.length, 10) || 0;
     }
-    const tiles = input.closest('.mod-playercross-clue-form')?.querySelectorAll('.mod-playercross-tile');
+    const tiles = input.closest('.mod-playercross-guess-form')?.querySelectorAll('.mod-playercross-tile');
     return tiles ? tiles.length : 0;
-};
-
-/**
- * Builds the final-guess tile row client-side: unlike a clue's tiles (which encode
- * revealed/hidden state computed server-side), the mystery phrase's own reveal state
- * already has its own row above (.mod-playercross-theme) — these tiles are a plain
- * typing preview, so there is no server array for them, only the guess length.
- *
- * @param {HTMLElement} container Empty div with data-final-tiles="1".
- * @param {number} length Number of letters in the mystery phrase.
- */
-const buildFinalGuessTiles = (container, length) => {
-    container.textContent = '';
-    for (let i = 0; i < length; i++) {
-        const wrap = document.createElement('div');
-        wrap.className = 'mod-playercross-tile-wrap';
-        const tile = document.createElement('span');
-        tile.className = 'mod-playercross-tile';
-        tile.setAttribute('aria-hidden', 'true');
-        wrap.appendChild(tile);
-        wrap.appendChild(document.createElement('span')).className = 'mod-playercross-tile-num';
-        container.appendChild(wrap);
-    }
 };
 
 /**
  * Mirrors a guess input's current value into its tile row, letter by letter,
  * overlaying whatever each tile originally showed (a revealed letter or a hidden
- * slot's number). Positions the typed text has not reached yet fall back to that
- * original content, captured into a data attribute the first time this runs for a
- * given tile — so backspacing past a position restores it exactly as the server
- * rendered it.
+ * slot's number) — both the mystery phrase's own row and every clue's row are always
+ * server-rendered this way, so the same logic mirrors into either one. Positions the
+ * typed text has not reached yet fall back to that original content, captured into a
+ * data attribute the first time this runs for a given tile — so backspacing past a
+ * position restores it exactly as the server rendered it.
  *
  * @param {HTMLElement} input Guess input that just changed.
  */
 const updateTilePreview = (input) => {
     const tilesContainer = input.id === 'playercross-final-guess'
-        ? document.querySelector('.mod-playercross-clue-tiles[data-final-tiles="1"]')
+        ? document.querySelector('.mod-playercross-theme')
         : input.closest('.mod-playercross-clue-form')?.querySelector('.mod-playercross-clue-tiles');
     if (!tilesContainer) {
         return;
@@ -352,19 +333,21 @@ const filterAndPreview = (input) => {
 };
 
 /**
- * Marks the clue containing the focused guess input as active (amber highlight) and
- * remembers it as the virtual keyboard's write target. Delegated on focusin (see
- * wireStageDelegation), so it fires whether focus arrived via a click on the clue's
- * tile row, physical Tab navigation, or a script-driven .focus() call.
+ * Marks the guess row containing the focused input as active (amber highlight) — a
+ * clue's own <li> card, or the mystery phrase's <form> when that is the target — and
+ * remembers the input as the virtual keyboard's write target. Delegated on focusin
+ * (see wireStageDelegation), so it fires whether focus arrived via a click on the
+ * row's tiles, physical Tab navigation, or a script-driven .focus() call.
  *
  * @param {HTMLElement} input Guess input that just gained focus.
  */
 const setActiveInput = (input) => {
     activeInput = input;
-    document.querySelectorAll('.mod-playercross-clue.is-active').forEach((li) => {
-        li.classList.remove('is-active');
+    document.querySelectorAll('.mod-playercross-clue.is-active, .mod-playercross-theme-form.is-active').forEach((el) => {
+        el.classList.remove('is-active');
     });
-    input.closest('.mod-playercross-clue')?.classList.add('is-active');
+    const row = input.closest('.mod-playercross-clue') ?? input.closest('.mod-playercross-theme-form');
+    row?.classList.add('is-active');
 };
 
 /**
@@ -403,23 +386,10 @@ const restoreFinalGuess = (guess) => {
 };
 
 /**
- * Builds the final-guess tile row for the round panel just rendered, if not already
- * built. Called both after every AJAX re-render and once on the initial page load, so
- * the tile row is present even before the player types a single letter.
- */
-const setupFinalGuessTiles = () => {
-    const input = document.getElementById('playercross-final-guess');
-    const tiles = document.querySelector('.mod-playercross-clue-tiles[data-final-tiles="1"]');
-    if (input && tiles && !tiles.childElementCount) {
-        buildFinalGuessTiles(tiles, getMaxLength(input));
-    }
-};
-
-/**
  * Applies the side effects that must run after every stage re-render: the round or
- * cooldown countdown, the forfeit button's visibility, the final-guess tile row, and
- * moving focus to the first pending clue (or the final guess, if every clue is
- * resolved) so continuous typing can carry straight on from one guess to the next.
+ * cooldown countdown, the forfeit button's visibility, and moving focus to the first
+ * pending clue (or the mystery-phrase input, if every clue is resolved) so continuous
+ * typing can carry straight on from one guess to the next.
  *
  * @param {Object} panelcontext Context matching mod_playercross/round_panel.
  * @param {number} cmid Course-module id.
@@ -448,7 +418,6 @@ const applyPanelSideEffects = (panelcontext, cmid, timertotal) => {
         startTimer(panelcontext.timeleft, timertotal, cmid);
     }
 
-    setupFinalGuessTiles();
     const firstClueInput = document.querySelector('#playercross-clues-list .mod-playercross-guess-input');
     const finalInput = document.getElementById('playercross-final-guess');
     (firstClueInput ?? finalInput)?.focus({preventScroll: true});
@@ -652,9 +621,10 @@ const handleKeyboardKey = (key) => {
 
 /**
  * Wires a round-result's new-round button via mod_playercross_new_round, the global
- * hint button, click-to-activate on clue rows and the final-guess row, the virtual
- * keyboard, and the clue/final-guess forms — all via event delegation on
- * #playercross-stage, which is never itself replaced across re-renders.
+ * hint button, click-to-activate on any guess row, the virtual keyboard, and every
+ * guess form (clues and the mystery phrase alike, both share .mod-playercross-guess-
+ * form) — all via event delegation on #playercross-stage, which is never itself
+ * replaced across re-renders.
  *
  * @param {number} cmid Course-module id.
  * @param {number} timertotal Total seconds configured for the round (0 = no timer).
@@ -721,10 +691,7 @@ const wireStageDelegation = (cmid, timertotal) => {
             return;
         }
 
-        if (e.target.closest('.mod-playercross-submit-btn')) {
-            return;
-        }
-        const activatable = e.target.closest('.mod-playercross-clue-form, .mod-playercross-final-guess');
+        const activatable = e.target.closest('.mod-playercross-guess-form');
         activatable?.querySelector('.mod-playercross-guess-input')?.focus();
     });
 
@@ -743,18 +710,15 @@ const wireStageDelegation = (cmid, timertotal) => {
     });
 
     stage.addEventListener('submit', async(e) => {
-        const clueForm = e.target.closest('.mod-playercross-clue-form');
-        if (clueForm) {
-            e.preventDefault();
-            const clueid = Number(clueForm.dataset.clueId);
-            const guess = clueForm.querySelector('.mod-playercross-guess-input').value;
-            await submitClueGuess(cmid, clueid, guess, timertotal);
+        const form = e.target.closest('.mod-playercross-guess-form');
+        if (!form) {
             return;
         }
-
-        if (e.target.id === 'playercross-final-guess-form') {
-            e.preventDefault();
-            const guess = document.getElementById('playercross-final-guess').value;
+        e.preventDefault();
+        const guess = form.querySelector('.mod-playercross-guess-input').value;
+        if (form.dataset.clueId) {
+            await submitClueGuess(cmid, Number(form.dataset.clueId), guess, timertotal);
+        } else {
             await submitFinalGuess(cmid, guess, timertotal);
         }
     });
@@ -774,7 +738,6 @@ const init = (cooldownUntil, timeleft, timertotal, cmid, shouldAutoShowIntro) =>
     initForfeit(cmid);
     wireStartRound(cmid, timertotal || 0);
     wireStageDelegation(cmid, timertotal || 0);
-    setupFinalGuessTiles();
     if (timeleft > 0) {
         startTimer(timeleft, timertotal || 0, cmid);
     }

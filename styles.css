@@ -140,6 +140,18 @@
     outline-offset: 2px;
 }
 
+.path-mod-playercross .mod-playercross-theme-form {
+    text-align: center;
+    border: 1px solid transparent;
+    border-radius: 0.5rem;
+    padding: 0.375rem;
+}
+
+.path-mod-playercross .mod-playercross-theme-form.is-active {
+    border-color: var(--warning, #ffc107);
+    box-shadow: 0 0 0 2px var(--warning, #ffc107);
+}
+
 .path-mod-playercross .mod-playercross-theme {
     display: flex;
     flex-wrap: wrap;
@@ -194,11 +206,6 @@
 .path-mod-playercross .mod-playercross-tile-wrap.small .mod-playercross-tile-num {
     height: 0.75rem;
     font-size: 0.6rem;
-}
-
-.path-mod-playercross .mod-playercross-tile.is-unshared {
-    background-color: var(--gray-100, #f8f9fa);
-    border-style: dashed;
 }
 
 .path-mod-playercross .mod-playercross-clues {
@@ -256,54 +263,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
-}
-
-.path-mod-playercross .mod-playercross-submit-btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.375rem 0.875rem;
-    border: 1px solid var(--gray-400, #ced4da);
-    border-radius: 0.375rem;
-    background-color: var(--gray-200, #e9ecef);
-    color: var(--body-color, #212529);
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-
-.path-mod-playercross .mod-playercross-submit-btn:hover,
-.path-mod-playercross .mod-playercross-submit-btn:focus-visible {
-    background-color: var(--gray-300, #dee2e6);
-}
-
-.path-mod-playercross .mod-playercross-submit-btn.primary {
-    background-color: var(--primary, #0f6cbf);
-    border-color: var(--primary, #0f6cbf);
-    color: var(--white, #fff);
-}
-
-.path-mod-playercross .mod-playercross-submit-btn.primary:hover,
-.path-mod-playercross .mod-playercross-submit-btn.primary:focus-visible {
-    background-color: #0c5aa0;
-    border-color: #0c5aa0;
-}
-
-.path-mod-playercross .mod-playercross-final-guess {
-    max-width: 30rem;
-    margin-inline: auto;
-    text-align: center;
-    padding-top: 0.5rem;
-    border-top: 1px dashed var(--gray-300, #dee2e6);
-}
-
-.path-mod-playercross .mod-playercross-final-guess > label {
-    display: block;
-    margin-bottom: 0.375rem;
-}
-
-.path-mod-playercross .mod-playercross-final-guess .mod-playercross-clue-tiles {
-    justify-content: center;
-    margin-bottom: 0.5rem;
 }
 
 .path-mod-playercross .mod-playercross-keyboard {

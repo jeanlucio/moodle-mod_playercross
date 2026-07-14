@@ -47,8 +47,9 @@ final class puzzle_builder_test extends \advanced_testcase {
     }
 
     /**
-     * A clue pool that jointly contains every distinct letter of the mystery phrase
-     * leaves no slot always-revealed, regardless of the order ties are broken in.
+     * A clue pool that jointly contains every distinct letter of the mystery phrase,
+     * and no letter outside it, leaves no slot always-revealed and introduces no extra
+     * slots beyond the theme's own — regardless of the order ties are broken in.
      *
      * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
@@ -61,9 +62,9 @@ final class puzzle_builder_test extends \advanced_testcase {
         ]);
 
         $this->modgenerator->create_word($instance->id, 'escola'); // Letters e,s,c,o,l,a — the theme candidate.
-        $this->modgenerator->create_word($instance->id, 'casa');   // Covers c, a, s.
-        $this->modgenerator->create_word($instance->id, 'lobo');   // Covers l, o.
-        $this->modgenerator->create_word($instance->id, 'mel');    // Covers e, l.
+        $this->modgenerator->create_word($instance->id, 'casa');   // Covers c, a, s — all in escola.
+        $this->modgenerator->create_word($instance->id, 'cole');   // Covers c, o, l, e — all in escola.
+        $this->modgenerator->create_word($instance->id, 'sala');   // Covers s, a, l — all in escola.
 
         $puzzle = puzzle_builder::build_round($instance);
 
@@ -71,6 +72,54 @@ final class puzzle_builder_test extends \advanced_testcase {
         $this->assertCount(6, $puzzle->themeslots);
         $this->assertCount(3, $puzzle->clues);
         $this->assertSame([], $puzzle->alwaysrevealedslots);
+    }
+
+    /**
+     * Two clue words that share a letter which does not appear in the mystery phrase
+     * at all must still be assigned the very same slot number for it — the round-wide
+     * slot map (SCOPE.md §20.2 v1.7) covers every letter in the round, not just the
+     * theme's own, so resolving one such clue cross-reveals that letter directly in
+     * the other, without going through the mystery phrase.
+     *
+     * @covers \mod_playercross\local\puzzle_builder::build_round
+     * @return void
+     */
+    public function test_build_round_shares_slot_for_letter_exclusive_to_clues(): void {
+        $instance = $this->modgenerator->create_instance([
+            'course' => $this->course->id,
+            'num_clues' => 2,
+            'theme_min_length' => 4,
+        ]);
+
+        // Theme word "casa" (c,a,s) never contains the letter e; both clue candidates
+        // below do, and only those two candidates exist in the pool, so the pool
+        // exactly fills num_clues and clue selection order cannot affect this test.
+        $this->modgenerator->create_word($instance->id, 'casa');
+        $this->modgenerator->create_word($instance->id, 'mel');
+        $this->modgenerator->create_word($instance->id, 'fez');
+
+        $puzzle = puzzle_builder::build_round($instance);
+
+        $this->assertCount(2, $puzzle->clues);
+        $byword = [];
+        foreach ($puzzle->clues as $clue) {
+            $byword[$clue->word] = $clue;
+        }
+        $this->assertArrayHasKey('mel', $byword);
+        $this->assertArrayHasKey('fez', $byword);
+
+        // The letter e is the second character of both "mel" and "fez".
+        $eslotmel = $byword['mel']->slots[1];
+        $eslotfez = $byword['fez']->slots[1];
+        $this->assertSame($eslotmel, $eslotfez);
+        $this->assertGreaterThan(3, $eslotmel); // Numbered after the theme's own c,a,s.
+
+        $expecteddistinctletters = count(array_unique(array_merge(
+            word_normalizer::chars('casa'),
+            word_normalizer::chars('mel'),
+            word_normalizer::chars('fez')
+        )));
+        $this->assertSame($expecteddistinctletters, $puzzle->slotcount);
     }
 
     /**

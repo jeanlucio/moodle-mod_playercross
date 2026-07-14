@@ -64,6 +64,11 @@ final class round_presenter_test extends \advanced_testcase {
      * Returns a minimal default state array for the theme word "escola" (6 distinct
      * letters, cipher slots 1..6 in order) and one clue "livro", overridable per test.
      *
+     * "livro" shares l (slot 5) and o (slot 4) with the theme; its own i, v, r do not
+     * appear in "escola" at all, so under the round-wide slot map (SCOPE.md §20.2
+     * v1.7) they still get their own slot numbers (7, 8, 9 — continuing right after
+     * the theme's own 1..6), rather than staying number-less as they did before.
+     *
      * @param array $overrides State field overrides.
      * @return array
      */
@@ -72,14 +77,14 @@ final class round_presenter_test extends \advanced_testcase {
             'themewordid'      => 1,
             'themeword'        => 'escola',
             'themeslots'       => [1, 2, 3, 4, 5, 6],
-            'slotcount'        => 6,
+            'slotcount'        => 9,
             'revealedslots'    => [],
             'clues'            => [
                 [
                     'wordid'       => 2,
                     'word'         => 'livro',
                     'hint'         => 'dica',
-                    'slots'        => [4, 5],
+                    'slots'        => [5, 7, 8, 9, 4],
                     'resolved'     => false,
                     'attemptsused' => 0,
                     'exhausted'    => false,
@@ -155,9 +160,11 @@ final class round_presenter_test extends \advanced_testcase {
 
     /**
      * Tests that an unresolved clue never reveals its word, and can still be guessed.
-     * Its tile row shows the two letters shared with the mystery phrase (l, o) as
-     * hidden-with-slot-number, and the three unshared letters (i, v, r) as hidden
-     * without a slot number — none of them revealed while revealedslots is empty.
+     * Every position in its tile row carries a slot number while hidden — both the
+     * letters shared with the mystery phrase (l, slot 5; o, slot 4) and the letters
+     * exclusive to this clue (i, v, r; slots 7, 8, 9), since the round-wide slot map
+     * covers every letter in the round, not just the theme's own (SCOPE.md §20.2
+     * v1.7) — none of them revealed while revealedslots is empty.
      *
      * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
@@ -174,10 +181,8 @@ final class round_presenter_test extends \advanced_testcase {
         foreach ($rows[0]['tiles'] as $tile) {
             $this->assertFalse($tile['revealed']);
         }
-        $this->assertTrue($rows[0]['tiles'][0]['shared']);
         $this->assertSame('5', $rows[0]['tiles'][0]['slotnum']);
-        $this->assertFalse($rows[0]['tiles'][1]['shared']);
-        $this->assertSame('', $rows[0]['tiles'][1]['slotnum']);
+        $this->assertSame('7', $rows[0]['tiles'][1]['slotnum']);
     }
 
     /**
@@ -589,8 +594,10 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * The round-wide hint action is offered while at least one slot is still hidden,
-     * and withdrawn once every slot is already revealed — nothing left to hint.
+     * The round-wide hint action is offered while at least one slot anywhere in the
+     * round is still hidden — including a clue-exclusive slot that never appears in
+     * the mystery phrase at all (SCOPE.md §20.2 v1.8) — and withdrawn only once every
+     * slot in the round is already revealed.
      *
      * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
@@ -603,7 +610,10 @@ final class round_presenter_test extends \advanced_testcase {
         $partial = round_presenter::build_round_panel_context(
             $instance,
             $cm,
-            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5]]),
+            // Every theme slot (1..6) revealed, but slots 7..9 (livro's own i, v, r)
+            // stay hidden — the hint must still be offered, since it can still reveal
+            // one of those clue-exclusive letters.
+            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6]]),
             $user->id
         );
         $this->assertTrue($partial['showglobalhint']);
@@ -611,7 +621,7 @@ final class round_presenter_test extends \advanced_testcase {
         $complete = round_presenter::build_round_panel_context(
             $instance,
             $cm,
-            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6]]),
+            $this->make_state(['revealedslots' => range(1, 9)]),
             $user->id
         );
         $this->assertFalse($complete['showglobalhint']);

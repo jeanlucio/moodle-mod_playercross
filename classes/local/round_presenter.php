@@ -46,13 +46,28 @@ class round_presenter {
      * @return array
      */
     public static function build_theme_tiles(array $state, bool $roundfinished): array {
-        $chars = word_normalizer::chars($state['themeword']);
-        $revealedslots = $state['revealedslots'];
+        return self::build_word_tiles($state['themeword'], $state['themeslots'], $state['revealedslots'], $roundfinished);
+    }
 
+    /**
+     * Builds one word's per-letter tile row from its own per-position slot array
+     * (already computed round-wide by puzzle_builder — see SCOPE.md §20.2 v1.7): every
+     * letter always has a slot number, so a solved clue can cross-reveal a shared
+     * letter directly in another clue, not only through the mystery phrase.
+     *
+     * @param string $word A word, already normalized (the theme word or a clue's own word).
+     * @param int[] $slots Per-position slot numbers, parallel to $word's characters.
+     * @param array $revealedslots Currently revealed slot numbers.
+     * @param bool $reveal Whether the whole word is already known (resolved, or round finished).
+     * @return array
+     */
+    private static function build_word_tiles(string $word, array $slots, array $revealedslots, bool $reveal): array {
         $tiles = [];
-        foreach ($state['themeslots'] as $position => $slot) {
-            $isrevealed = $roundfinished || in_array($slot, $revealedslots, true);
-            $letter = $isrevealed ? core_text::strtoupper($chars[$position] ?? '') : '';
+        foreach (word_normalizer::chars($word) as $position => $char) {
+            $slot = $slots[$position];
+            $isrevealed = $reveal || in_array($slot, $revealedslots, true);
+            $letter = $isrevealed ? core_text::strtoupper($char) : '';
+
             $tiles[] = [
                 'letter'    => s($letter),
                 'revealed'  => $isrevealed,
@@ -62,69 +77,13 @@ class round_presenter {
                     : get_string('tile_state_hidden_numbered', 'mod_playercross', $slot),
             ];
         }
-
-        return $tiles;
-    }
-
-    /**
-     * Maps each of the mystery phrase's own distinct letters to its slot number,
-     * derived from state already computed by puzzle_builder — themeword and themeslots
-     * are parallel arrays (one slot number per character position). Shared by
-     * build_clue_tiles() to work out, per clue, which of its own letters correspond to
-     * a mystery-phrase slot at all.
-     *
-     * @param array $state Session state.
-     * @return array Letter => slot number.
-     */
-    private static function build_slots_by_letter(array $state): array {
-        $chars = word_normalizer::chars($state['themeword']);
-        $slotsbyletter = [];
-        foreach ($chars as $position => $char) {
-            $slotsbyletter[$char] = $state['themeslots'][$position];
-        }
-        return $slotsbyletter;
-    }
-
-    /**
-     * Builds one clue's own per-letter tile row. A letter that does not correspond to
-     * any mystery-phrase slot ("unshared") can only ever be revealed by resolving this
-     * clue itself — it is never cross-revealed by another clue or by the global hint.
-     *
-     * @param string $word Clue's own word, already normalized.
-     * @param array $slotsbyletter Letter => slot number map, see build_slots_by_letter().
-     * @param array $revealedslots Currently revealed slot numbers.
-     * @param bool $reveal Whether the whole clue is already known (resolved, or round finished).
-     * @return array
-     */
-    private static function build_clue_tiles(string $word, array $slotsbyletter, array $revealedslots, bool $reveal): array {
-        $tiles = [];
-        foreach (word_normalizer::chars($word) as $char) {
-            $slot = $slotsbyletter[$char] ?? null;
-            $shared = ($slot !== null);
-            $isrevealed = $reveal || ($shared && in_array($slot, $revealedslots, true));
-            $letter = $isrevealed ? core_text::strtoupper($char) : '';
-
-            $arialabel = $isrevealed
-                ? get_string('tile_state_revealed', 'mod_playercross', $letter)
-                : ($shared
-                    ? get_string('tile_state_hidden_numbered', 'mod_playercross', $slot)
-                    : get_string('tile_state_hidden_unshared', 'mod_playercross'));
-
-            $tiles[] = [
-                'letter'    => s($letter),
-                'revealed'  => $isrevealed,
-                'shared'    => $shared,
-                'slotnum'   => ($shared && !$isrevealed) ? (string)$slot : '',
-                'arialabel' => $arialabel,
-            ];
-        }
         return $tiles;
     }
 
     /**
      * Builds the per-clue view rows. The clue's own phrase (hint) is always included —
      * it is the question itself, not an optional reveal — while the answer is only
-     * shown letter-by-letter through build_clue_tiles(), or in full once resolved or
+     * shown letter-by-letter through build_word_tiles(), or in full once resolved or
      * the round has finished.
      *
      * @param array $state Session state.
@@ -132,8 +91,6 @@ class round_presenter {
      * @return array
      */
     public static function build_clue_rows(array $state, bool $roundfinished): array {
-        $slotsbyletter = self::build_slots_by_letter($state);
-
         $rows = [];
         foreach ($state['clues'] as $clue) {
             $reveal = $roundfinished || $clue['resolved'];
@@ -145,7 +102,7 @@ class round_presenter {
                 'exhausted'    => $clue['exhausted'],
                 'attemptsused' => (int)$clue['attemptsused'],
                 'revealword'   => $reveal ? s(core_text::strtoupper($clue['word'])) : '',
-                'tiles'        => self::build_clue_tiles($clue['word'], $slotsbyletter, $state['revealedslots'], $reveal),
+                'tiles'        => self::build_word_tiles($clue['word'], $clue['slots'], $state['revealedslots'], $reveal),
                 'canguess'     => !$clue['resolved'] && !$clue['exhausted'] && !$roundfinished,
             ];
         }
@@ -451,7 +408,6 @@ class round_presenter {
             'guesslabel' => get_string('guesslabel', 'mod_playercross'),
             'submitclueguess' => get_string('submitclueguess', 'mod_playercross'),
             'canfinalguess' => !$roundfinished,
-            'finalguesslabel' => get_string('finalguesslabel', 'mod_playercross'),
             'finalguesslength' => count($state['themeslots']),
             'submitfinalguess' => get_string('submitfinalguess', 'mod_playercross'),
             'forfeitlabel' => get_string('forfeitbutton', 'mod_playercross'),
@@ -466,10 +422,13 @@ class round_presenter {
     }
 
     /**
-     * Builds the single, round-wide "reveal a mystery-phrase letter" hint action —
-     * replaces the old per-clue hint reveal (SCOPE.md §20.2 v1.5): since revealing a
-     * letter here writes to the same revealedslots set a solved clue would, there is
-     * nothing left to hint once every slot is already revealed.
+     * Builds the single, round-wide "reveal a letter" hint action — replaces the old
+     * per-clue hint reveal (SCOPE.md §20.2 v1.5): since revealing a letter here writes
+     * to the same revealedslots set a solved clue would, there is nothing left to hint
+     * once every slot in the round is already revealed. Not restricted to the mystery
+     * phrase's own slots — a letter exclusive to a clue is a valid candidate too, so
+     * the action stays available even once the whole mystery phrase is revealed, as
+     * long as some clue still has a hidden letter of its own (SCOPE.md §20.2 v1.8).
      *
      * @param \stdClass $instance Activity instance record.
      * @param array $state Session state.
