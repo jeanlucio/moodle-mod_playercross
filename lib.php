@@ -456,3 +456,65 @@ function playercross_reset_userdata(stdClass $data): array {
 
     return $status;
 }
+
+/**
+ * Reports the total XP potentially earnable through this course's win-reward configuration,
+ * for block_playerhud's "Total XP no jogo" ceiling estimate.
+ *
+ * Discovered automatically by block_playerhud via get_plugins_with_function() — see
+ * \block_playerhud\local\analytics::game_xp_totals(). Only called when block_playerhud is
+ * active, so \block_playerhud\local\external_items is always available here. An unlimited
+ * activity (max_rounds = 0) contributes nothing, mirroring the same anti-farming rule applied
+ * to the real grant in round_service::finish_round().
+ *
+ * @param int $blockinstanceid PlayerHUD block instance ID to report potential XP for.
+ * @return array Rows shaped like block_playerhud's own item/quest breakdown entries.
+ */
+function playercross_playerhud_grant_potential(int $blockinstanceid): array {
+    global $DB;
+
+    $courseid = $DB->get_field_sql(
+        "SELECT ctx.instanceid
+           FROM {block_instances} bi
+           JOIN {context} ctx ON bi.parentcontextid = ctx.id
+          WHERE bi.id = :biid AND ctx.contextlevel = :clevel",
+        ['biid' => $blockinstanceid, 'clevel' => CONTEXT_COURSE]
+    );
+
+    if (!$courseid) {
+        return [];
+    }
+
+    $instances = $DB->get_records_select(
+        'playercross',
+        'course = :courseid AND hud_win_reward_item > 0 AND max_rounds > 0',
+        ['courseid' => $courseid],
+        '',
+        'id, name, hud_win_reward_item, hud_win_reward_qty, max_rounds'
+    );
+
+    $rows = [];
+    foreach ($instances as $instance) {
+        $itemid = (int)$instance->hud_win_reward_item;
+        $itemxp = \block_playerhud\local\external_items::get_xp($blockinstanceid, $itemid);
+        if ($itemxp <= 0) {
+            // Zero-XP item, or the item does not belong to this block instance (e.g. stale
+            // config copied from another course) — either way, nothing to add here.
+            continue;
+        }
+
+        $qty = max(1, (int)$instance->hud_win_reward_qty);
+
+        $rows[] = [
+            'name'       => format_string($instance->name),
+            'xp_each'    => $itemxp * $qty,
+            'drop_count' => 0,
+            'total_uses' => (int)$instance->max_rounds,
+            'xp_total'   => $itemxp * $qty * (int)$instance->max_rounds,
+            'is_quest'   => false,
+            'infinite'   => false,
+        ];
+    }
+
+    return $rows;
+}

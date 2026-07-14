@@ -131,7 +131,57 @@ class view_page_service {
             'rankingurl' => (new \moodle_url('/mod/playercross/ranking.php', ['id' => $cm->id]))->out(false),
         ]
             + self::build_help_context($instance)
+            + self::build_inactive_words_context($instance, $canmanage)
             + $inner;
+    }
+
+    /**
+     * Builds the context for the word-pool status shown to whoever can manage the
+     * activity — a student never sees any of this. Always includes a count of
+     * currently playable words, a quick "the pool isn't empty" reassurance, and
+     * conditionally the "inactive words" warning: approved pool words that
+     * words_repository::get_candidate_words() would silently exclude from play.
+     *
+     * @param \stdClass $instance Activity instance.
+     * @param bool $canmanage Whether the current user can manage the activity.
+     * @return array
+     */
+    private static function build_inactive_words_context(\stdClass $instance, bool $canmanage): array {
+        if (!$canmanage) {
+            return ['showwordsstatus' => false, 'hasinactivewords' => false];
+        }
+
+        $activecount = count(words_repository::get_candidate_words($instance));
+        $inactive = words_repository::get_inactive_words($instance);
+
+        $lengthwords = [];
+        $charsetwords = [];
+        foreach ($inactive as $entry) {
+            if ($entry['reason'] === 'invalidchars') {
+                $charsetwords[] = $entry['word'];
+            } else {
+                $lengthwords[] = $entry['word'];
+            }
+        }
+
+        return [
+            'showwordsstatus' => true,
+            'activewordscount' => get_string('activewordscount', 'mod_playercross', $activecount),
+            'hasinactivewords' => !empty($inactive),
+            'inactivewordstitle' => get_string('inactivewords_title', 'mod_playercross'),
+            'haslengthissues' => !empty($lengthwords),
+            'lengthissuestext' => !empty($lengthwords) ? get_string('inactivewords_length', 'mod_playercross', (object)[
+                'count' => count($lengthwords),
+                'words' => implode(', ', $lengthwords),
+            ]) : '',
+            'hascharsetissues' => !empty($charsetwords),
+            'charsetissuestext' => !empty($charsetwords)
+                ? get_string('inactivewords_invalidchars', 'mod_playercross', (object)[
+                    'count' => count($charsetwords),
+                    'words' => implode(', ', $charsetwords),
+                ])
+                : '',
+        ];
     }
 
     /**

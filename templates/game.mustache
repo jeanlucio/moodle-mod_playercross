@@ -46,6 +46,14 @@
         "showranking": true,
         "toolbarranking": "Ranking",
         "rankingurl": "https://example.com/mod/playercross/ranking.php?id=1",
+        "showwordsstatus": true,
+        "activewordscount": "12 active words in this game.",
+        "hasinactivewords": false,
+        "inactivewordstitle": "Inactive words in this game:",
+        "haslengthissues": false,
+        "lengthissuestext": "",
+        "hascharsetissues": false,
+        "charsetissuestext": "",
         "showforfeit": true,
         "forfeitlabel": "Give up",
         "forfeitconfirm": "Are you sure you want to give up?",
@@ -161,6 +169,15 @@
             {{/showlobby}}
         </div>
     {{/hastheme}}
+
+    {{#showwordsstatus}}
+        {{#hasinactivewords}}
+            {{> mod_playercross/inactive_words}}
+        {{/hasinactivewords}}
+        {{^hasinactivewords}}
+            <p class="mod-playercross-words-status text-muted small mb-2">{{activewordscount}}</p>
+        {{/hasinactivewords}}
+    {{/showwordsstatus}}
 
     <div id="playercross-live-region"
          class="visually-hidden"

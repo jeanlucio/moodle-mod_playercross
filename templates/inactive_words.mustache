@@ -1,0 +1,46 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_playercross/inactive_words
+
+    Teacher-only warning listing approved pool words that will never actually be
+    drawn into a round (outside the current length range, or containing a character
+    the game cannot use), shown on view.php below the game area. Never rendered for
+    a student — gated by canmanage in view_page_service.php.
+
+    Example context (json):
+    {
+        "activewordscount": "5 active words in this game.",
+        "inactivewordstitle": "Inactive words in this game:",
+        "haslengthissues": true,
+        "lengthissuestext": "Outside the current length range (2): iluminismo, revolucao.",
+        "hascharsetissues": true,
+        "charsetissuestext": "Contains a character the game cannot use (1): café-com-leite."
+    }
+}}
+<div class="mod-playercross-inactive-words alert alert-warning mt-3">
+    <p class="mb-1"><strong>{{activewordscount}}</strong></p>
+    <p class="mb-1"><strong>{{inactivewordstitle}}</strong></p>
+    <ul class="mb-0">
+        {{#haslengthissues}}
+            <li>{{lengthissuestext}}</li>
+        {{/haslengthissues}}
+        {{#hascharsetissues}}
+            <li>{{charsetissuestext}}</li>
+        {{/hascharsetissues}}
+    </ul>
+</div>

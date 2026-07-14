@@ -141,6 +141,34 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->setDefault('max_length', 15);
         $mform->addRule('max_length', null, 'numeric', null, 'client');
 
+        // Only meaningful once the activity already has a pool to count — on first
+        // creation there is no instance id yet and no words have been imported/added.
+        if (!empty($this->_instance)) {
+            $mform->addElement(
+                'static',
+                'eligiblewordscount',
+                '',
+                html_writer::div('', 'alert alert-info py-2 mb-2', [
+                    'id'        => 'playercross-eligible-count',
+                    'aria-live' => 'polite',
+                ])
+            );
+        } else {
+            // No pool exists yet on first creation, but a glossary source already
+            // does — preview how many of its entries would fit the configured
+            // range. Read-only: nothing is written until the form is actually
+            // saved, at which point the real sync creates the pool for real.
+            $mform->addElement(
+                'static',
+                'glossarywordscount',
+                '',
+                html_writer::div('', 'alert alert-info py-2 mb-2', [
+                    'id'        => 'playercross-glossary-preview-count',
+                    'aria-live' => 'polite',
+                ])
+            );
+        }
+
         $mform->addElement(
             'text',
             'max_attempts_per_clue',
@@ -283,6 +311,32 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->setDefault('grademethod', PLAYERCROSS_GRADE_HIGHEST);
         $mform->addHelpButton('grademethod', 'grademethod', 'mod_playercross');
         $mform->hideIf('grademethod', 'grade[modgrade_type]', 'eq', 'none');
+
+        $PAGE->requires->js_call_amd('mod_playercross/grademethod', 'init', [
+            'id_max_rounds',
+            'id_grademethod',
+            (string) PLAYERCROSS_GRADE_AVERAGE_ALL,
+            (string) PLAYERCROSS_GRADE_HIGHEST,
+        ]);
+
+        if (!empty($this->_instance)) {
+            $PAGE->requires->js_call_amd('mod_playercross/eligiblewords', 'init', [
+                (int) $this->_cm->id,
+                'id_min_length',
+                'id_max_length',
+                'playercross-eligible-count',
+            ]);
+        } else {
+            $PAGE->requires->js_call_amd('mod_playercross/glossarypreview', 'init', [
+                (int) $COURSE->id,
+                'id_source_glossary',
+                'id_glossaryid',
+                'id_min_length',
+                'id_max_length',
+                'id_stopwords',
+                'playercross-glossary-preview-count',
+            ]);
+        }
 
         $this->standard_coursemodule_elements();
         $this->add_action_buttons();

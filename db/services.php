@@ -73,4 +73,20 @@ $functions = [
         'capabilities'  => 'mod/playercross:view',
         'loginrequired' => true,
     ],
+    'mod_playercross_count_eligible_words' => [
+        'classname'     => 'mod_playercross\external\count_eligible_words',
+        'description'   => 'Count approved pool words within a given length range for the settings form.',
+        'type'          => 'read',
+        'ajax'          => true,
+        'capabilities'  => 'mod/playercross:addinstance',
+        'loginrequired' => true,
+    ],
+    'mod_playercross_count_glossary_candidates' => [
+        'classname'     => 'mod_playercross\external\count_glossary_candidates',
+        'description'   => 'Preview how many glossary-sourced words fit a length range, before an activity exists.',
+        'type'          => 'read',
+        'ajax'          => true,
+        'capabilities'  => 'mod/playercross:addinstance',
+        'loginrequired' => true,
+    ],
 ];
