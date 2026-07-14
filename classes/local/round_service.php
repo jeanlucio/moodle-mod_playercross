@@ -225,7 +225,6 @@ class round_service {
                 'slots'        => $clue->slots,
                 'resolved'     => false,
                 'attemptsused' => 0,
-                'hintrevealed' => false,
                 'exhausted'    => false,
             ];
         }
@@ -296,18 +295,25 @@ class round_service {
     }
 
     /**
-     * Reveals one clue's hint, optionally consuming a PlayerHUD item cost.
+     * Reveals one still-hidden mystery-phrase slot, optionally consuming a PlayerHUD
+     * item cost. A global action, not scoped to any single clue: the revealed slot
+     * lights up in the mystery phrase and in every pending clue that shares it, exactly
+     * like solving a clue would — this reuses the same revealedslots set submit_clue_guess()
+     * already writes to, so no separate per-clue "hint revealed" state is needed.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
      * @param int $userid User id.
-     * @param int $clueid Clue word id.
      * @return array [$state, $notification, $notificationtype]
      */
-    public static function reveal_hint(array $state, \stdClass $instance, int $userid, int $clueid): array {
-        $index = self::find_clue_index($state, $clueid);
-        if ($index === null || $state['clues'][$index]['resolved'] || $state['clues'][$index]['hintrevealed']) {
-            return [$state, get_string('cluenotavailable', 'mod_playercross'), 'warning'];
+    public static function reveal_hint(array $state, \stdClass $instance, int $userid): array {
+        if (empty($state['themewordid']) || !empty($state['finished'])) {
+            return [$state, get_string('roundfinished', 'mod_playercross'), 'warning'];
+        }
+
+        $hiddenslots = array_values(array_diff(range(1, (int)$state['slotcount']), $state['revealedslots']));
+        if (empty($hiddenslots)) {
+            return [$state, get_string('hintnotavailable', 'mod_playercross'), 'warning'];
         }
 
         $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
@@ -325,9 +331,10 @@ class round_service {
             }
         }
 
-        $state['clues'][$index]['hintrevealed'] = true;
+        sort($hiddenslots);
+        $state['revealedslots'][] = $hiddenslots[0];
 
-        return [$state, null, null];
+        return [$state, get_string('hintrevealed', 'mod_playercross'), 'success'];
     }
 
     /**

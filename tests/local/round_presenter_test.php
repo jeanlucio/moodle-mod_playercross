@@ -79,10 +79,9 @@ final class round_presenter_test extends \advanced_testcase {
                     'wordid'       => 2,
                     'word'         => 'livro',
                     'hint'         => 'dica',
-                    'slots'        => [],
+                    'slots'        => [4, 5],
                     'resolved'     => false,
                     'attemptsused' => 0,
-                    'hintrevealed' => false,
                     'exhausted'    => false,
                 ],
             ],
@@ -119,6 +118,23 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that a hidden theme tile carries its own slot number, and a revealed one
+     * carries none — the number is what lets a student tell which clue would reveal
+     * that position before it happens.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_theme_tiles
+     * @return void
+     */
+    public function test_build_theme_tiles_hidden_tile_carries_slot_number(): void {
+        $state = $this->make_state(['revealedslots' => [1]]);
+
+        $tiles = round_presenter::build_theme_tiles($state, false);
+
+        $this->assertSame('', $tiles[0]['slotnum']);
+        $this->assertSame('2', $tiles[1]['slotnum']);
+    }
+
+    /**
      * Tests that every tile is revealed once the round has finished, regardless of
      * which slots were actually uncovered during play.
      *
@@ -139,57 +155,81 @@ final class round_presenter_test extends \advanced_testcase {
 
     /**
      * Tests that an unresolved clue never reveals its word, and can still be guessed.
+     * Its tile row shows the two letters shared with the mystery phrase (l, o) as
+     * hidden-with-slot-number, and the three unshared letters (i, v, r) as hidden
+     * without a slot number — none of them revealed while revealedslots is empty.
      *
      * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
     public function test_build_clue_rows_hides_unresolved_word(): void {
-        $instance = $this->make_instance();
         $state = $this->make_state();
 
-        $rows = round_presenter::build_clue_rows($state, $instance, 1, false);
+        $rows = round_presenter::build_clue_rows($state, false);
 
         $this->assertCount(1, $rows);
         $this->assertSame('', $rows[0]['revealword']);
         $this->assertTrue($rows[0]['canguess']);
-        $this->assertSame(5, $rows[0]['wordlength']);
+        $this->assertCount(5, $rows[0]['tiles']);
+        foreach ($rows[0]['tiles'] as $tile) {
+            $this->assertFalse($tile['revealed']);
+        }
+        $this->assertTrue($rows[0]['tiles'][0]['shared']);
+        $this->assertSame('5', $rows[0]['tiles'][0]['slotnum']);
+        $this->assertFalse($rows[0]['tiles'][1]['shared']);
+        $this->assertSame('', $rows[0]['tiles'][1]['slotnum']);
     }
 
     /**
-     * Tests that a resolved clue reveals its word in uppercase and can no longer be guessed.
+     * Tests that a resolved clue reveals its word in uppercase and can no longer be
+     * guessed — including its own tiles, even the letters not shared with the mystery
+     * phrase, since the full word is already known once resolved.
      *
      * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
     public function test_build_clue_rows_reveals_resolved_word(): void {
-        $instance = $this->make_instance();
         $state = $this->make_state();
         $state['clues'][0]['resolved'] = true;
 
-        $rows = round_presenter::build_clue_rows($state, $instance, 1, false);
+        $rows = round_presenter::build_clue_rows($state, false);
 
         $this->assertSame('LIVRO', $rows[0]['revealword']);
         $this->assertFalse($rows[0]['canguess']);
+        foreach ($rows[0]['tiles'] as $tile) {
+            $this->assertTrue($tile['revealed']);
+        }
+        $this->assertSame('L', $rows[0]['tiles'][0]['letter']);
     }
 
     /**
-     * Tests that the hint text is only surfaced once revealed.
+     * Tests that the clue's phrase is always present in the row — it is the question
+     * itself, never gated behind any reveal state.
      *
      * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
-    public function test_build_clue_rows_hint_shown_only_when_revealed(): void {
-        $instance = $this->make_instance();
-        $state = $this->make_state();
+    public function test_build_clue_rows_phrase_always_shown(): void {
+        $rows = round_presenter::build_clue_rows($this->make_state(), false);
 
-        $hidden = round_presenter::build_clue_rows($state, $instance, 1, false);
-        $this->assertFalse($hidden[0]['showhint']);
-        $this->assertSame('', $hidden[0]['hintvalue']);
+        $this->assertSame('dica', $rows[0]['phrase']);
+    }
 
-        $state['clues'][0]['hintrevealed'] = true;
-        $shown = round_presenter::build_clue_rows($state, $instance, 1, false);
-        $this->assertTrue($shown[0]['showhint']);
-        $this->assertSame('dica', $shown[0]['hintvalue']);
+    /**
+     * Tests that a shared letter already revealed via another clue (or the global
+     * hint) shows through in a still-unresolved clue's own tile row.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_clue_rows
+     * @return void
+     */
+    public function test_build_clue_rows_shows_cross_revealed_shared_letter(): void {
+        $state = $this->make_state(['revealedslots' => [5]]);
+
+        $rows = round_presenter::build_clue_rows($state, false);
+
+        $this->assertTrue($rows[0]['tiles'][0]['revealed']);
+        $this->assertSame('L', $rows[0]['tiles'][0]['letter']);
+        $this->assertFalse($rows[0]['tiles'][1]['revealed']);
     }
 
     /**
@@ -546,6 +586,35 @@ final class round_presenter_test extends \advanced_testcase {
         $after = round_presenter::build_round_result_context($instance, $cm, $state, $user->id, true);
         $this->assertFalse($after['cooldownactive']);
         $this->assertSame(0, $after['cooldownuntil']);
+    }
+
+    /**
+     * The round-wide hint action is offered while at least one slot is still hidden,
+     * and withdrawn once every slot is already revealed — nothing left to hint.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_global_hint_availability(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+
+        $partial = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5]]),
+            $user->id
+        );
+        $this->assertTrue($partial['showglobalhint']);
+
+        $complete = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6]]),
+            $user->id
+        );
+        $this->assertFalse($complete['showglobalhint']);
     }
 
     /**

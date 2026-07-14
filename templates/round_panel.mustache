@@ -24,37 +24,42 @@
     Example context (json):
     {
         "themetiles": [
-            {"letter": "E", "revealed": true, "arialabel": "E, revealed"},
-            {"letter": "", "revealed": false, "arialabel": "Hidden letter"}
+            {"letter": "E", "revealed": true, "slotnum": "", "arialabel": "E, revealed"},
+            {"letter": "", "revealed": false, "slotnum": "2", "arialabel": "Hidden letter, slot 2"}
         ],
         "themelabel": "Mystery phrase",
+        "showglobalhint": true,
+        "globalhintlabel": "Hint",
+        "hudhintcost": true,
+        "hudhintcostlabel": "You have 3× Gold Key. Costs 1×.",
+        "canaffordhint": true,
         "cluesprogresslabel": "0 of 5 clues resolved",
         "clues": [
             {
                 "clueid": 12,
+                "phrase": "A place to keep notes and school exercises",
                 "resolved": false,
                 "exhausted": false,
                 "attemptsused": 0,
-                "wordlength": 4,
                 "revealword": "",
-                "canguess": true,
-                "showhint": false,
-                "hintvalue": "",
-                "canhint": true,
-                "hudhintcost": false,
-                "hudhintcostlabel": "",
-                "canaffordhint": true
+                "tiles": [
+                    {"letter": "", "revealed": false, "shared": true, "slotnum": "3", "arialabel": "Hidden letter, slot 3"},
+                    {"letter": "", "revealed": false, "shared": false, "slotnum": "", "arialabel": "Hidden letter, not shared"}
+                ],
+                "canguess": true
             }
         ],
-        "cluelabel": "Clue",
-        "guesslabel": "Your guess",
-        "guessplaceholder": "Type a word",
+        "guesslabel": "Your answer",
         "submitclueguess": "Submit",
-        "hintbuttonlabel": "Hint",
         "canfinalguess": true,
         "finalguesslabel": "Mystery phrase",
-        "finalguessplaceholder": "Type the mystery phrase",
+        "finalguesslength": 6,
         "submitfinalguess": "Guess the mystery phrase",
+        "keyboardlabel": "Virtual keyboard",
+        "keyboardenterlabel": "Submit",
+        "keyboardentertext": "Send",
+        "keyboardbackspacelabel": "Delete last letter",
+        "showcedilla": false,
         "roundfinished": false,
         "feedbackmessage": "",
         "revealthemeword": "",
@@ -74,9 +79,29 @@
 <div id="playercross-round-panel">
     <div class="mod-playercross-theme mb-2" role="img" aria-label="{{themelabel}}">
         {{#themetiles}}
-            <span class="mod-playercross-tile{{#revealed}} is-revealed{{/revealed}}" aria-label="{{arialabel}}">{{letter}}</span>
+            <div class="mod-playercross-tile-wrap">
+                <span class="mod-playercross-tile{{#revealed}} is-revealed{{/revealed}}" aria-label="{{arialabel}}">{{letter}}</span>
+                <span class="mod-playercross-tile-num">{{slotnum}}</span>
+            </div>
         {{/themetiles}}
     </div>
+
+    {{#showglobalhint}}
+        <div class="text-center mb-2">
+            <button type="button"
+                    id="playercross-global-hint-button"
+                    class="mod-playercross-hint-btn"
+                    {{#hudhintcost}}
+                        title="{{hudhintcostlabel}}"
+                        data-hud-confirm-title="{{globalhintlabel}}"
+                        data-hud-confirm-body="{{hudhintcostlabel}}"
+                        {{^canaffordhint}}data-hud-confirm-insufficient="1"{{/canaffordhint}}
+                    {{/hudhintcost}}>
+                <i class="fa fa-lightbulb" aria-hidden="true"></i> {{globalhintlabel}}
+            </button>
+        </div>
+    {{/showglobalhint}}
+
     <p class="text-muted small text-center mb-3">{{cluesprogresslabel}}</p>
 
     {{^roundfinished}}

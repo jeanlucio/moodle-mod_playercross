@@ -34,8 +34,419 @@
     border: 0;
 }
 
-.path-mod-playercross .mod-playercross-placeholder {
-    padding: 1rem;
+.path-mod-playercross .mod-playercross-game {
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
     border: 1px solid var(--gray-300, #dee2e6);
     border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+}
+
+.path-mod-playercross .pc-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.path-mod-playercross .pc-toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.path-mod-playercross .pc-header-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 2.75rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--gray-300, #dee2e6);
+    border-radius: 0.375rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.path-mod-playercross .pc-header-timer[hidden] {
+    display: none;
+}
+
+.path-mod-playercross #playercross-timer-countdown.pc-timer-urgent {
+    color: var(--danger, #dc3545);
+    font-weight: 700;
+}
+
+.path-mod-playercross .pc-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid var(--gray-300, #dee2e6);
+    border-radius: 0.375rem;
+    background-color: transparent;
+    color: var(--body-color, #212529);
+    text-decoration: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.path-mod-playercross .pc-toolbar-btn:hover,
+.path-mod-playercross .pc-toolbar-btn:focus-visible {
+    background-color: var(--gray-100, #f8f9fa);
+    color: var(--primary, #0f6cbf);
+    outline: 2px solid var(--primary, #0f6cbf);
+    outline-offset: 2px;
+}
+
+.path-mod-playercross .pc-toolbar-btn[hidden] {
+    display: none;
+}
+
+.path-mod-playercross .pc-toolbar-btn.pc-toolbar-btn-danger {
+    color: var(--danger, #dc3545);
+    border-color: var(--danger, #dc3545);
+}
+
+.path-mod-playercross .pc-toolbar-btn.pc-toolbar-btn-danger:hover,
+.path-mod-playercross .pc-toolbar-btn.pc-toolbar-btn-danger:focus-visible {
+    background-color: var(--danger, #dc3545);
+    color: var(--white, #fff);
+    outline-color: var(--danger, #dc3545);
+}
+
+.path-mod-playercross .mod-playercross-hint-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.875rem;
+    border: 1px solid var(--gray-300, #dee2e6);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--body-color, #212529);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.path-mod-playercross .mod-playercross-hint-btn:hover,
+.path-mod-playercross .mod-playercross-hint-btn:focus-visible {
+    background-color: var(--gray-100, #f8f9fa);
+    border-color: var(--warning, #ffc107);
+    outline: 2px solid var(--warning, #ffc107);
+    outline-offset: 2px;
+}
+
+.path-mod-playercross .mod-playercross-theme {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.375rem;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+}
+
+.path-mod-playercross .mod-playercross-tile-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.path-mod-playercross .mod-playercross-tile {
+    width: 2.5rem;
+    flex-shrink: 1;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    text-transform: uppercase;
+    border-radius: 0.375rem;
+    border: 1px solid var(--gray-400, #ced4da);
+    background-color: var(--body-bg, #fff);
+}
+
+.path-mod-playercross .mod-playercross-tile.is-revealed {
+    color: var(--white, #fff);
+    background-color: var(--primary, #0f6cbf);
+    border-color: var(--primary, #0f6cbf);
+}
+
+.path-mod-playercross .mod-playercross-tile-num {
+    height: 0.9rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--gray-600, #6c757d);
+}
+
+.path-mod-playercross .mod-playercross-tile-wrap.small .mod-playercross-tile {
+    width: 1.85rem;
+    font-size: 0.8rem;
+    border-radius: 0.25rem;
+}
+
+.path-mod-playercross .mod-playercross-tile-wrap.small .mod-playercross-tile-num {
+    height: 0.75rem;
+    font-size: 0.6rem;
+}
+
+.path-mod-playercross .mod-playercross-tile.is-unshared {
+    background-color: var(--gray-100, #f8f9fa);
+    border-style: dashed;
+}
+
+.path-mod-playercross .mod-playercross-clues {
+    max-width: 30rem;
+    margin-inline: auto;
+    padding-inline-start: 0;
+}
+
+.path-mod-playercross .mod-playercross-clue {
+    padding: 0.625rem 0.75rem;
+    margin-bottom: 0.625rem;
+    border: 1px solid var(--gray-300, #dee2e6);
+    border-radius: 0.5rem;
+    background-color: var(--body-bg, #fff);
+}
+
+.path-mod-playercross .mod-playercross-clue.is-active {
+    border-color: var(--warning, #ffc107);
+    box-shadow: 0 0 0 2px var(--warning, #ffc107);
+}
+
+.path-mod-playercross .mod-playercross-clue.is-resolved {
+    background-color: var(--gray-100, #f8f9fa);
+    border-color: var(--primary, #0f6cbf);
+}
+
+.path-mod-playercross .mod-playercross-clue-phrase {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.path-mod-playercross .mod-playercross-clue-answer {
+    color: var(--primary, #0f6cbf);
+}
+
+.path-mod-playercross .mod-playercross-clue-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.path-mod-playercross .mod-playercross-guess-input {
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    opacity: 0;
+    position: absolute;
+    pointer-events: none;
+}
+
+.path-mod-playercross .mod-playercross-clue-tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.path-mod-playercross .mod-playercross-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.875rem;
+    border: 1px solid var(--gray-400, #ced4da);
+    border-radius: 0.375rem;
+    background-color: var(--gray-200, #e9ecef);
+    color: var(--body-color, #212529);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.path-mod-playercross .mod-playercross-submit-btn:hover,
+.path-mod-playercross .mod-playercross-submit-btn:focus-visible {
+    background-color: var(--gray-300, #dee2e6);
+}
+
+.path-mod-playercross .mod-playercross-submit-btn.primary {
+    background-color: var(--primary, #0f6cbf);
+    border-color: var(--primary, #0f6cbf);
+    color: var(--white, #fff);
+}
+
+.path-mod-playercross .mod-playercross-submit-btn.primary:hover,
+.path-mod-playercross .mod-playercross-submit-btn.primary:focus-visible {
+    background-color: #0c5aa0;
+    border-color: #0c5aa0;
+}
+
+.path-mod-playercross .mod-playercross-final-guess {
+    max-width: 30rem;
+    margin-inline: auto;
+    text-align: center;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--gray-300, #dee2e6);
+}
+
+.path-mod-playercross .mod-playercross-final-guess > label {
+    display: block;
+    margin-bottom: 0.375rem;
+}
+
+.path-mod-playercross .mod-playercross-final-guess .mod-playercross-clue-tiles {
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
+
+.path-mod-playercross .mod-playercross-keyboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.75rem;
+    margin-inline: auto;
+    width: fit-content;
+    max-width: 100%;
+    user-select: none;
+}
+
+.path-mod-playercross .mod-playercross-keyboard-row {
+    display: flex;
+    gap: 0.375rem;
+}
+
+.path-mod-playercross .mod-playercross-keyboard .pc-key {
+    height: 3.25rem;
+    min-width: 2.25rem;
+    padding: 0 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--gray-400, #ced4da);
+    background-color: var(--gray-200, #e9ecef);
+    color: var(--body-color, #212529);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color 0.1s, color 0.1s;
+}
+
+.path-mod-playercross .mod-playercross-keyboard .pc-key:active {
+    opacity: 0.75;
+}
+
+.path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-wide {
+    min-width: 3.75rem;
+    color: var(--black, #000);
+    background-color: var(--info, #0dcaf0);
+    border-color: var(--info, #0dcaf0);
+}
+
+.path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-enter {
+    font-size: 0.8rem;
+}
+
+.path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-backspace {
+    font-size: 0.95rem;
+}
+
+.path-mod-playercross .mod-playercross-feedback {
+    color: var(--primary, #0f6cbf);
+}
+
+.path-mod-playercross .mod-playercross-words-status {
+    text-align: center;
+}
+
+.path-mod-playercross .mod-playercross-help-legend {
+    list-style: none;
+    padding-inline-start: 0;
+}
+
+.path-mod-playercross .mod-playercross-help-legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.path-mod-playercross .pc-legend-swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--gray-400, #ced4da);
+}
+
+.path-mod-playercross .pc-legend-swatch.is-hidden {
+    background-color: var(--body-bg, #fff);
+}
+
+.path-mod-playercross .pc-legend-swatch.is-revealed {
+    color: var(--white, #fff);
+    background-color: var(--primary, #0f6cbf);
+}
+
+@media (max-width: 576px) {
+    .path-mod-playercross .modal-dialog {
+        margin-inline: 0.75rem;
+        max-width: calc(100vw - 1.5rem);
+    }
+
+    .path-mod-playercross .mod-playercross-game {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .path-mod-playercross .mod-playercross-theme {
+        gap: 0.25rem;
+    }
+
+    .path-mod-playercross .mod-playercross-tile {
+        width: 2.1rem;
+        font-size: 0.85rem;
+    }
+
+    .path-mod-playercross .mod-playercross-keyboard {
+        gap: 0.25rem;
+    }
+
+    .path-mod-playercross .mod-playercross-keyboard-row {
+        gap: 0.25rem;
+    }
+
+    .path-mod-playercross .mod-playercross-keyboard .pc-key {
+        min-width: 1.85rem;
+        height: 2.75rem;
+        font-size: 0.75rem;
+        padding: 0 0.15rem;
+    }
+
+    .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-wide {
+        min-width: 3rem;
+    }
+
+    .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-enter {
+        font-size: 0.65rem;
+    }
+
+    .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-backspace {
+        font-size: 0.8rem;
+    }
 }

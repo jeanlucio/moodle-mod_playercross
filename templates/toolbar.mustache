@@ -1,0 +1,78 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_playercross/toolbar
+
+    Compact icon toolbar shown above the game board: help, attempt history, ranking,
+    manage words and report (teacher-only), and forfeit (shown only during an active
+    round). Icon-only, same pattern as mod_playerwords/toolbar — text lives in
+    title/aria-label, never rendered visibly.
+
+    Example context (json):
+    {
+        "helptitle": "How to play",
+        "myattemptsurl": "https://example.com/mod/playercross/myattempts.php?id=1",
+        "toolbarmyattempts": "My attempts",
+        "showranking": true,
+        "rankingurl": "https://example.com/mod/playercross/ranking.php?id=1",
+        "toolbarranking": "Ranking",
+        "canmanage": true,
+        "managewordsurl": "https://example.com/mod/playercross/managewords.php?id=1",
+        "toolbarmanagewords": "Manage words",
+        "attemptsreporturl": "https://example.com/mod/playercross/attemptsreport.php?id=1",
+        "toolbarreport": "Report",
+        "showforfeit": true,
+        "forfeitlabel": "Give up",
+        "forfeitconfirm": "Are you sure you want to give up?"
+    }
+}}
+<div class="pc-toolbar">
+    <button type="button"
+            id="playercross-help-button"
+            class="pc-toolbar-btn"
+            title="{{helptitle}}"
+            aria-label="{{helptitle}}"
+            data-title="{{helptitle}}">
+        <i class="fa fa-question-circle" aria-hidden="true"></i>
+    </button>
+    <a href="{{{myattemptsurl}}}" class="pc-toolbar-btn" title="{{toolbarmyattempts}}" aria-label="{{toolbarmyattempts}}">
+        <i class="fa fa-list-alt" aria-hidden="true"></i>
+    </a>
+    {{#showranking}}
+        <a href="{{{rankingurl}}}" class="pc-toolbar-btn" title="{{toolbarranking}}" aria-label="{{toolbarranking}}">
+            <i class="fa fa-trophy" aria-hidden="true"></i>
+        </a>
+    {{/showranking}}
+    {{#canmanage}}
+        <a href="{{{managewordsurl}}}" class="pc-toolbar-btn" title="{{toolbarmanagewords}}" aria-label="{{toolbarmanagewords}}">
+            <i class="fa fa-cog" aria-hidden="true"></i>
+        </a>
+        <a href="{{{attemptsreporturl}}}" class="pc-toolbar-btn" title="{{toolbarreport}}" aria-label="{{toolbarreport}}">
+            <i class="fa fa-bar-chart" aria-hidden="true"></i>
+        </a>
+    {{/canmanage}}
+    <button type="button"
+            id="playercross-forfeit-button"
+            class="pc-toolbar-btn pc-toolbar-btn-danger"
+            title="{{forfeitlabel}}"
+            aria-label="{{forfeitlabel}}"
+            data-title="{{forfeitlabel}}"
+            data-confirm="{{forfeitconfirm}}"
+            {{^showforfeit}}hidden{{/showforfeit}}>
+        <i class="fa fa-door-open" aria-hidden="true"></i>
+    </button>
+</div>

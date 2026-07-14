@@ -38,7 +38,8 @@ class round_presenter {
     /**
      * Builds the mystery-phrase tile data: one entry per character position, showing
      * the letter only for slots already in revealedslots (or every slot, once the
-     * round has finished).
+     * round has finished). Hidden tiles carry their slot number, so the student can
+     * see which clue covers which position before it is revealed.
      *
      * @param array $state Session state.
      * @param bool $roundfinished Whether the current round is finished.
@@ -55,9 +56,10 @@ class round_presenter {
             $tiles[] = [
                 'letter'    => s($letter),
                 'revealed'  => $isrevealed,
+                'slotnum'   => $isrevealed ? '' : (string)$slot,
                 'arialabel' => $isrevealed
                     ? get_string('tile_state_revealed', 'mod_playercross', $letter)
-                    : get_string('tile_state_hidden', 'mod_playercross'),
+                    : get_string('tile_state_hidden_numbered', 'mod_playercross', $slot),
             ];
         }
 
@@ -65,58 +67,86 @@ class round_presenter {
     }
 
     /**
-     * Builds the per-clue view rows: hint only once revealed, word text only once the
-     * clue is resolved or the round has finished.
+     * Maps each of the mystery phrase's own distinct letters to its slot number,
+     * derived from state already computed by puzzle_builder — themeword and themeslots
+     * are parallel arrays (one slot number per character position). Shared by
+     * build_clue_tiles() to work out, per clue, which of its own letters correspond to
+     * a mystery-phrase slot at all.
      *
      * @param array $state Session state.
-     * @param \stdClass $instance Activity instance.
-     * @param int $userid Current user id.
+     * @return array Letter => slot number.
+     */
+    private static function build_slots_by_letter(array $state): array {
+        $chars = word_normalizer::chars($state['themeword']);
+        $slotsbyletter = [];
+        foreach ($chars as $position => $char) {
+            $slotsbyletter[$char] = $state['themeslots'][$position];
+        }
+        return $slotsbyletter;
+    }
+
+    /**
+     * Builds one clue's own per-letter tile row. A letter that does not correspond to
+     * any mystery-phrase slot ("unshared") can only ever be revealed by resolving this
+     * clue itself — it is never cross-revealed by another clue or by the global hint.
+     *
+     * @param string $word Clue's own word, already normalized.
+     * @param array $slotsbyletter Letter => slot number map, see build_slots_by_letter().
+     * @param array $revealedslots Currently revealed slot numbers.
+     * @param bool $reveal Whether the whole clue is already known (resolved, or round finished).
+     * @return array
+     */
+    private static function build_clue_tiles(string $word, array $slotsbyletter, array $revealedslots, bool $reveal): array {
+        $tiles = [];
+        foreach (word_normalizer::chars($word) as $char) {
+            $slot = $slotsbyletter[$char] ?? null;
+            $shared = ($slot !== null);
+            $isrevealed = $reveal || ($shared && in_array($slot, $revealedslots, true));
+            $letter = $isrevealed ? core_text::strtoupper($char) : '';
+
+            $arialabel = $isrevealed
+                ? get_string('tile_state_revealed', 'mod_playercross', $letter)
+                : ($shared
+                    ? get_string('tile_state_hidden_numbered', 'mod_playercross', $slot)
+                    : get_string('tile_state_hidden_unshared', 'mod_playercross'));
+
+            $tiles[] = [
+                'letter'    => s($letter),
+                'revealed'  => $isrevealed,
+                'shared'    => $shared,
+                'slotnum'   => ($shared && !$isrevealed) ? (string)$slot : '',
+                'arialabel' => $arialabel,
+            ];
+        }
+        return $tiles;
+    }
+
+    /**
+     * Builds the per-clue view rows. The clue's own phrase (hint) is always included —
+     * it is the question itself, not an optional reveal — while the answer is only
+     * shown letter-by-letter through build_clue_tiles(), or in full once resolved or
+     * the round has finished.
+     *
+     * @param array $state Session state.
      * @param bool $roundfinished Whether the current round is finished.
      * @return array
      */
-    public static function build_clue_rows(
-        array $state,
-        \stdClass $instance,
-        int $userid,
-        bool $roundfinished
-    ): array {
-        $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
-        $blockinstanceid = $hintcostitem > 0 ? hud_service::resolve_block_instance_id($instance) : 0;
+    public static function build_clue_rows(array $state, bool $roundfinished): array {
+        $slotsbyletter = self::build_slots_by_letter($state);
 
         $rows = [];
         foreach ($state['clues'] as $clue) {
             $reveal = $roundfinished || $clue['resolved'];
 
-            $hudhintcost = false;
-            $hudhintcostlabel = '';
-            $canaffordhint = true;
-            if ($hintcostitem > 0 && !$clue['resolved'] && !$clue['hintrevealed'] && !$roundfinished) {
-                $info = self::build_hud_cost_info(
-                    $blockinstanceid,
-                    $hintcostitem,
-                    (int)($instance->hud_hint_cost_qty ?? 1),
-                    $userid
-                );
-                $hudhintcost = $info['applies'];
-                $hudhintcostlabel = $info['label'];
-                $canaffordhint = $info['canafford'];
-            }
-
             $rows[] = [
-                'clueid'         => (int)$clue['wordid'],
-                'resolved'       => $clue['resolved'],
-                'exhausted'      => $clue['exhausted'],
-                'attemptsused'   => (int)$clue['attemptsused'],
-                'wordlength'     => core_text::strlen($clue['word']),
-                'revealword'     => $reveal ? s(core_text::strtoupper($clue['word'])) : '',
-                'canguess'       => !$clue['resolved'] && !$clue['exhausted'] && !$roundfinished,
-                'showhint'       => $clue['hintrevealed'] && $clue['hint'] !== '',
-                'hintvalue'      => $clue['hintrevealed'] ? $clue['hint'] : '',
-                'canhint'        => !empty($clue['hint']) && !$clue['hintrevealed']
-                    && !$clue['resolved'] && !$clue['exhausted'] && !$roundfinished,
-                'hudhintcost'      => $hudhintcost,
-                'hudhintcostlabel' => $hudhintcostlabel,
-                'canaffordhint'    => $canaffordhint,
+                'clueid'       => (int)$clue['wordid'],
+                'phrase'       => s($clue['hint']),
+                'resolved'     => $clue['resolved'],
+                'exhausted'    => $clue['exhausted'],
+                'attemptsused' => (int)$clue['attemptsused'],
+                'revealword'   => $reveal ? s(core_text::strtoupper($clue['word'])) : '',
+                'tiles'        => self::build_clue_tiles($clue['word'], $slotsbyletter, $state['revealedslots'], $reveal),
+                'canguess'     => !$clue['resolved'] && !$clue['exhausted'] && !$roundfinished,
             ];
         }
 
@@ -407,8 +437,7 @@ class round_presenter {
         return [
             'themetiles' => self::build_theme_tiles($state, $roundfinished),
             'themelabel' => get_string('themewordlabel', 'mod_playercross'),
-            'clues' => self::build_clue_rows($state, $instance, $userid, $roundfinished),
-            'cluelabel' => get_string('cluelabel', 'mod_playercross'),
+            'clues' => self::build_clue_rows($state, $roundfinished),
             'cluesresolved' => (int)$state['cluesresolved'],
             'cluestotal' => (int)$state['cluestotal'],
             'cluesprogresslabel' => get_string('cluesprogress', 'mod_playercross', (object)[
@@ -419,17 +448,71 @@ class round_presenter {
             'timerlabel' => get_string('timerlabel', 'mod_playercross'),
             'timeleft' => $timeleft,
             'roundfinished' => $roundfinished,
-            'guesslabel' => get_string('cluelabel', 'mod_playercross'),
-            'guessplaceholder' => get_string('guessplaceholder', 'mod_playercross'),
+            'guesslabel' => get_string('guesslabel', 'mod_playercross'),
             'submitclueguess' => get_string('submitclueguess', 'mod_playercross'),
-            'hintbuttonlabel' => get_string('hintbuttonlabel', 'mod_playercross'),
             'canfinalguess' => !$roundfinished,
             'finalguesslabel' => get_string('finalguesslabel', 'mod_playercross'),
-            'finalguessplaceholder' => get_string('finalguessplaceholder', 'mod_playercross'),
+            'finalguesslength' => count($state['themeslots']),
             'submitfinalguess' => get_string('submitfinalguess', 'mod_playercross'),
             'forfeitlabel' => get_string('forfeitbutton', 'mod_playercross'),
             'forfeitconfirm' => get_string('forfeitconfirm', 'mod_playercross'),
-        ] + self::build_round_result_context($instance, $cm, $state, $userid, $roundfinished);
+            'keyboardlabel' => get_string('keyboard_label', 'mod_playercross'),
+            'keyboardenterlabel' => get_string('keyboard_enter', 'mod_playercross'),
+            'keyboardentertext' => get_string('keyboard_enter_text', 'mod_playercross'),
+            'keyboardbackspacelabel' => get_string('keyboard_backspace', 'mod_playercross'),
+            'showcedilla' => words_repository::has_cedilla_word((int)$instance->id),
+        ] + self::build_global_hint_context($instance, $state, $userid, $roundfinished)
+          + self::build_round_result_context($instance, $cm, $state, $userid, $roundfinished);
+    }
+
+    /**
+     * Builds the single, round-wide "reveal a mystery-phrase letter" hint action —
+     * replaces the old per-clue hint reveal (SCOPE.md §20.2 v1.5): since revealing a
+     * letter here writes to the same revealedslots set a solved clue would, there is
+     * nothing left to hint once every slot is already revealed.
+     *
+     * @param \stdClass $instance Activity instance record.
+     * @param array $state Session state.
+     * @param int $userid Current user id.
+     * @param bool $roundfinished Whether the current round is finished.
+     * @return array
+     */
+    private static function build_global_hint_context(
+        \stdClass $instance,
+        array $state,
+        int $userid,
+        bool $roundfinished
+    ): array {
+        $hiddenslots = array_diff(range(1, (int)$state['slotcount']), $state['revealedslots']);
+
+        $blank = [
+            'showglobalhint'   => false,
+            'globalhintlabel'  => get_string('hintbuttonlabel', 'mod_playercross'),
+            'hudhintcost'      => false,
+            'hudhintcostlabel' => '',
+            'canaffordhint'    => true,
+        ];
+
+        if ($roundfinished || empty($hiddenslots)) {
+            return $blank;
+        }
+
+        $blank['showglobalhint'] = true;
+
+        $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
+        if ($hintcostitem > 0) {
+            $info = self::build_hud_cost_info(
+                hud_service::resolve_block_instance_id($instance),
+                $hintcostitem,
+                (int)($instance->hud_hint_cost_qty ?? 1),
+                $userid
+            );
+            $blank['hudhintcost'] = $info['applies'];
+            $blank['hudhintcostlabel'] = $info['label'];
+            $blank['canaffordhint'] = $info['canafford'];
+        }
+
+        return $blank;
     }
 
     /**

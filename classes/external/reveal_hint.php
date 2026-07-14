@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * External function: reveal the hint for one clue.
+ * External function: reveal one mystery-phrase letter.
  *
  * @package    mod_playercross
  * @copyright  2026 Jean Lúcio
@@ -29,13 +29,14 @@ use core_external\external_api;
 use core_external\external_function_parameters;
 use core_external\external_single_structure;
 use core_external\external_value;
+use mod_playercross\local\round_presenter;
 use mod_playercross\local\round_service;
 
 /**
- * Reveals a specific clue's hint, optionally consuming a PlayerHUD item cost.
- *
- * Each clue has its own independent hint cost — never a single hint shared by the
- * whole round — so this always operates on exactly one clue id.
+ * Reveals one still-hidden mystery-phrase slot, optionally consuming a PlayerHUD item
+ * cost. A single round-wide action, not scoped to any clue: the revealed slot lights
+ * up in the mystery phrase and in every pending clue that shares it, the same way
+ * solving a clue would (see round_service::reveal_hint()).
  */
 class reveal_hint extends external_api {
     /**
@@ -45,28 +46,20 @@ class reveal_hint extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'cmid'   => new external_value(PARAM_INT, 'Course module id'),
-            'clueid' => new external_value(PARAM_INT, 'Clue word id'),
+            'cmid' => new external_value(PARAM_INT, 'Course module id'),
         ]);
     }
 
     /**
-     * Reveals the hint for the given clue.
+     * Reveals one mystery-phrase letter and returns the updated round panel.
      *
      * @param int $cmid Course module id.
-     * @param int $clueid Clue word id.
      * @return array
      */
-    public static function execute(int $cmid, int $clueid): array {
+    public static function execute(int $cmid): array {
         global $DB, $USER;
 
-        [
-            'cmid'   => $cmid,
-            'clueid' => $clueid,
-        ] = self::validate_parameters(
-            self::execute_parameters(),
-            ['cmid' => $cmid, 'clueid' => $clueid]
-        );
+        ['cmid' => $cmid] = self::validate_parameters(self::execute_parameters(), ['cmid' => $cmid]);
 
         $cm = get_coursemodule_from_id('playercross', $cmid, 0, false, MUST_EXIST);
         $context = context_module::instance($cm->id);
@@ -79,23 +72,13 @@ class reveal_hint extends external_api {
         $state = round_service::load_state($cmid, $userid);
         $state = round_service::ensure_round_state($state, $instance, $cmid, $userid);
 
-        [$state, $notification, $notificationtype] = round_service::reveal_hint($state, $instance, $userid, $clueid);
+        [$state, $notification, $notificationtype] = round_service::reveal_hint($state, $instance, $userid);
         round_service::save_state($cmid, $userid, $state);
 
-        $hintvalue = '';
-        foreach ($state['clues'] as $clue) {
-            if ((int)$clue['wordid'] === $clueid && $clue['hintrevealed']) {
-                $hintvalue = $clue['hint'];
-                break;
-            }
-        }
-
         return [
-            'success'          => ($notification === null),
-            'clueid'           => $clueid,
-            'hintvalue'        => $hintvalue,
             'notification'     => $notification ?? '',
             'notificationtype' => $notificationtype ?? '',
+            'panel'            => round_presenter::build_round_panel_context($instance, $cm, $state, $userid),
         ];
     }
 
@@ -106,9 +89,6 @@ class reveal_hint extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-            'success'          => new external_value(PARAM_BOOL, 'Whether the hint was revealed'),
-            'clueid'           => new external_value(PARAM_INT, 'Clue word id'),
-            'hintvalue'        => new external_value(PARAM_RAW, 'Hint text, empty when not revealed'),
             'notification'     => new external_value(PARAM_TEXT, 'User-facing feedback message', VALUE_DEFAULT, ''),
             'notificationtype' => new external_value(
                 PARAM_ALPHA,
@@ -116,6 +96,7 @@ class reveal_hint extends external_api {
                 VALUE_DEFAULT,
                 ''
             ),
+            'panel' => submit_clue_guess::panel_structure(),
         ]);
     }
 }

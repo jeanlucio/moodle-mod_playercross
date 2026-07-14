@@ -29,6 +29,13 @@ use core_external\external_api;
 
 /**
  * Tests for the mod_playercross_reveal_hint web service.
+ *
+ * reveal_hint is a round-wide action (SCOPE.md §20.2 v1.5), not scoped to any single
+ * clue: it reveals one still-hidden mystery-phrase slot, the same way solving a clue
+ * would. make_instance_with_pool() seeds a deterministic two-word pool where the only
+ * clue ("livro") covers just 2 of the theme's 6 slots — the other 4 are always-revealed
+ * from the start (puzzle_builder's graceful degradation), so exactly 2 reveal_hint
+ * calls exhaust the hidden pool, making "no more hints" easy to reach deterministically.
  */
 final class reveal_hint_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -50,14 +57,12 @@ final class reveal_hint_test extends \advanced_testcase {
 
     /**
      * Creates a playercross instance with a deterministic two-word pool: a theme
-     * candidate ("escola") and the sole clue ("livro"), the clue carrying a hint.
+     * candidate ("escola") and the sole clue ("livro").
      *
      * @param array $overrides Instance field overrides.
-     * @return array{0: \stdClass, 1: int} [instance (with ->cmid), clue word id]
+     * @return \stdClass Instance record, with ->cmid added.
      */
-    private function make_instance_with_clue(array $overrides = []): array {
-        global $DB;
-
+    private function make_instance_with_pool(array $overrides = []): \stdClass {
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
         $record = array_merge([
             'course'           => $this->course->id,
@@ -71,11 +76,7 @@ final class reveal_hint_test extends \advanced_testcase {
         $modgenerator->create_word($instance->id, 'escola');
         $modgenerator->create_word($instance->id, 'livro', 'dica secreta');
 
-        $clueid = (int)$DB->get_field('playercross_words', 'id', [
-            'playercrossid' => $instance->id, 'word' => 'livro',
-        ], MUST_EXIST);
-
-        return [$instance, $clueid];
+        return $instance;
     }
 
     /**
@@ -128,70 +129,65 @@ final class reveal_hint_test extends \advanced_testcase {
      * Calls the mod_playercross_reveal_hint web service through the real dispatch path.
      *
      * @param int $cmid Course module id.
-     * @param int $clueid Clue word id.
      * @return array Response shaped as ['error' => bool, 'data' => array|null, ...].
      */
-    private function call_reveal_hint(int $cmid, int $clueid): array {
+    private function call_reveal_hint(int $cmid): array {
         $_POST['sesskey'] = sesskey();
-        return external_api::call_external_function(
-            'mod_playercross_reveal_hint',
-            ['cmid' => $cmid, 'clueid' => $clueid]
-        );
+        return external_api::call_external_function('mod_playercross_reveal_hint', ['cmid' => $cmid]);
     }
 
     /**
-     * Tests that revealing the hint returns the hint text.
+     * Counts how many mystery-phrase tiles are currently revealed in a panel response.
+     *
+     * @param array $panel Panel data from the response.
+     * @return int
+     */
+    private function count_revealed_tiles(array $panel): int {
+        return count(array_filter($panel['themetiles'], fn(array $tile): bool => $tile['revealed']));
+    }
+
+    /**
+     * Tests that revealing a hint reveals exactly one more mystery-phrase tile.
      *
      * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
-    public function test_reveals_hint(): void {
-        [$instance, $clueid] = $this->make_instance_with_clue();
+    public function test_reveals_one_more_tile(): void {
+        $instance = $this->make_instance_with_pool();
         $this->setUser($this->student);
 
-        $result = $this->call_reveal_hint($instance->cmid, $clueid);
+        $before = $this->call_reveal_hint($instance->cmid);
+        // The very first call both builds the round (ensure_round_state) and reveals a
+        // hint, so compare against a fresh panel fetch instead of a pre-round baseline.
+        $revealedbefore = $this->count_revealed_tiles($before['data']['panel']);
 
-        $this->assertFalse($result['error']);
-        $this->assertTrue($result['data']['success']);
-        $this->assertSame($clueid, $result['data']['clueid']);
-        $this->assertSame('dica secreta', $result['data']['hintvalue']);
+        $after = $this->call_reveal_hint($instance->cmid);
+
+        $this->assertFalse($after['error']);
+        $this->assertSame('success', $after['data']['notificationtype']);
+        $this->assertSame($revealedbefore + 1, $this->count_revealed_tiles($after['data']['panel']));
     }
 
     /**
-     * Tests that revealing an already-revealed clue's hint is rejected as a fresh action
-     * (so no PlayerHUD item would be double-charged), while the hint text already known
-     * from the first reveal remains visible in the response.
+     * Tests that once every mystery-phrase slot is revealed, a further call is rejected
+     * instead of erroring — the pool here only has 2 slots left to hint (see class docblock).
      *
      * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
-    public function test_reveal_hint_twice_rejects_without_hiding_known_hint(): void {
-        [$instance, $clueid] = $this->make_instance_with_clue();
+    public function test_rejects_once_every_slot_is_revealed(): void {
+        $instance = $this->make_instance_with_pool();
         $this->setUser($this->student);
 
-        $this->call_reveal_hint($instance->cmid, $clueid);
-        $second = $this->call_reveal_hint($instance->cmid, $clueid);
+        $this->call_reveal_hint($instance->cmid);
+        $exhausted = $this->call_reveal_hint($instance->cmid);
+        $this->assertSame(6, $this->count_revealed_tiles($exhausted['data']['panel']));
 
-        $this->assertFalse($second['error']);
-        $this->assertFalse($second['data']['success']);
-        $this->assertSame('dica secreta', $second['data']['hintvalue']);
-    }
+        $rejected = $this->call_reveal_hint($instance->cmid);
 
-    /**
-     * Tests that an unknown clue id is rejected with an empty hint value.
-     *
-     * @covers \mod_playercross\external\reveal_hint::execute
-     * @return void
-     */
-    public function test_rejects_unknown_clue_id(): void {
-        [$instance] = $this->make_instance_with_clue();
-        $this->setUser($this->student);
-
-        $result = $this->call_reveal_hint($instance->cmid, 999999);
-
-        $this->assertFalse($result['error']);
-        $this->assertFalse($result['data']['success']);
-        $this->assertSame('', $result['data']['hintvalue']);
+        $this->assertFalse($rejected['error']);
+        $this->assertSame('warning', $rejected['data']['notificationtype']);
+        $this->assertSame(6, $this->count_revealed_tiles($rejected['data']['panel']));
     }
 
     /**
@@ -201,11 +197,11 @@ final class reveal_hint_test extends \advanced_testcase {
      * @return void
      */
     public function test_requires_view_capability(): void {
-        [$instance, $clueid] = $this->make_instance_with_clue();
+        $instance = $this->make_instance_with_pool();
         $outsider = $this->getDataGenerator()->create_user();
         $this->setUser($outsider);
 
-        $result = $this->call_reveal_hint($instance->cmid, $clueid);
+        $result = $this->call_reveal_hint($instance->cmid);
 
         $this->assertTrue($result['error']);
     }
@@ -219,17 +215,17 @@ final class reveal_hint_test extends \advanced_testcase {
     public function test_hud_insufficient_item_blocks_reveal(): void {
         $this->skip_if_no_playerhud();
         $itemid = $this->make_hud_item();
-        [$instance, $clueid] = $this->make_instance_with_clue([
+        $instance = $this->make_instance_with_pool([
             'hud_hint_cost_item' => $itemid, 'hud_hint_cost_qty' => 1,
         ]);
         $this->setUser($this->student);
 
-        $result = $this->call_reveal_hint($instance->cmid, $clueid);
+        $result = $this->call_reveal_hint($instance->cmid);
 
         $this->assertFalse($result['error']);
-        $this->assertFalse($result['data']['success']);
-        $this->assertSame('', $result['data']['hintvalue']);
+        $this->assertSame('warning', $result['data']['notificationtype']);
         $this->assertNotEmpty($result['data']['notification']);
+        $this->assertSame(4, $this->count_revealed_tiles($result['data']['panel']));
     }
 
     /**
@@ -241,15 +237,15 @@ final class reveal_hint_test extends \advanced_testcase {
      * @return void
      */
     public function test_hud_deleted_item_waives_reveal_cost(): void {
-        [$instance, $clueid] = $this->make_instance_with_clue([
+        $instance = $this->make_instance_with_pool([
             'hud_hint_cost_item' => 999999, 'hud_hint_cost_qty' => 1,
         ]);
         $this->setUser($this->student);
 
-        $result = $this->call_reveal_hint($instance->cmid, $clueid);
+        $result = $this->call_reveal_hint($instance->cmid);
 
         $this->assertFalse($result['error']);
-        $this->assertTrue($result['data']['success']);
-        $this->assertSame('dica secreta', $result['data']['hintvalue']);
+        $this->assertSame('success', $result['data']['notificationtype']);
+        $this->assertSame(5, $this->count_revealed_tiles($result['data']['panel']));
     }
 }

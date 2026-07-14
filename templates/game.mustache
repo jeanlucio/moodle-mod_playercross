@@ -60,28 +60,25 @@
         "showlobby": false,
         "roundstarted": true,
         "themetiles": [
-            {"letter": "E", "revealed": true, "arialabel": "E, revealed"},
-            {"letter": "", "revealed": false, "arialabel": "Hidden letter"}
+            {"letter": "E", "revealed": true, "slotnum": "", "arialabel": "E, revealed"},
+            {"letter": "", "revealed": false, "slotnum": "2", "arialabel": "Hidden letter, slot 2"}
         ],
         "themelabel": "Mystery phrase",
         "clues": [
             {
                 "clueid": 12,
+                "phrase": "A place to keep notes and school exercises",
                 "resolved": false,
                 "exhausted": false,
                 "attemptsused": 1,
-                "wordlength": 4,
                 "revealword": "",
-                "canguess": true,
-                "showhint": false,
-                "hintvalue": "",
-                "canhint": true,
-                "hudhintcost": false,
-                "hudhintcostlabel": "",
-                "canaffordhint": true
+                "tiles": [
+                    {"letter": "", "revealed": false, "shared": true, "slotnum": "3", "arialabel": "Hidden letter, slot 3"},
+                    {"letter": "", "revealed": false, "shared": false, "slotnum": "", "arialabel": "Hidden letter, not shared"}
+                ],
+                "canguess": true
             }
         ],
-        "cluelabel": "Clue",
         "cluesresolved": 0,
         "cluestotal": 5,
         "cluesprogresslabel": "0 of 5 clues resolved",
@@ -89,14 +86,22 @@
         "timerlabel": "Time left:",
         "timeleft": 0,
         "roundfinished": false,
-        "guesslabel": "Your guess",
-        "guessplaceholder": "Type a word",
+        "guesslabel": "Your answer",
         "submitclueguess": "Submit",
-        "hintbuttonlabel": "Hint",
+        "showglobalhint": true,
+        "globalhintlabel": "Hint",
+        "hudhintcost": false,
+        "hudhintcostlabel": "",
+        "canaffordhint": true,
         "canfinalguess": true,
         "finalguesslabel": "Mystery phrase",
-        "finalguessplaceholder": "Type the mystery phrase",
+        "finalguesslength": 6,
         "submitfinalguess": "Guess the mystery phrase",
+        "keyboardlabel": "Virtual keyboard",
+        "keyboardenterlabel": "Submit",
+        "keyboardentertext": "Send",
+        "keyboardbackspacelabel": "Delete last letter",
+        "showcedilla": false,
         "feedbackmessage": "",
         "revealthemeword": "",
         "revealthemewordlabel": "The mystery phrase was:",
@@ -123,28 +128,7 @@
 }}
 <div class="mod-playercross-game">
     <div class="pc-header">
-        <div class="pc-toolbar">
-            <button type="button" id="playercross-help-button" class="btn btn-link p-0" data-title="{{helptitle}}">
-                <i class="fa fa-question-circle" aria-hidden="true"></i> {{helptitle}}
-            </button>
-            <a href="{{myattemptsurl}}" class="btn btn-link p-0">{{toolbarmyattempts}}</a>
-            {{#showranking}}
-                <a href="{{rankingurl}}" class="btn btn-link p-0">{{toolbarranking}}</a>
-            {{/showranking}}
-            {{#canmanage}}
-                <a href="{{managewordsurl}}" class="btn btn-link p-0">{{toolbarmanagewords}}</a>
-                <a href="{{attemptsreporturl}}" class="btn btn-link p-0">{{toolbarreport}}</a>
-            {{/canmanage}}
-            {{#showforfeit}}
-                <button type="button"
-                        id="playercross-forfeit-button"
-                        class="btn btn-link p-0 text-danger"
-                        data-title="{{forfeitlabel}}"
-                        data-confirm="{{forfeitconfirm}}">
-                    {{forfeitlabel}}
-                </button>
-            {{/showforfeit}}
-        </div>
+        {{> mod_playercross/toolbar}}
         {{#timerenabled}}
             <span id="playercross-timer-wrapper" class="pc-header-timer"
                 {{#showlobby}}hidden{{/showlobby}}

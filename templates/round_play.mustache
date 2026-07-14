@@ -22,51 +22,51 @@
     #playercross-clues-list and #playercross-final-guess-form), so this partial can be
     re-rendered wholesale after every action without re-wiring individual listeners.
 
+    Each clue's phrase is always shown — it is the question itself, not an optional
+    reveal. The answer is typed into a real text input (inputmode="none", so the
+    device's own on-screen keyboard never appears — see amd/src/game.js's own virtual
+    keyboard), and mirrored live as a row of tiles: revealed and hidden-with-slot-number
+    for letters shared with the mystery phrase, a plain marker for letters that are not.
+
     Example context (json):
     {
         "clues": [
             {
                 "clueid": 12,
+                "phrase": "A place to keep notes and school exercises",
                 "resolved": false,
                 "exhausted": false,
                 "attemptsused": 1,
-                "wordlength": 4,
                 "revealword": "",
-                "canguess": true,
-                "showhint": false,
-                "hintvalue": "",
-                "canhint": true,
-                "hintbuttonlabel": "Hint",
-                "hudhintcost": false,
-                "hudhintcostlabel": "",
-                "canaffordhint": true
+                "tiles": [
+                    {"letter": "", "revealed": false, "shared": true, "slotnum": "3", "arialabel": "Hidden letter, slot 3"},
+                    {"letter": "A", "revealed": true, "shared": true, "slotnum": "", "arialabel": "A, revealed"},
+                    {"letter": "", "revealed": false, "shared": false, "slotnum": "", "arialabel": "Hidden letter, not shared"}
+                ],
+                "canguess": true
             },
             {
                 "clueid": 13,
+                "phrase": "A tool used to write",
                 "resolved": true,
                 "exhausted": false,
                 "attemptsused": 1,
-                "wordlength": 6,
-                "revealword": "ESCOLA",
-                "canguess": false,
-                "showhint": false,
-                "hintvalue": "",
-                "canhint": false,
-                "hintbuttonlabel": "Hint",
-                "hudhintcost": false,
-                "hudhintcostlabel": "",
-                "canaffordhint": true
+                "revealword": "CANETA",
+                "tiles": [],
+                "canguess": false
             }
         ],
-        "cluelabel": "Clue",
-        "guesslabel": "Your guess",
-        "guessplaceholder": "Type a word",
+        "guesslabel": "Your answer",
         "submitclueguess": "Submit",
-        "hintbuttonlabel": "Hint",
         "canfinalguess": true,
         "finalguesslabel": "Mystery phrase",
-        "finalguessplaceholder": "Type the mystery phrase",
-        "submitfinalguess": "Guess the mystery phrase"
+        "finalguesslength": 6,
+        "submitfinalguess": "Guess the mystery phrase",
+        "keyboardlabel": "Virtual keyboard",
+        "keyboardenterlabel": "Submit",
+        "keyboardentertext": "Send",
+        "keyboardbackspacelabel": "Delete last letter",
+        "showcedilla": false
     }
 }}
 <div id="playercross-round-play">
@@ -74,45 +74,36 @@
         {{#clues}}
             <li class="mod-playercross-clue{{#resolved}} is-resolved{{/resolved}}{{#exhausted}} is-exhausted{{/exhausted}}"
                 data-clue-id="{{clueid}}">
-                <div class="mod-playercross-clue-header">
-                    <span class="mod-playercross-clue-label">{{cluelabel}} ({{wordlength}})</span>
-                    {{#resolved}}
-                        <span class="mod-playercross-clue-answer">{{revealword}}</span>
-                    {{/resolved}}
-                    {{#exhausted}}
-                        <span class="text-muted small">{{attemptsused}}</span>
-                    {{/exhausted}}
-                </div>
+                <p class="mod-playercross-clue-phrase">{{phrase}}</p>
+                {{#resolved}}
+                    <span class="mod-playercross-clue-answer">&#10003; {{revealword}}</span>
+                {{/resolved}}
+                {{#exhausted}}
+                    <span class="text-muted small">{{attemptsused}}</span>
+                {{/exhausted}}
                 {{#canguess}}
                     <form class="mod-playercross-clue-form" data-clue-id="{{clueid}}">
                         <label for="playercross-clue-guess-{{clueid}}" class="visually-hidden">{{guesslabel}}</label>
                         <input
                             type="text"
                             id="playercross-clue-guess-{{clueid}}"
-                            class="form-control form-control-sm"
-                            placeholder="{{guessplaceholder}}"
+                            class="mod-playercross-guess-input"
+                            inputmode="none"
                             autocomplete="off"
                             required
                         >
-                        <button type="submit" class="btn btn-sm btn-primary">{{submitclueguess}}</button>
-                        {{#canhint}}
-                            <button type="button"
-                                    class="btn btn-sm btn-link playercross-hint-button"
-                                    data-clue-id="{{clueid}}"
-                                    {{#hudhintcost}}
-                                        title="{{hudhintcostlabel}}"
-                                        data-hud-confirm-title="{{hintbuttonlabel}}"
-                                        data-hud-confirm-body="{{hudhintcostlabel}}"
-                                        {{^canaffordhint}}data-hud-confirm-insufficient="1"{{/canaffordhint}}
-                                    {{/hudhintcost}}>
-                                {{hintbuttonlabel}}
-                            </button>
-                        {{/canhint}}
+                        <div class="mod-playercross-clue-tiles" data-clue-tiles="{{clueid}}">
+                            {{#tiles}}
+                                <div class="mod-playercross-tile-wrap small">
+                                    <span class="mod-playercross-tile{{#revealed}} is-revealed{{/revealed}}{{^shared}} is-unshared{{/shared}}"
+                                          aria-label="{{arialabel}}">{{letter}}</span>
+                                    <span class="mod-playercross-tile-num">{{slotnum}}</span>
+                                </div>
+                            {{/tiles}}
+                        </div>
+                        <button type="submit" class="mod-playercross-submit-btn">{{submitclueguess}}</button>
                     </form>
                 {{/canguess}}
-                {{#showhint}}
-                    <p class="mod-playercross-clue-hint text-muted small mb-0">{{hintvalue}}</p>
-                {{/showhint}}
             </li>
         {{/clues}}
     </ul>
@@ -120,17 +111,65 @@
     {{#canfinalguess}}
         <form id="playercross-final-guess-form" class="mod-playercross-final-guess mt-3">
             <label for="playercross-final-guess" class="fw-bold">{{finalguesslabel}}</label>
-            <div class="input-group">
-                <input
-                    type="text"
-                    id="playercross-final-guess"
-                    class="form-control"
-                    placeholder="{{finalguessplaceholder}}"
-                    autocomplete="off"
-                    required
-                >
-                <button type="submit" class="btn btn-success">{{submitfinalguess}}</button>
-            </div>
+            <input
+                type="text"
+                id="playercross-final-guess"
+                class="mod-playercross-guess-input"
+                inputmode="none"
+                autocomplete="off"
+                data-length="{{finalguesslength}}"
+                required
+            >
+            <div class="mod-playercross-clue-tiles" data-final-tiles="1"></div>
+            <button type="submit" class="mod-playercross-submit-btn primary">{{submitfinalguess}}</button>
         </form>
     {{/canfinalguess}}
+
+    <div id="playercross-keyboard" class="mod-playercross-keyboard" role="group" aria-label="{{keyboardlabel}}">
+        <div class="mod-playercross-keyboard-row">
+            <button type="button" class="pc-key" data-key="Q" tabindex="-1">Q</button>
+            <button type="button" class="pc-key" data-key="W" tabindex="-1">W</button>
+            <button type="button" class="pc-key" data-key="E" tabindex="-1">E</button>
+            <button type="button" class="pc-key" data-key="R" tabindex="-1">R</button>
+            <button type="button" class="pc-key" data-key="T" tabindex="-1">T</button>
+            <button type="button" class="pc-key" data-key="Y" tabindex="-1">Y</button>
+            <button type="button" class="pc-key" data-key="U" tabindex="-1">U</button>
+            <button type="button" class="pc-key" data-key="I" tabindex="-1">I</button>
+            <button type="button" class="pc-key" data-key="O" tabindex="-1">O</button>
+            <button type="button" class="pc-key" data-key="P" tabindex="-1">P</button>
+        </div>
+        <div class="mod-playercross-keyboard-row">
+            <button type="button" class="pc-key" data-key="A" tabindex="-1">A</button>
+            <button type="button" class="pc-key" data-key="S" tabindex="-1">S</button>
+            <button type="button" class="pc-key" data-key="D" tabindex="-1">D</button>
+            <button type="button" class="pc-key" data-key="F" tabindex="-1">F</button>
+            <button type="button" class="pc-key" data-key="G" tabindex="-1">G</button>
+            <button type="button" class="pc-key" data-key="H" tabindex="-1">H</button>
+            <button type="button" class="pc-key" data-key="J" tabindex="-1">J</button>
+            <button type="button" class="pc-key" data-key="K" tabindex="-1">K</button>
+            <button type="button" class="pc-key" data-key="L" tabindex="-1">L</button>
+            {{#showcedilla}}
+                <button type="button" class="pc-key" data-key="Ç" tabindex="-1">Ç</button>
+            {{/showcedilla}}
+        </div>
+        <div class="mod-playercross-keyboard-row">
+            <button type="button"
+                    class="pc-key pc-key-wide pc-key-enter"
+                    data-key="ENTER"
+                    tabindex="-1"
+                    aria-label="{{keyboardenterlabel}}">{{keyboardentertext}}</button>
+            <button type="button" class="pc-key" data-key="Z" tabindex="-1">Z</button>
+            <button type="button" class="pc-key" data-key="X" tabindex="-1">X</button>
+            <button type="button" class="pc-key" data-key="C" tabindex="-1">C</button>
+            <button type="button" class="pc-key" data-key="V" tabindex="-1">V</button>
+            <button type="button" class="pc-key" data-key="B" tabindex="-1">B</button>
+            <button type="button" class="pc-key" data-key="N" tabindex="-1">N</button>
+            <button type="button" class="pc-key" data-key="M" tabindex="-1">M</button>
+            <button type="button"
+                    class="pc-key pc-key-wide pc-key-backspace"
+                    data-key="BACKSPACE"
+                    tabindex="-1"
+                    aria-label="{{keyboardbackspacelabel}}">&#x232b;</button>
+        </div>
+    </div>
 </div>
