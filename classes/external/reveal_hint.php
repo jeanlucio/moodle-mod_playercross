@@ -77,7 +77,7 @@ class reveal_hint extends external_api {
         $userid = (int)$USER->id;
 
         $state = round_service::load_state($cmid, $userid);
-        $state = round_service::ensure_round_state($state, $instance, $userid);
+        $state = round_service::ensure_round_state($state, $instance, $cmid, $userid);
 
         [$state, $notification, $notificationtype] = round_service::reveal_hint($state, $instance, $userid, $clueid);
         round_service::save_state($cmid, $userid, $state);

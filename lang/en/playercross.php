@@ -24,6 +24,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['attemptsreport_empty'] = 'No student has finished a round yet.';
+$string['attemptsreport_title'] = 'Attempt history — All students';
+$string['backtogamebutton'] = 'Back to game';
 $string['clueexhausted'] = 'No attempts left for this clue.';
 $string['cluelabel'] = 'Clue';
 $string['cluenotavailable'] = 'This clue is not available right now.';
@@ -49,6 +52,8 @@ $string['error_maxlength'] = 'Maximum length must be greater than or equal to mi
 $string['error_minlength'] = 'Minimum length must be at least 1.';
 $string['error_thememinlength'] = 'Minimum mystery phrase length must be at least 1.';
 $string['error_timerseconds'] = 'Timer must be 0 or a positive value.';
+$string['event_round_completed'] = 'Round completed';
+$string['event_round_started'] = 'Round started';
 $string['feedback_finalguessed'] = 'You solved the mystery phrase directly!';
 $string['feedback_forfeited'] = 'You gave up this round.';
 $string['feedback_lost'] = 'Round over. Better luck next time!';
@@ -112,6 +117,18 @@ $string['min_length'] = 'Minimum clue word length';
 $string['modulename'] = 'PlayerCross';
 $string['modulename_help'] = 'PlayerCross is a deduction crossword-style activity: students solve clues about course concepts, and each correct answer reveals shared letters of a final mystery phrase.';
 $string['modulenameplural'] = 'PlayerCross';
+$string['myattempts_allstudents'] = 'All students';
+$string['myattempts_attempts'] = 'Attempts';
+$string['myattempts_clues'] = 'Clues';
+$string['myattempts_date'] = 'Date';
+$string['myattempts_empty'] = 'You have not finished any rounds yet.';
+$string['myattempts_filterbutton'] = 'Filter';
+$string['myattempts_finalguessed'] = 'Direct guess';
+$string['myattempts_score'] = 'Score';
+$string['myattempts_student'] = 'Student';
+$string['myattempts_theme'] = 'Mystery phrase';
+$string['myattempts_time'] = 'Time';
+$string['myattempts_title'] = 'My attempts';
 $string['newroundlabel'] = 'Start a new round';
 $string['nogamewords'] = 'No approved words are available for this activity yet.';
 $string['num_clues'] = 'Clues per round';
@@ -146,6 +163,8 @@ $string['tile_state_hidden'] = 'Hidden letter';
 $string['tile_state_revealed'] = '{$a}, revealed';
 $string['timer_minutes'] = 'Timer in minutes (0 to disable)';
 $string['timerlabel'] = 'Time left:';
+$string['toolbarmyattempts'] = 'My attempts';
+$string['toolbarreport'] = 'Report';
 $string['wordmode'] = 'Mystery phrase selection mode';
 $string['wordmode_random'] = 'Random phrase per round';
 $string['wordmode_shared'] = 'Shared sequence (all students receive the same phrase in the same order)';

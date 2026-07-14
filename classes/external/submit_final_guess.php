@@ -76,7 +76,7 @@ class submit_final_guess extends external_api {
         $userid = (int)$USER->id;
 
         $state = round_service::load_state($cmid, $userid);
-        $state = round_service::ensure_round_state($state, $instance, $userid);
+        $state = round_service::ensure_round_state($state, $instance, $cmid, $userid);
 
         [$state, $correct, $notification, $notificationtype] = round_service::submit_final_guess(
             $state,

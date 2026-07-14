@@ -15,32 +15,28 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * List of all playercross instances in a course.
+ * Course module viewed event.
  *
  * @package mod_playercross
  * @copyright  2026 Jean Lúcio
  * @license https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require(__DIR__ . '/../../config.php');
+namespace mod_playercross\event;
 
-$id = required_param('id', PARAM_INT);
-$course = $DB->get_record('course', ['id' => $id], '*', MUST_EXIST);
+/**
+ * Fired when a user visits view.php for a PlayerCross activity instance.
+ */
+class course_module_viewed extends \core\event\course_module_viewed {
+    #[\Override]
+    protected function init(): void {
+        $this->data['crud'] = 'r';
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
+        $this->data['objecttable'] = 'playercross';
+    }
 
-require_course_login($course);
-
-$context = context_course::instance($course->id);
-$event = \mod_playercross\event\course_module_instance_list_viewed::create([
-    'context' => $context,
-]);
-$event->add_record_snapshot('course', $course);
-$event->trigger();
-
-$PAGE->set_url('/mod/playercross/index.php', ['id' => $id]);
-$PAGE->set_title(get_string('modulenameplural', 'mod_playercross'));
-$PAGE->set_heading($course->fullname);
-$PAGE->set_pagelayout('incourse');
-
-echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('modulenameplural', 'mod_playercross'));
-echo $OUTPUT->footer();
+    #[\Override]
+    public static function get_objectid_mapping(): array {
+        return ['db' => 'playercross', 'restore' => 'playercross'];
+    }
+}

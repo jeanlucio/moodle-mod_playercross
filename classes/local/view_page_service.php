@@ -55,7 +55,7 @@ class view_page_service {
         if ((int)$state['themewordid'] === 0 && empty($state['finished'])) {
             $restrictionnotice = round_service::get_round_restriction_notice($instance, $userid);
             if ($restrictionnotice !== null) {
-                $templatectx = self::build_template_context($cm, $instance, $state, $userid);
+                $templatectx = self::build_template_context($cm, $instance, $state, $context, $userid);
                 $templatectx['hastheme'] = false;
                 $templatectx['nogamewords'] = $restrictionnotice;
                 return [
@@ -68,10 +68,10 @@ class view_page_service {
             }
         }
 
-        $state = round_service::ensure_round_state($state, $instance, $userid);
+        $state = round_service::ensure_round_state($state, $instance, (int)$cm->id, $userid);
         round_service::save_state((int)$cm->id, $userid, $state);
 
-        $templatecontext = self::build_template_context($cm, $instance, $state, $userid);
+        $templatecontext = self::build_template_context($cm, $instance, $state, $context, $userid);
 
         return [
             'templatecontext'     => $templatecontext,
@@ -88,6 +88,7 @@ class view_page_service {
      * @param \stdClass $cm Course module.
      * @param \stdClass $instance Activity instance.
      * @param array $state Session state.
+     * @param context_module $context Module context.
      * @param int $userid Current user id.
      * @return array
      */
@@ -95,6 +96,7 @@ class view_page_service {
         \stdClass $cm,
         \stdClass $instance,
         array $state,
+        context_module $context,
         int $userid
     ): array {
         $hastheme = (int)$state['themewordid'] > 0;
@@ -104,6 +106,8 @@ class view_page_service {
             ? round_presenter::build_lobby_context($instance, $state, $userid)
             : round_presenter::build_round_panel_context($instance, $cm, $state, $userid);
 
+        $canmanage = has_capability('mod/playercross:addinstance', $context);
+
         return [
             'hastheme' => $hastheme,
             'nogamewords' => get_string('nogamewords', 'mod_playercross'),
@@ -112,6 +116,14 @@ class view_page_service {
             'forfeitconfirm' => get_string('forfeitconfirm', 'mod_playercross'),
             'showlobby' => $showlobby,
             'roundstarted' => !empty($state['roundstarted']),
+            'toolbarmyattempts' => get_string('toolbarmyattempts', 'mod_playercross'),
+            'myattemptsurl' => (new \moodle_url('/mod/playercross/myattempts.php', ['id' => $cm->id]))->out(false),
+            'canmanage' => $canmanage,
+            'toolbarreport' => get_string('toolbarreport', 'mod_playercross'),
+            'attemptsreporturl' => (new \moodle_url(
+                '/mod/playercross/attemptsreport.php',
+                ['id' => $cm->id]
+            ))->out(false),
         ]
             + self::build_help_context($instance)
             + $inner;

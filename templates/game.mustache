@@ -36,6 +36,11 @@
         "reviewhint": "You can review these instructions anytime by clicking the help icon at the top of the game.",
         "hastheme": true,
         "nogamewords": "No approved words are available for this activity yet.",
+        "toolbarmyattempts": "My attempts",
+        "myattemptsurl": "https://example.com/mod/playercross/myattempts.php?id=1",
+        "canmanage": true,
+        "toolbarreport": "Report",
+        "attemptsreporturl": "https://example.com/mod/playercross/attemptsreport.php?id=1",
         "showforfeit": true,
         "forfeitlabel": "Give up",
         "forfeitconfirm": "Are you sure you want to give up?",
@@ -109,6 +114,10 @@
             <button type="button" id="playercross-help-button" class="btn btn-link p-0" data-title="{{helptitle}}">
                 <i class="fa fa-question-circle" aria-hidden="true"></i> {{helptitle}}
             </button>
+            <a href="{{myattemptsurl}}" class="btn btn-link p-0">{{toolbarmyattempts}}</a>
+            {{#canmanage}}
+                <a href="{{attemptsreporturl}}" class="btn btn-link p-0">{{toolbarreport}}</a>
+            {{/canmanage}}
             {{#showforfeit}}
                 <button type="button"
                         id="playercross-forfeit-button"

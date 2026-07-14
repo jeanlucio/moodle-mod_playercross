@@ -198,10 +198,11 @@ class round_service {
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
+     * @param int $cmid Course module id.
      * @param int $userid User id.
      * @return array Updated state.
      */
-    public static function ensure_round_state(array $state, \stdClass $instance, int $userid): array {
+    public static function ensure_round_state(array $state, \stdClass $instance, int $cmid, int $userid): array {
         if (!empty($state['finished']) || (int)$state['themewordid'] > 0) {
             return $state;
         }
@@ -237,6 +238,13 @@ class round_service {
         $state['revealedslots'] = $puzzle->alwaysrevealedslots;
         $state['clues']         = $clues;
         $state['cluestotal']    = count($clues);
+
+        $event = \mod_playercross\event\round_started::create([
+            'objectid' => $puzzle->themewordid,
+            'context'  => \context_module::instance($cmid),
+            'other'    => ['cluestotal' => count($clues)],
+        ]);
+        $event->trigger();
 
         return $state;
     }
@@ -527,7 +535,7 @@ class round_service {
         $timeused = max(0, time() - (int)$state['starttime']);
         $score = round((float)$state['scoreaccumulated'], 5);
 
-        $DB->insert_record('playercross_attempts', (object)[
+        $attemptid = $DB->insert_record('playercross_attempts', (object)[
             'playercrossid' => $instance->id,
             'userid'        => $userid,
             'themewordid'   => (int)$state['themewordid'],
@@ -540,6 +548,22 @@ class round_service {
             'score'         => $score,
             'timecreated'   => time(),
         ]);
+
+        $event = \mod_playercross\event\round_completed::create([
+            'objectid' => $attemptid,
+            'context'  => \context_module::instance($cmid),
+            'other'    => [
+                'completed'     => $won,
+                'finalguessed'  => $finalguessed,
+                'score'         => $score,
+                'cluesresolved' => (int)$state['cluesresolved'],
+                'cluestotal'    => (int)$state['cluestotal'],
+                'attemptsused'  => (int)$state['attemptsused'],
+                'timeused'      => $timeused,
+                'themewordid'   => (int)$state['themewordid'],
+            ],
+        ]);
+        $event->trigger();
 
         playercross_update_grades($instance, $userid);
 

@@ -24,6 +24,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['attemptsreport_empty'] = 'Nenhum estudante concluiu uma rodada ainda.';
+$string['attemptsreport_title'] = 'Histórico de tentativas — Todos os estudantes';
+$string['backtogamebutton'] = 'Voltar ao jogo';
 $string['clueexhausted'] = 'Não há mais tentativas para esta pista.';
 $string['cluelabel'] = 'Pista';
 $string['cluenotavailable'] = 'Esta pista não está disponível no momento.';
@@ -49,6 +52,8 @@ $string['error_maxlength'] = 'O comprimento máximo deve ser maior ou igual ao c
 $string['error_minlength'] = 'O comprimento mínimo deve ser ao menos 1.';
 $string['error_thememinlength'] = 'O comprimento mínimo da frase-mistério deve ser ao menos 1.';
 $string['error_timerseconds'] = 'O cronômetro deve ser 0 ou um valor positivo.';
+$string['event_round_completed'] = 'Rodada concluída';
+$string['event_round_started'] = 'Rodada iniciada';
 $string['feedback_finalguessed'] = 'Você acertou a frase-mistério diretamente!';
 $string['feedback_forfeited'] = 'Você desistiu desta rodada.';
 $string['feedback_lost'] = 'Rodada encerrada. Mais sorte na próxima!';
@@ -112,6 +117,18 @@ $string['min_length'] = 'Comprimento mínimo da palavra de pista';
 $string['modulename'] = 'PlayerCross';
 $string['modulename_help'] = 'PlayerCross é uma atividade de palavras cruzadas por dedução: o estudante resolve pistas de conceitos do curso e cada acerto revela letras compartilhadas de uma frase-mistério final.';
 $string['modulenameplural'] = 'PlayerCross';
+$string['myattempts_allstudents'] = 'Todos os estudantes';
+$string['myattempts_attempts'] = 'Tentativas';
+$string['myattempts_clues'] = 'Pistas';
+$string['myattempts_date'] = 'Data';
+$string['myattempts_empty'] = 'Você ainda não concluiu nenhuma rodada.';
+$string['myattempts_filterbutton'] = 'Filtrar';
+$string['myattempts_finalguessed'] = 'Chute direto';
+$string['myattempts_score'] = 'Pontuação';
+$string['myattempts_student'] = 'Estudante';
+$string['myattempts_theme'] = 'Frase-mistério';
+$string['myattempts_time'] = 'Tempo';
+$string['myattempts_title'] = 'Minhas tentativas';
 $string['newroundlabel'] = 'Iniciar nova rodada';
 $string['nogamewords'] = 'Nenhuma palavra aprovada está disponível para esta atividade ainda.';
 $string['num_clues'] = 'Pistas por rodada';
@@ -146,6 +163,8 @@ $string['tile_state_hidden'] = 'Letra oculta';
 $string['tile_state_revealed'] = '{$a}, revelada';
 $string['timer_minutes'] = 'Cronômetro em minutos (0 para desabilitar)';
 $string['timerlabel'] = 'Tempo restante:';
+$string['toolbarmyattempts'] = 'Minhas tentativas';
+$string['toolbarreport'] = 'Relatório';
 $string['wordmode'] = 'Modo de seleção da frase-mistério';
 $string['wordmode_random'] = 'Frase aleatória por rodada';
 $string['wordmode_shared'] = 'Sequência compartilhada (todos os estudantes recebem a mesma frase na mesma ordem)';

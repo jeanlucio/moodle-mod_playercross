@@ -1,0 +1,96 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_playercross/myattempts
+
+    Own round history page for a PlayerCross activity.
+
+    Example context (json):
+    {
+        "activityurl": "https://example.com/mod/playercross/view.php?id=1",
+        "backlabel": "Back to game",
+        "myattemptstitle": "My attempts",
+        "showgrade": true,
+        "gradesummary": "Highest grade: 8.50 / 10.00.",
+        "isempty": false,
+        "themelabel": "Mystery phrase",
+        "clueslabel": "Clues",
+        "finalguessedlabel": "Direct guess",
+        "attemptslabel": "Attempts",
+        "timelabel": "Time",
+        "scorelabel": "Score",
+        "datelabel": "Date",
+        "yeslabel": "Yes",
+        "nolabel": "No",
+        "emptylabel": "You have not finished any rounds yet.",
+        "rows": [
+            {
+                "themeword": "Escola",
+                "cluesresolved": 3,
+                "cluestotal": 3,
+                "finalguessed": false,
+                "attemptsused": 5,
+                "timeused": "1:24",
+                "won": true,
+                "score": "85.00",
+                "datecreated": "14 July 2026, 9:00 AM"
+            }
+        ]
+    }
+}}
+<div class="mod-playercross-myattempts-page">
+    <p>
+        <a href="{{activityurl}}" class="btn btn-secondary btn-sm">{{backlabel}}</a>
+    </p>
+    <h2>{{myattemptstitle}}</h2>
+    {{#showgrade}}
+        <p>{{gradesummary}}</p>
+    {{/showgrade}}
+    {{#isempty}}
+        <p class="text-muted">{{emptylabel}}</p>
+    {{/isempty}}
+    {{^isempty}}
+        <div class="table-responsive">
+            <table class="table table-sm mod-playercross-myattempts-table">
+                <thead>
+                    <tr>
+                        <th scope="col">{{themelabel}}</th>
+                        <th scope="col" class="text-end">{{clueslabel}}</th>
+                        <th scope="col">{{finalguessedlabel}}</th>
+                        <th scope="col" class="text-end">{{attemptslabel}}</th>
+                        <th scope="col" class="text-end">{{timelabel}}</th>
+                        <th scope="col" class="text-end">{{scorelabel}}</th>
+                        <th scope="col">{{datelabel}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#rows}}
+                        <tr>
+                            <td>{{themeword}}</td>
+                            <td class="text-end">{{cluesresolved}}/{{cluestotal}}</td>
+                            <td>{{#finalguessed}}{{yeslabel}}{{/finalguessed}}{{^finalguessed}}{{nolabel}}{{/finalguessed}}</td>
+                            <td class="text-end">{{attemptsused}}</td>
+                            <td class="text-end">{{timeused}}</td>
+                            <td class="text-end">{{score}}</td>
+                            <td>{{datecreated}}</td>
+                        </tr>
+                    {{/rows}}
+                </tbody>
+            </table>
+        </div>
+    {{/isempty}}
+</div>

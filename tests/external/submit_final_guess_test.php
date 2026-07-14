@@ -91,6 +91,7 @@ final class submit_final_guess_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->student->id),
             $instance,
+            $cm->cmid,
             $this->student->id
         );
         round_service::save_state($cm->cmid, $this->student->id, $state);
@@ -119,6 +120,7 @@ final class submit_final_guess_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->student->id),
             $instance,
+            $cm->cmid,
             $this->student->id
         );
         round_service::save_state($cm->cmid, $this->student->id, $state);

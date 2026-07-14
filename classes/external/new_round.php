@@ -83,7 +83,7 @@ class new_round extends external_api {
         }
 
         $state = round_service::load_state($cmid, $userid);
-        $state = round_service::ensure_round_state($state, $instance, $userid);
+        $state = round_service::ensure_round_state($state, $instance, $cmid, $userid);
         round_service::save_state($cmid, $userid, $state);
 
         return [

@@ -25,6 +25,9 @@
 
 namespace mod_playercross\local;
 
+use mod_playercross\event\round_completed;
+use mod_playercross\event\round_started;
+
 /**
  * Tests for round_service — the single source of truth for every round transition.
  * Requires database.
@@ -92,7 +95,7 @@ final class round_service_test extends \advanced_testcase {
         [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
 
         $state = round_service::load_state($cm->cmid, $this->user->id);
-        $state = round_service::ensure_round_state($state, $instance, $this->user->id);
+        $state = round_service::ensure_round_state($state, $instance, $cm->cmid, $this->user->id);
 
         $this->assertGreaterThan(0, $state['themewordid']);
         $this->assertSame(3, $state['cluestotal']);
@@ -111,6 +114,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
+            $cm->cmid,
             $this->user->id
         );
         $clueid = (int)$state['clues'][0]['wordid'];
@@ -142,6 +146,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
+            $cm->cmid,
             $this->user->id
         );
         $clue = $state['clues'][0];
@@ -175,6 +180,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
+            $cm->cmid,
             $this->user->id
         );
 
@@ -210,6 +216,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
+            $cm->cmid,
             $this->user->id
         );
 
@@ -238,6 +245,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
+            $cm->cmid,
             $this->user->id
         );
 
@@ -269,6 +277,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
+            $cm->cmid,
             $this->user->id
         );
         $clueid = (int)$state['clues'][0]['wordid'];
@@ -294,6 +303,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
+            $cm->cmid,
             $this->user->id
         );
 
@@ -327,6 +337,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
+            $cm->cmid,
             $this->user->id
         );
         [$state] = round_service::start_round($state, $instance, $this->user->id);
@@ -348,6 +359,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
+            $cm->cmid,
             $this->user->id
         );
         round_service::save_state($cm->cmid, $this->user->id, $state);
@@ -375,5 +387,64 @@ final class round_service_test extends \advanced_testcase {
 
         $this->assertSame(1, round_service::count_rounds_played($instance, $this->user->id));
         $this->assertGreaterThan(time(), round_service::compute_cooldown_until($instance, $this->user->id));
+    }
+
+    /**
+     * ensure_round_state() fires round_started exactly once when a fresh puzzle is built.
+     *
+     * @covers \mod_playercross\local\round_service::ensure_round_state
+     * @return void
+     */
+    public function test_ensure_round_state_fires_round_started_event(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $sink = $this->redirectEvents();
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        $events = array_values(array_filter($sink->get_events(), fn($e) => $e instanceof round_started));
+        $this->assertCount(1, $events);
+        $this->assertSame($state['themewordid'], $events[0]->objectid);
+        $this->assertSame(3, $events[0]->other['cluestotal']);
+    }
+
+    /**
+     * Winning a round by resolving every clue fires round_completed exactly once, with
+     * the outcome recorded in its "other" payload.
+     *
+     * @covers \mod_playercross\local\round_service::submit_clue_guess
+     * @return void
+     */
+    public function test_resolving_all_clues_fires_round_completed_event(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        $sink = $this->redirectEvents();
+        foreach ($state['clues'] as $clue) {
+            [$state] = round_service::submit_clue_guess(
+                $state,
+                $instance,
+                $cm->cmid,
+                $this->user->id,
+                (int)$clue['wordid'],
+                $clue['word']
+            );
+        }
+
+        $events = array_values(array_filter($sink->get_events(), fn($e) => $e instanceof round_completed));
+        $this->assertCount(1, $events);
+        $this->assertTrue($events[0]->other['completed']);
+        $this->assertFalse($events[0]->other['finalguessed']);
+        $this->assertSame(3, $events[0]->other['cluesresolved']);
+        $this->assertSame(3, $events[0]->other['cluestotal']);
     }
 }

@@ -69,7 +69,7 @@ class start_round extends external_api {
         $userid = (int)$USER->id;
 
         $state = round_service::load_state($cmid, $userid);
-        $state = round_service::ensure_round_state($state, $instance, $userid);
+        $state = round_service::ensure_round_state($state, $instance, $cmid, $userid);
 
         if ((int)$state['themewordid'] === 0 || !empty($state['finished']) || !empty($state['roundstarted'])) {
             return [
