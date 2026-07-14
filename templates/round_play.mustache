@@ -36,6 +36,10 @@
     lone text field still submits on Enter and screen readers have a discoverable
     action, even though nothing is painted on screen for it.
 
+    The keyboard's own Space key writes a literal space into whichever input is
+    active, but amd/src/game.js only lets it do so for the mystery phrase's own
+    input — a clue's own word never contains a space, so the key is a no-op there.
+
     Example context (json):
     {
         "clues": [
@@ -69,6 +73,7 @@
         "keyboardenterlabel": "Submit",
         "keyboardentertext": "Send",
         "keyboardbackspacelabel": "Delete last letter",
+        "keyboardspacelabel": "Space",
         "showcedilla": false
     }
 }}
@@ -156,6 +161,13 @@
                     data-key="BACKSPACE"
                     tabindex="-1"
                     aria-label="{{keyboardbackspacelabel}}">&#x232b;</button>
+        </div>
+        <div class="mod-playercross-keyboard-row">
+            <button type="button"
+                    class="pc-key pc-key-space"
+                    data-key="SPACE"
+                    tabindex="-1"
+                    aria-label="{{keyboardspacelabel}}"></button>
         </div>
     </div>
 </div>

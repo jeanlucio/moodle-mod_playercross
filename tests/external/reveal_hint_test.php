@@ -147,13 +147,28 @@ final class reveal_hint_test extends \advanced_testcase {
     }
 
     /**
+     * Flattens the mystery phrase's own tiles, grouped by word in the response, into a
+     * single letter-by-letter list.
+     *
+     * @param array $panel Panel data from the response.
+     * @return array
+     */
+    private function flatten_theme_tiles(array $panel): array {
+        $tiles = [];
+        foreach ($panel['themetiles'] as $group) {
+            $tiles = array_merge($tiles, $group['tiles']);
+        }
+        return $tiles;
+    }
+
+    /**
      * Counts how many mystery-phrase tiles are currently revealed in a panel response.
      *
      * @param array $panel Panel data from the response.
      * @return int
      */
     private function count_revealed_tiles(array $panel): int {
-        return count(array_filter($panel['themetiles'], fn(array $tile): bool => $tile['revealed']));
+        return count(array_filter($this->flatten_theme_tiles($panel), fn(array $tile): bool => $tile['revealed']));
     }
 
     /**
@@ -168,7 +183,7 @@ final class reveal_hint_test extends \advanced_testcase {
      */
     private function hidden_slotnums(array $panel): array {
         $nums = [];
-        foreach ($panel['themetiles'] as $tile) {
+        foreach ($this->flatten_theme_tiles($panel) as $tile) {
             if ($tile['slotnum'] !== '') {
                 $nums[] = $tile['slotnum'];
             }

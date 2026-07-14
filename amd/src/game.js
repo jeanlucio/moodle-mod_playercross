@@ -286,10 +286,13 @@ const getMaxLength = (input) => {
  * Mirrors a guess input's current value into its tile row, letter by letter,
  * overlaying whatever each tile originally showed (a revealed letter or a hidden
  * slot's number) — both the mystery phrase's own row and every clue's row are always
- * server-rendered this way, so the same logic mirrors into either one. Positions the
- * typed text has not reached yet fall back to that original content, captured into a
- * data attribute the first time this runs for a given tile — so backspacing past a
- * position restores it exactly as the server rendered it.
+ * server-rendered this way, so the same logic mirrors into either one. Spaces in the
+ * mystery phrase's own value are stripped before mapping onto tiles, since there is no
+ * tile for the gap between words (see mod_playercross/round_panel's word-group
+ * wrapper) — a clue's own value never contains one, so this is a no-op there. Positions
+ * the typed text has not reached yet fall back to the tile's original content,
+ * captured into a data attribute the first time this runs for a given tile — so
+ * backspacing past a position restores it exactly as the server rendered it.
  *
  * @param {HTMLElement} input Guess input that just changed.
  */
@@ -309,23 +312,25 @@ const updateTilePreview = (input) => {
             tile.dataset.original = tile.textContent;
         }
     });
-    const val = input.value.toUpperCase();
+    const val = input.value.toUpperCase().replace(/ /g, '');
     tiles.forEach((tile, i) => {
         tile.textContent = i < val.length ? val[i] : tile.dataset.original;
     });
 };
 
 /**
- * Filters a guess input's value down to letters only and enforces its max length,
- * then mirrors the result into its tile row. Delegated on the stage (see
- * wireStageDelegation) so it applies uniformly whether the letter came from a
- * physical keyboard or the on-screen one, without needing to be rewired per render.
+ * Filters a guess input's value down to letters only (plus a space, but only for the
+ * mystery phrase's own input — a clue's own word never contains one) and enforces its
+ * max length, then mirrors the result into its tile row. Delegated on the stage (see
+ * wireStageDelegation) so it applies uniformly whether the letter came from a physical
+ * keyboard or the on-screen one, without needing to be rewired per render.
  *
  * @param {HTMLElement} input Guess input that just changed.
  */
 const filterAndPreview = (input) => {
     const max = getMaxLength(input);
-    const filtered = input.value.replace(/[^\p{L}]/gu, '').slice(0, max > 0 ? max : undefined);
+    const allowedchars = input.id === 'playercross-final-guess' ? /[^\p{L} ]/gu : /[^\p{L}]/gu;
+    const filtered = input.value.replace(allowedchars, '').slice(0, max > 0 ? max : undefined);
     if (filtered !== input.value) {
         input.value = filtered;
     }
@@ -609,6 +614,15 @@ const handleKeyboardKey = (key) => {
             form.requestSubmit();
         } else {
             form?.submit();
+        }
+    } else if (key === 'SPACE') {
+        // A clue's own word never contains a space — only the mystery phrase's own
+        // input (a multi-word phrase) accepts one.
+        if (activeInput.id === 'playercross-final-guess') {
+            const max = getMaxLength(activeInput);
+            if (max === 0 || activeInput.value.length < max) {
+                activeInput.value += ' ';
+            }
         }
     } else {
         const max = getMaxLength(activeInput);

@@ -149,13 +149,50 @@ final class puzzle_builder_test extends \advanced_testcase {
         $this->assertNotEmpty($puzzle->alwaysrevealedslots);
 
         // The uncoverable letters (q, x) must both resolve to always-revealed slots.
-        $chars = word_normalizer::chars($puzzle->themeword);
+        // The theme word's default hint (see the generator's create_word()) is the
+        // word itself, so the phrase here is that single word.
+        $chars = word_normalizer::chars($puzzle->themewords[0]);
         $slotsbyletter = [];
         foreach ($chars as $position => $char) {
             $slotsbyletter[$char] = $puzzle->themeslots[$position];
         }
         $this->assertContains($slotsbyletter['q'], $puzzle->alwaysrevealedslots);
         $this->assertContains($slotsbyletter['x'], $puzzle->alwaysrevealedslots);
+    }
+
+    /**
+     * A word picked as the theme concept exposes its own hint as the multi-word
+     * mystery phrase (SCOPE.md §20.2 v1.9), flattened into one per-position slot
+     * array across every word (no entry for the gaps between them) — not the word
+     * itself, which becomes the concept caption instead, shown openly and never tiled.
+     *
+     * @covers \mod_playercross\local\puzzle_builder::build_round
+     * @return void
+     */
+    public function test_build_round_theme_phrase_comes_from_hint(): void {
+        $instance = $this->modgenerator->create_instance([
+            'course' => $this->course->id,
+            'num_clues' => 2,
+            'theme_min_length' => 5,
+            'min_length' => 3,
+            'max_length' => 15,
+        ]);
+
+        // Words "casa" and "gato" default to a hint equal to themselves (4 letters,
+        // see the generator's create_word()) — too short at theme_min_length 5, so
+        // only "administracao" is eligible as the theme concept, and its pick is
+        // deterministic.
+        $this->modgenerator->create_word($instance->id, 'administracao', 'area de gestao');
+        $this->modgenerator->create_word($instance->id, 'casa');
+        $this->modgenerator->create_word($instance->id, 'gato');
+
+        $puzzle = puzzle_builder::build_round($instance);
+
+        $this->assertSame('administracao', $puzzle->themeconcept);
+        $this->assertSame(['area', 'de', 'gestao'], $puzzle->themewords);
+        // Words area (4 letters), de (2 letters) and gestao (6 letters) sum to 12
+        // letters total, flattened.
+        $this->assertCount(12, $puzzle->themeslots);
     }
 
     /**

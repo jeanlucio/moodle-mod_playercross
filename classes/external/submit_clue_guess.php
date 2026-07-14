@@ -181,10 +181,17 @@ class submit_clue_guess extends external_api {
 
         $ownfields = [
             'themetiles' => new external_multiple_structure(
-                $tilestructure,
-                'Mystery phrase tiles, one per character position'
+                new external_single_structure([
+                    'tiles' => new external_multiple_structure(
+                        $tilestructure,
+                        'One word of the mystery phrase, letter-by-letter'
+                    ),
+                ]),
+                'Mystery phrase tiles, grouped by word'
             ),
             'themelabel' => new external_value(PARAM_TEXT, 'Mystery phrase label'),
+            'themeconceptlabel' => new external_value(PARAM_TEXT, 'Theme concept caption label'),
+            'themeconcept' => new external_value(PARAM_TEXT, 'Theme concept word, always shown openly'),
             'clues' => new external_multiple_structure(
                 new external_single_structure([
                     'clueid'       => new external_value(PARAM_INT, 'Clue word id'),
@@ -227,6 +234,10 @@ class submit_clue_guess extends external_api {
             'keyboardbackspacelabel' => new external_value(
                 PARAM_TEXT,
                 'Virtual keyboard backspace key accessible label'
+            ),
+            'keyboardspacelabel' => new external_value(
+                PARAM_TEXT,
+                'Virtual keyboard space key accessible label'
             ),
             'showcedilla'        => new external_value(PARAM_BOOL, 'Whether the Ç key should be shown'),
             'forfeitlabel'       => new external_value(PARAM_TEXT, 'Forfeit button label'),

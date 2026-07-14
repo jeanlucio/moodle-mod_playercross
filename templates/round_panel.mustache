@@ -17,15 +17,29 @@
 {{!
     @template mod_playercross/round_panel
 
-    Active-round panel: mystery phrase tiles and clue progress, followed by either
-    the clue/final-guess forms (mod_playercross/round_play) or the post-round result
-    (mod_playercross/round_result), depending on whether the round has finished.
+    Active-round panel: the theme concept's own word (shown openly, as a caption —
+    never tiled), its hint as the mystery-phrase tiles below, and clue progress,
+    followed by either the clue/final-guess forms (mod_playercross/round_play) or the
+    post-round result (mod_playercross/round_result), depending on whether the round
+    has finished.
 
     Example context (json):
     {
+        "themeconceptlabel": "Concept",
+        "themeconcept": "Administração",
         "themetiles": [
-            {"letter": "E", "revealed": true, "slotnum": "", "arialabel": "E, revealed"},
-            {"letter": "", "revealed": false, "slotnum": "2", "arialabel": "Hidden letter, slot 2"}
+            {
+                "tiles": [
+                    {"letter": "Á", "revealed": true, "slotnum": "", "arialabel": "Á, revealed"},
+                    {"letter": "", "revealed": false, "slotnum": "4", "arialabel": "Hidden letter, slot 4"}
+                ]
+            },
+            {
+                "tiles": [
+                    {"letter": "D", "revealed": true, "slotnum": "", "arialabel": "D, revealed"},
+                    {"letter": "E", "revealed": true, "slotnum": "", "arialabel": "E, revealed"}
+                ]
+            }
         ],
         "themelabel": "Mystery phrase",
         "showglobalhint": true,
@@ -75,15 +89,23 @@
     }
 }}
 <div id="playercross-round-panel">
+    <div class="mod-playercross-concept text-center">
+        <div class="mod-playercross-concept-eyebrow">{{themeconceptlabel}}</div>
+        <div class="mod-playercross-concept-word">{{themeconcept}}</div>
+    </div>
     <form id="playercross-final-guess-form" class="mod-playercross-theme-form mod-playercross-guess-form mb-2">
         <label {{#canfinalguess}}for="playercross-final-guess" {{/canfinalguess}}class="fw-bold d-block text-center mb-1">
             {{themelabel}}
         </label>
         <div class="mod-playercross-theme">
             {{#themetiles}}
-                <div class="mod-playercross-tile-wrap">
-                    <span class="mod-playercross-tile{{#revealed}} is-revealed{{/revealed}}" aria-label="{{arialabel}}">{{letter}}</span>
-                    <span class="mod-playercross-tile-num">{{slotnum}}</span>
+                <div class="mod-playercross-word-group">
+                    {{#tiles}}
+                        <div class="mod-playercross-tile-wrap">
+                            <span class="mod-playercross-tile{{#revealed}} is-revealed{{/revealed}}" aria-label="{{arialabel}}">{{letter}}</span>
+                            <span class="mod-playercross-tile-num">{{slotnum}}</span>
+                        </div>
+                    {{/tiles}}
                 </div>
             {{/themetiles}}
         </div>

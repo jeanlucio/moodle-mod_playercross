@@ -125,10 +125,11 @@ final class submit_final_guess_test extends \advanced_testcase {
         );
         round_service::save_state($cm->cmid, $this->student->id, $state);
 
-        $result = submit_final_guess::execute($cm->cmid, $state['themeword']);
+        $themephrase = implode(' ', $state['themewords']);
+        $result = submit_final_guess::execute($cm->cmid, $themephrase);
 
         $this->assertTrue($result['correct']);
         $this->assertTrue($result['finished']);
-        $this->assertSame(core_text::strtoupper($state['themeword']), $result['panel']['revealthemeword']);
+        $this->assertSame(core_text::strtoupper($themephrase), $result['panel']['revealthemeword']);
     }
 }

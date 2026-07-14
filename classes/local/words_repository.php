@@ -112,9 +112,14 @@ class words_repository {
     }
 
     /**
-     * Returns approved words eligible as the mystery phrase: at least theme_min_length long.
+     * Returns approved words eligible as the theme concept: their own hint normalizes
+     * to at least one letter-only word, and the phrase's total letter count (summed
+     * across every word, spaces excluded) is at least theme_min_length long. The
+     * concept's own word is shown openly as a caption, never tiled (SCOPE.md §20.2
+     * v1.9) — the mystery phrase to guess is the hint — so the word's own length no
+     * longer matters for eligibility.
      *
-     * Unlike get_candidate_words(), there is no upper bound — a longer theme word simply
+     * Unlike get_candidate_words(), there is no upper bound — a longer hint simply
      * produces more distinct letter slots, which puzzle_builder covers with more clues.
      *
      * @param \stdClass $instance Activity instance.
@@ -136,13 +141,19 @@ class words_repository {
 
         $candidates = [];
         foreach ($records as $record) {
-            $word = trim($record->word);
-            if (core_text::strlen($word) < (int)$instance->theme_min_length) {
+            $phrasewords = word_normalizer::normalize_phrase((string)$record->hint);
+            if ($phrasewords === []) {
                 continue;
             }
-            if (!word_normalizer::is_valid_charset($word)) {
+
+            $letters = array_sum(array_map(
+                fn($word) => count(word_normalizer::chars($word)),
+                $phrasewords
+            ));
+            if ($letters < (int)$instance->theme_min_length) {
                 continue;
             }
+
             $candidates[] = $record;
         }
 

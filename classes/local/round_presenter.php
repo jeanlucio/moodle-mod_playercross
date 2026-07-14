@@ -36,17 +36,27 @@ use core_text;
  */
 class round_presenter {
     /**
-     * Builds the mystery-phrase tile data: one entry per character position, showing
-     * the letter only for slots already in revealedslots (or every slot, once the
-     * round has finished). Hidden tiles carry their slot number, so the student can
-     * see which clue covers which position before it is revealed.
+     * Builds the mystery-phrase tile data, grouped by word: one entry per word of the
+     * phrase (the theme concept's own hint, see puzzle_builder), each holding that
+     * word's own per-position tile row — so the template can render a visual gap
+     * between words instead of one continuous, spaceless run of letters. Hidden tiles
+     * carry their slot number, so the student can see which clue covers which position
+     * before it is revealed.
      *
      * @param array $state Session state.
      * @param bool $roundfinished Whether the current round is finished.
-     * @return array
+     * @return array Array of {tiles: array} word groups.
      */
-    public static function build_theme_tiles(array $state, bool $roundfinished): array {
-        return self::build_word_tiles($state['themeword'], $state['themeslots'], $state['revealedslots'], $roundfinished);
+    public static function build_phrase_tiles(array $state, bool $roundfinished): array {
+        $groups = [];
+        $position = 0;
+        foreach ($state['themewords'] as $word) {
+            $wordlength = count(word_normalizer::chars($word));
+            $wordslots = array_slice($state['themeslots'], $position, $wordlength);
+            $groups[] = ['tiles' => self::build_word_tiles($word, $wordslots, $state['revealedslots'], $roundfinished)];
+            $position += $wordlength;
+        }
+        return $groups;
     }
 
     /**
@@ -392,8 +402,10 @@ class round_presenter {
         }
 
         return [
-            'themetiles' => self::build_theme_tiles($state, $roundfinished),
+            'themetiles' => self::build_phrase_tiles($state, $roundfinished),
             'themelabel' => get_string('themewordlabel', 'mod_playercross'),
+            'themeconceptlabel' => get_string('themeconceptlabel', 'mod_playercross'),
+            'themeconcept' => s($state['themeconcept']),
             'clues' => self::build_clue_rows($state, $roundfinished),
             'cluesresolved' => (int)$state['cluesresolved'],
             'cluestotal' => (int)$state['cluestotal'],
@@ -408,7 +420,10 @@ class round_presenter {
             'guesslabel' => get_string('guesslabel', 'mod_playercross'),
             'submitclueguess' => get_string('submitclueguess', 'mod_playercross'),
             'canfinalguess' => !$roundfinished,
-            'finalguesslength' => count($state['themeslots']),
+            // Letters plus one space between each pair of words — the virtual
+            // keyboard's own Space key (see amd/src/game.js) is only enabled for this
+            // input, so the maxlength must budget for it too.
+            'finalguesslength' => count($state['themeslots']) + max(0, count($state['themewords']) - 1),
             'submitfinalguess' => get_string('submitfinalguess', 'mod_playercross'),
             'forfeitlabel' => get_string('forfeitbutton', 'mod_playercross'),
             'forfeitconfirm' => get_string('forfeitconfirm', 'mod_playercross'),
@@ -416,6 +431,7 @@ class round_presenter {
             'keyboardenterlabel' => get_string('keyboard_enter', 'mod_playercross'),
             'keyboardentertext' => get_string('keyboard_enter_text', 'mod_playercross'),
             'keyboardbackspacelabel' => get_string('keyboard_backspace', 'mod_playercross'),
+            'keyboardspacelabel' => get_string('keyboard_space', 'mod_playercross'),
             'showcedilla' => words_repository::has_cedilla_word((int)$instance->id),
         ] + self::build_global_hint_context($instance, $state, $userid, $roundfinished)
           + self::build_round_result_context($instance, $cm, $state, $userid, $roundfinished);
@@ -521,7 +537,7 @@ class round_presenter {
 
         return [
             'feedbackmessage'      => self::build_feedback_message($state),
-            'revealthemeword'      => s(core_text::strtoupper($state['themeword'])),
+            'revealthemeword'      => s(core_text::strtoupper(implode(' ', $state['themewords']))),
             'revealthemewordlabel' => $blank['revealthemewordlabel'],
             'scoreachieved'        => format_float((float)$state['scoreaccumulated'], 2),
             'scoreachievedlabel'   => $blank['scoreachievedlabel'],

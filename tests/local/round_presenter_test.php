@@ -61,13 +61,16 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Returns a minimal default state array for the theme word "escola" (6 distinct
-     * letters, cipher slots 1..6 in order) and one clue "livro", overridable per test.
+     * Returns a minimal default state array for a theme concept whose own mystery
+     * phrase is the single word "escola" (6 distinct letters, cipher slots 1..6 in
+     * order — a phrase of just one word ciphers identically to the pre-v1.9 single
+     * theme word, see puzzle_builder::cipher_phrase_slots()) and one clue "livro",
+     * overridable per test.
      *
-     * "livro" shares l (slot 5) and o (slot 4) with the theme; its own i, v, r do not
+     * "livro" shares l (slot 5) and o (slot 4) with the phrase; its own i, v, r do not
      * appear in "escola" at all, so under the round-wide slot map (SCOPE.md §20.2
      * v1.7) they still get their own slot numbers (7, 8, 9 — continuing right after
-     * the theme's own 1..6), rather than staying number-less as they did before.
+     * the phrase's own 1..6), rather than staying number-less as they did before.
      *
      * @param array $overrides State field overrides.
      * @return array
@@ -75,7 +78,8 @@ final class round_presenter_test extends \advanced_testcase {
     private function make_state(array $overrides = []): array {
         return array_merge([
             'themewordid'      => 1,
-            'themeword'        => 'escola',
+            'themeconcept'     => 'Escola',
+            'themewords'       => ['escola'],
             'themeslots'       => [1, 2, 3, 4, 5, 6],
             'slotcount'        => 9,
             'revealedslots'    => [],
@@ -105,16 +109,19 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that unrevealed slots stay hidden and revealed ones show the uppercase letter.
+     * Tests that unrevealed slots stay hidden and revealed ones show the uppercase
+     * letter, and that a single-word phrase produces exactly one word group.
      *
-     * @covers \mod_playercross\local\round_presenter::build_theme_tiles
+     * @covers \mod_playercross\local\round_presenter::build_phrase_tiles
      * @return void
      */
-    public function test_build_theme_tiles_respects_revealed_slots(): void {
+    public function test_build_phrase_tiles_respects_revealed_slots(): void {
         $state = $this->make_state(['revealedslots' => [1]]);
 
-        $tiles = round_presenter::build_theme_tiles($state, false);
+        $groups = round_presenter::build_phrase_tiles($state, false);
 
+        $this->assertCount(1, $groups);
+        $tiles = $groups[0]['tiles'];
         $this->assertCount(6, $tiles);
         $this->assertTrue($tiles[0]['revealed']);
         $this->assertSame('E', $tiles[0]['letter']);
@@ -123,17 +130,17 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that a hidden theme tile carries its own slot number, and a revealed one
+     * Tests that a hidden phrase tile carries its own slot number, and a revealed one
      * carries none — the number is what lets a student tell which clue would reveal
      * that position before it happens.
      *
-     * @covers \mod_playercross\local\round_presenter::build_theme_tiles
+     * @covers \mod_playercross\local\round_presenter::build_phrase_tiles
      * @return void
      */
-    public function test_build_theme_tiles_hidden_tile_carries_slot_number(): void {
+    public function test_build_phrase_tiles_hidden_tile_carries_slot_number(): void {
         $state = $this->make_state(['revealedslots' => [1]]);
 
-        $tiles = round_presenter::build_theme_tiles($state, false);
+        $tiles = round_presenter::build_phrase_tiles($state, false)[0]['tiles'];
 
         $this->assertSame('', $tiles[0]['slotnum']);
         $this->assertSame('2', $tiles[1]['slotnum']);
@@ -143,19 +150,49 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that every tile is revealed once the round has finished, regardless of
      * which slots were actually uncovered during play.
      *
-     * @covers \mod_playercross\local\round_presenter::build_theme_tiles
+     * @covers \mod_playercross\local\round_presenter::build_phrase_tiles
      * @return void
      */
-    public function test_build_theme_tiles_all_revealed_when_finished(): void {
+    public function test_build_phrase_tiles_all_revealed_when_finished(): void {
         $state = $this->make_state(['revealedslots' => []]);
 
-        $tiles = round_presenter::build_theme_tiles($state, true);
+        $tiles = round_presenter::build_phrase_tiles($state, true)[0]['tiles'];
 
         foreach ($tiles as $tile) {
             $this->assertTrue($tile['revealed']);
         }
         $this->assertSame('E', $tiles[0]['letter']);
         $this->assertSame('A', $tiles[5]['letter']);
+    }
+
+    /**
+     * Tests that a multi-word mystery phrase produces one word group per word, each
+     * holding only that word's own tiles — so the template can render a visual gap
+     * between words instead of one continuous, spaceless run of letters.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_phrase_tiles
+     * @return void
+     */
+    public function test_build_phrase_tiles_groups_by_word(): void {
+        // Word "de" (d,e) then word "sala" (s,a,l,a) — slots continue in order of
+        // first appearance across both words: d=1, e=2, s=3, a=4, l=5.
+        $state = $this->make_state([
+            'themewords' => ['de', 'sala'],
+            'themeslots' => [1, 2, 3, 4, 5, 4],
+            'revealedslots' => [1, 2, 3, 4, 5],
+        ]);
+
+        $groups = round_presenter::build_phrase_tiles($state, false);
+
+        $this->assertCount(2, $groups);
+        $this->assertCount(2, $groups[0]['tiles']);
+        $this->assertCount(4, $groups[1]['tiles']);
+        $this->assertSame('D', $groups[0]['tiles'][0]['letter']);
+        $this->assertSame('E', $groups[0]['tiles'][1]['letter']);
+        $this->assertSame('S', $groups[1]['tiles'][0]['letter']);
+        $this->assertSame('A', $groups[1]['tiles'][1]['letter']);
+        $this->assertSame('L', $groups[1]['tiles'][2]['letter']);
+        $this->assertSame('A', $groups[1]['tiles'][3]['letter']);
     }
 
     /**

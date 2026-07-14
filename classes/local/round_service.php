@@ -70,18 +70,23 @@ class round_service {
     }
 
     /**
-     * Checks that a round's state still matches the shape the current code expects —
-     * specifically, that every clue's per-position slots array is exactly as long as
-     * its own word. A round started under an older version of puzzle_builder (before
-     * slots became a round-wide, per-position map, see SCOPE.md §20.2 v1.7) can still
-     * be sitting in a live PHP session at the moment the plugin is upgraded; without
-     * this check, round_presenter would fatal on an undefined array key the first time
-     * that stale round is rendered, instead of transparently starting a fresh one.
+     * Checks that a round's state still matches the shape the current code expects:
+     * that it carries the round-wide mystery phrase (themewords — see SCOPE.md §20.2
+     * v1.9, before which the mystery was a single themeword string), and that every
+     * clue's per-position slots array is exactly as long as its own word (before slots
+     * became a round-wide, per-position map, see §20.2 v1.7). A round started under an
+     * older version of puzzle_builder can still be sitting in a live PHP session at the
+     * moment the plugin is upgraded; without this check, round_presenter would fatal on
+     * an undefined array key the first time that stale round is rendered, instead of
+     * transparently starting a fresh one.
      *
      * @param array $state Session state.
      * @return bool
      */
     private static function state_is_valid(array $state): bool {
+        if (!isset($state['themewords']) || !is_array($state['themewords'])) {
+            return false;
+        }
         foreach ($state['clues'] ?? [] as $clue) {
             if (!isset($clue['slots'], $clue['word']) || count($clue['slots']) !== count(word_normalizer::chars($clue['word']))) {
                 return false;
@@ -98,7 +103,8 @@ class round_service {
     private static function default_state(): array {
         return [
             'themewordid'   => 0,
-            'themeword'     => '',
+            'themeconcept'  => '',
+            'themewords'    => [],
             'themeslots'    => [],
             'slotcount'     => 0,
             'revealedslots' => [],
@@ -255,7 +261,8 @@ class round_service {
 
         $state = self::default_state();
         $state['themewordid']   = $puzzle->themewordid;
-        $state['themeword']     = $puzzle->themeword;
+        $state['themeconcept']  = $puzzle->themeconcept;
+        $state['themewords']    = $puzzle->themewords;
         $state['themeslots']    = $puzzle->themeslots;
         $state['slotcount']     = $puzzle->slotcount;
         $state['revealedslots'] = $puzzle->alwaysrevealedslots;
@@ -446,6 +453,12 @@ class round_service {
      * Validates and applies a direct guess of the mystery phrase, available at any
      * point in the round, even with clues still pending.
      *
+     * The guess is normalized the same way the phrase itself was (word_normalizer::
+     * normalize_phrase(): split on anything that is not a letter, lowercase and strip
+     * accents per word) before comparing word-by-word — tolerant of extra whitespace,
+     * casing, accents and stray punctuation, but still requires every word of the
+     * phrase, in order.
+     *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
      * @param int $cmid Course module id.
@@ -464,14 +477,14 @@ class round_service {
             return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning'];
         }
 
-        $normalizedguess = word_normalizer::normalize($guess);
-        if (!word_normalizer::is_valid_charset($normalizedguess)) {
+        $guesswords = word_normalizer::normalize_phrase($guess);
+        if ($guesswords === []) {
             return [$state, false, get_string('error_invalidchars', 'mod_playercross'), 'warning'];
         }
 
         $state['attemptsused']++;
 
-        if ($normalizedguess !== $state['themeword']) {
+        if ($guesswords !== $state['themewords']) {
             return [$state, false, get_string('finalguesswrong', 'mod_playercross'), 'warning'];
         }
 

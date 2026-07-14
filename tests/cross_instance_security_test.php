@@ -92,9 +92,9 @@ final class cross_instance_security_test extends \advanced_testcase {
 
         $stateb = round_service::load_state($instanceb->cmid, $user->id);
 
-        $this->assertSame('escola', $statea['themeword']);
+        $this->assertSame(['escola'], $statea['themewords']);
         $this->assertSame(0, $stateb['themewordid']);
-        $this->assertSame('', $stateb['themeword']);
+        $this->assertSame([], $stateb['themewords']);
     }
 
     /**

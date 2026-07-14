@@ -65,4 +65,28 @@ class word_normalizer {
     public static function chars(string $normalizedword): array {
         return preg_split('//u', $normalizedword, -1, PREG_SPLIT_NO_EMPTY);
     }
+
+    /**
+     * Splits a free-text phrase (a word's own hint) into its individual word tokens,
+     * each normalized the same way a single word would be (see normalize()). Any
+     * fragment that is not letters-only after normalization — punctuation, a stray
+     * digit, an isolated hyphen — is dropped, so the round-wide slot map never ends up
+     * with a "word" made of characters the game cannot render as letter tiles.
+     *
+     * @param string $phrase Raw phrase text.
+     * @return string[] Normalized word tokens, in original order.
+     */
+    public static function normalize_phrase(string $phrase): array {
+        $tokens = preg_split('/[^\p{L}]+/u', trim($phrase), -1, PREG_SPLIT_NO_EMPTY);
+
+        $words = [];
+        foreach ($tokens as $token) {
+            $normalized = self::normalize($token);
+            if ($normalized !== '' && self::is_valid_charset($normalized)) {
+                $words[] = $normalized;
+            }
+        }
+
+        return $words;
+    }
 }

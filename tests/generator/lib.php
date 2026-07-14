@@ -83,9 +83,17 @@ class mod_playercross_generator extends testing_module_generator {
      * Bypasses managewords.php and the approval flow entirely, so tests can seed a
      * deterministic pool instead of depending on the pseudo-random round selection.
      *
+     * The hint defaults to the word itself when omitted — since SCOPE.md §20.2 v1.9,
+     * a word's own hint is what becomes the mystery phrase if it is picked as the
+     * theme concept (see puzzle_builder::build_round()), and a blank hint would make
+     * it ineligible. Defaulting it to the word keeps every existing call site that
+     * never cared about hint content working exactly as before (a single-word
+     * "phrase", same letters as the word itself); pass an explicit multi-word $hint
+     * only in tests that exercise the phrase mechanic itself.
+     *
      * @param int $playercrossid Instance id (playercross.id, not the course module id).
      * @param string $word Game word.
-     * @param string $hint Optional hint text.
+     * @param string $hint Hint text, defaults to $word itself when omitted.
      * @return \stdClass Created playercross_words record.
      */
     public function create_word(int $playercrossid, string $word, string $hint = ''): \stdClass {
@@ -95,7 +103,7 @@ class mod_playercross_generator extends testing_module_generator {
             'playercrossid' => $playercrossid,
             'word'          => $word,
             'concept'       => $word,
-            'hint'          => $hint,
+            'hint'          => $hint !== '' ? $hint : $word,
             'source'        => 'manual',
             'glossaryid'    => 0,
             'approved'      => 1,

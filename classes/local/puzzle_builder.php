@@ -27,11 +27,13 @@ namespace mod_playercross\local;
 use moodle_exception;
 
 /**
- * Builds a round's puzzle: picks the mystery phrase, ciphers its letters into slots,
- * greedily selects clue words that cover as many of those slots as possible, then
- * extends the slot numbering to every other distinct letter the selected clues bring
- * in — so a solved clue can cross-reveal a shared letter in another clue directly,
- * not only through the mystery phrase.
+ * Builds a round's puzzle: picks a theme concept, ciphers its own hint's letters into
+ * slots — the hint is the mystery phrase to guess; the concept's word itself is shown
+ * openly as a caption, never tiled (SCOPE.md §20.2 v1.9) — greedily selects clue words
+ * that cover as many of those slots as possible, then extends the slot numbering to
+ * every other distinct letter the selected clues bring in, so a solved clue can
+ * cross-reveal a shared letter in another clue directly, not only through the mystery
+ * phrase.
  *
  * See SCOPE.md §4 and §17 for the full rationale behind the linear (non-spatial) design:
  * a slot identifies a distinct letter, not a physical grid position, so any word can
@@ -45,11 +47,12 @@ class puzzle_builder {
      * @param int $completedround Number of rounds the student has already completed,
      *     used for deterministic theme selection in PLAYERCROSS_WORDMODE_SHARED.
      * @param int $excludethemeid Theme word id to avoid repeating immediately, 0 for none.
-     * @return \stdClass Puzzle state: themewordid, themeword, themeslots, slotcount,
+     * @return \stdClass Puzzle state: themewordid, themeconcept (caption, always
+     *     shown), themewords (mystery phrase, normalized words), themeslots, slotcount,
      *     clues (wordid, word, hint, slots — one slot number per character position,
-     *     round-wide, not just theme letters) and alwaysrevealedslots.
+     *     round-wide, not just phrase letters) and alwaysrevealedslots.
      * @throws moodle_exception If the approved pool cannot support num_clues clues, or has
-     *     no word eligible as the mystery phrase.
+     *     no word eligible as the theme concept.
      */
     public static function build_round(
         \stdClass $instance,
@@ -73,17 +76,17 @@ class puzzle_builder {
             throw new moodle_exception('error_insufficientpool', 'mod_playercross', '', $numclues + 1);
         }
 
-        $normalizedtheme = word_normalizer::normalize($themeword->word);
-        [$themeslots, $themeslotsbyletter] = self::cipher_slots($normalizedtheme);
+        $themewords = word_normalizer::normalize_phrase((string)$themeword->hint);
+        [$themeslots, $themeslotsbyletter] = self::cipher_phrase_slots($themewords);
 
         $cluecandidates = array_values(array_filter(
             words_repository::get_candidate_words($instance),
             fn($candidate) => (int)$candidate->id !== (int)$themeword->id
         ));
 
-        // Clue selection still greedily maximizes coverage of the theme's own letters
-        // only (themeslotsbyletter) — the goal of the selection step is still to pick
-        // clues that help crack the mystery phrase, not merely to pick clues that share
+        // Clue selection still greedily maximizes coverage of the mystery phrase's own
+        // letters only (themeslotsbyletter) — the goal of the selection step is still
+        // to pick clues that help crack it, not merely to pick clues that share
         // letters with each other.
         [$selectedclues] = self::select_clues(
             $cluecandidates,
@@ -92,10 +95,10 @@ class puzzle_builder {
             (int)$instance->id
         );
 
-        // Once clues are selected, every distinct letter across the whole round (theme
-        // plus every selected clue, not just the theme) gets its own slot number, so a
-        // solved clue can cross-reveal a shared letter directly in another clue too —
-        // not only via the mystery phrase (SCOPE.md §20.2 v1.7).
+        // Once clues are selected, every distinct letter across the whole round (the
+        // mystery phrase plus every selected clue, not just the phrase) gets its own
+        // slot number, so a solved clue can cross-reveal a shared letter directly in
+        // another clue too — not only via the mystery phrase (SCOPE.md §20.2 v1.7).
         $slotsbyletter = self::expand_slots_by_letter($themeslotsbyletter, $selectedclues);
 
         $coveredslots = [];
@@ -108,9 +111,15 @@ class puzzle_builder {
         $alwaysrevealedslots = array_values(array_diff(array_values($slotsbyletter), $coveredslots));
         sort($alwaysrevealedslots);
 
+        $themeconcept = trim((string)$themeword->concept);
+        if ($themeconcept === '') {
+            $themeconcept = trim((string)$themeword->word);
+        }
+
         return (object)[
             'themewordid' => (int)$themeword->id,
-            'themeword' => $normalizedtheme,
+            'themeconcept' => $themeconcept,
+            'themewords' => $themewords,
             'themeslots' => $themeslots,
             'slotcount' => count($slotsbyletter),
             'clues' => $selectedclues,
@@ -119,29 +128,33 @@ class puzzle_builder {
     }
 
     /**
-     * Assigns a sequential slot number to each distinct letter of the mystery phrase,
-     * in order of first appearance.
+     * Assigns a sequential slot number to each distinct letter across every word of
+     * the mystery phrase, in order of first appearance — the same letter repeated
+     * anywhere in the phrase, even across different words, shares one slot number
+     * (SCOPE.md §17 trade-off, now applied to a whole phrase rather than a single
+     * word — see §20.2 v1.9).
      *
-     * The slot identifies a letter, not a position: every occurrence of that letter,
-     * anywhere in the phrase, shares the same slot number (see SCOPE.md §17 trade-off).
-     *
-     * @param string $normalizedtheme Already-normalized theme word (see word_normalizer::normalize()).
-     * @return array{0: int[], 1: array<string, int>} Per-position slot numbers, and the
-     *     letter => slot number map.
+     * @param string[] $words Normalized phrase words, in order
+     *     (see word_normalizer::normalize_phrase()).
+     * @return array{0: int[], 1: array<string, int>} One slot number per character
+     *     position, flattened across every word in order (no entry for the gaps
+     *     between words), and the letter => slot number map.
      */
-    private static function cipher_slots(string $normalizedtheme): array {
+    private static function cipher_phrase_slots(array $words): array {
         $slotsbyletter = [];
-        $themeslots = [];
+        $phraseslots = [];
         $nextslot = 1;
 
-        foreach (word_normalizer::chars($normalizedtheme) as $char) {
-            if (!isset($slotsbyletter[$char])) {
-                $slotsbyletter[$char] = $nextslot++;
+        foreach ($words as $word) {
+            foreach (word_normalizer::chars($word) as $char) {
+                if (!isset($slotsbyletter[$char])) {
+                    $slotsbyletter[$char] = $nextslot++;
+                }
+                $phraseslots[] = $slotsbyletter[$char];
             }
-            $themeslots[] = $slotsbyletter[$char];
         }
 
-        return [$themeslots, $slotsbyletter];
+        return [$phraseslots, $slotsbyletter];
     }
 
     /**

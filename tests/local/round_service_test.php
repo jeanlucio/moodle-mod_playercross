@@ -281,7 +281,7 @@ final class round_service_test extends \advanced_testcase {
             $instance,
             $cm->cmid,
             $this->user->id,
-            $state['themeword']
+            implode(' ', $state['themewords'])
         );
 
         $this->assertTrue($correct);

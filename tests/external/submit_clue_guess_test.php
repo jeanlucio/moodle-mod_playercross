@@ -141,7 +141,7 @@ final class submit_clue_guess_test extends \advanced_testcase {
         }
 
         $this->assertTrue($result['finished']);
-        $this->assertSame(core_text::strtoupper($state['themeword']), $result['panel']['revealthemeword']);
+        $this->assertSame(core_text::strtoupper(implode(' ', $state['themewords'])), $result['panel']['revealthemeword']);
     }
 
     /**
