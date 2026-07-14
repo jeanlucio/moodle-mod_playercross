@@ -110,7 +110,7 @@ class new_round extends external_api {
             ),
             'notificationtype' => new external_value(PARAM_ALPHA, 'Notification type', VALUE_DEFAULT, ''),
             'lobby'            => new external_single_structure([
-                'cluestotal'        => new external_value(PARAM_INT, 'Total clues in the new round'),
+                'cluesthisround'    => new external_value(PARAM_TEXT, 'Clues-in-this-round summary message'),
                 'timerenabled'      => new external_value(PARAM_BOOL, 'Whether the timer is enabled'),
                 'lobbytimerinfo'    => new external_value(PARAM_TEXT, 'Timer info message for the lobby'),
                 'hudstartcost'      => new external_value(PARAM_BOOL, 'Whether starting costs a PlayerHUD item'),

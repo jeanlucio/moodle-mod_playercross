@@ -1,0 +1,586 @@
+<?php
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Unit tests for round_presenter.
+ *
+ * @package    mod_playercross
+ * @category   test
+ * @copyright  2026 Jean Lúcio
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+namespace mod_playercross\local;
+
+/**
+ * Tests for round_presenter.
+ *
+ * Requires database access: build_round_result_context() and build_grade_so_far()
+ * compute cooldown/gradebook fields via round_service/grade_item, not session state
+ * alone (so a cooldown_seconds or grade change always applies immediately).
+ */
+final class round_presenter_test extends \advanced_testcase {
+    /** @var \stdClass Course used by the DB-dependent tests. */
+    private \stdClass $course;
+
+    #[\Override]
+    protected function setUp(): void {
+        global $CFG;
+        parent::setUp();
+        $this->resetAfterTest();
+        require_once($CFG->dirroot . '/mod/playercross/lib.php');
+        $this->course = $this->getDataGenerator()->create_course();
+    }
+
+    /**
+     * Creates a playercross instance for the DB-dependent tests.
+     *
+     * @param array $overrides Instance field overrides.
+     * @return \stdClass
+     */
+    private function make_instance(array $overrides = []): \stdClass {
+        $record = array_merge([
+            'course'       => $this->course->id,
+            'show_ranking' => 0,
+        ], $overrides);
+
+        return $this->getDataGenerator()->get_plugin_generator('mod_playercross')->create_instance($record);
+    }
+
+    /**
+     * Returns a minimal default state array for the theme word "escola" (6 distinct
+     * letters, cipher slots 1..6 in order) and one clue "livro", overridable per test.
+     *
+     * @param array $overrides State field overrides.
+     * @return array
+     */
+    private function make_state(array $overrides = []): array {
+        return array_merge([
+            'themewordid'      => 1,
+            'themeword'        => 'escola',
+            'themeslots'       => [1, 2, 3, 4, 5, 6],
+            'slotcount'        => 6,
+            'revealedslots'    => [],
+            'clues'            => [
+                [
+                    'wordid'       => 2,
+                    'word'         => 'livro',
+                    'hint'         => 'dica',
+                    'slots'        => [],
+                    'resolved'     => false,
+                    'attemptsused' => 0,
+                    'hintrevealed' => false,
+                    'exhausted'    => false,
+                ],
+            ],
+            'cluestotal'       => 1,
+            'cluesresolved'    => 0,
+            'scoreaccumulated' => 0.0,
+            'attemptsused'     => 0,
+            'starttime'        => 0,
+            'roundstarted'     => false,
+            'finished'         => false,
+            'won'              => false,
+            'forfeited'        => false,
+            'timedout'         => false,
+            'finalguessed'     => false,
+        ], $overrides);
+    }
+
+    /**
+     * Tests that unrevealed slots stay hidden and revealed ones show the uppercase letter.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_theme_tiles
+     * @return void
+     */
+    public function test_build_theme_tiles_respects_revealed_slots(): void {
+        $state = $this->make_state(['revealedslots' => [1]]);
+
+        $tiles = round_presenter::build_theme_tiles($state, false);
+
+        $this->assertCount(6, $tiles);
+        $this->assertTrue($tiles[0]['revealed']);
+        $this->assertSame('E', $tiles[0]['letter']);
+        $this->assertFalse($tiles[1]['revealed']);
+        $this->assertSame('', $tiles[1]['letter']);
+    }
+
+    /**
+     * Tests that every tile is revealed once the round has finished, regardless of
+     * which slots were actually uncovered during play.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_theme_tiles
+     * @return void
+     */
+    public function test_build_theme_tiles_all_revealed_when_finished(): void {
+        $state = $this->make_state(['revealedslots' => []]);
+
+        $tiles = round_presenter::build_theme_tiles($state, true);
+
+        foreach ($tiles as $tile) {
+            $this->assertTrue($tile['revealed']);
+        }
+        $this->assertSame('E', $tiles[0]['letter']);
+        $this->assertSame('A', $tiles[5]['letter']);
+    }
+
+    /**
+     * Tests that an unresolved clue never reveals its word, and can still be guessed.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_clue_rows
+     * @return void
+     */
+    public function test_build_clue_rows_hides_unresolved_word(): void {
+        $instance = $this->make_instance();
+        $state = $this->make_state();
+
+        $rows = round_presenter::build_clue_rows($state, $instance, 1, false);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('', $rows[0]['revealword']);
+        $this->assertTrue($rows[0]['canguess']);
+        $this->assertSame(5, $rows[0]['wordlength']);
+    }
+
+    /**
+     * Tests that a resolved clue reveals its word in uppercase and can no longer be guessed.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_clue_rows
+     * @return void
+     */
+    public function test_build_clue_rows_reveals_resolved_word(): void {
+        $instance = $this->make_instance();
+        $state = $this->make_state();
+        $state['clues'][0]['resolved'] = true;
+
+        $rows = round_presenter::build_clue_rows($state, $instance, 1, false);
+
+        $this->assertSame('LIVRO', $rows[0]['revealword']);
+        $this->assertFalse($rows[0]['canguess']);
+    }
+
+    /**
+     * Tests that the hint text is only surfaced once revealed.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_clue_rows
+     * @return void
+     */
+    public function test_build_clue_rows_hint_shown_only_when_revealed(): void {
+        $instance = $this->make_instance();
+        $state = $this->make_state();
+
+        $hidden = round_presenter::build_clue_rows($state, $instance, 1, false);
+        $this->assertFalse($hidden[0]['showhint']);
+        $this->assertSame('', $hidden[0]['hintvalue']);
+
+        $state['clues'][0]['hintrevealed'] = true;
+        $shown = round_presenter::build_clue_rows($state, $instance, 1, false);
+        $this->assertTrue($shown[0]['showhint']);
+        $this->assertSame('dica', $shown[0]['hintvalue']);
+    }
+
+    /**
+     * Tests that an inactive cooldown produces an empty string.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_cooldown_text
+     * @return void
+     */
+    public function test_build_cooldown_text_inactive(): void {
+        $this->assertSame('', round_presenter::build_cooldown_text(0));
+    }
+
+    /**
+     * Tests that an active cooldown produces a non-empty formatted string.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_cooldown_text
+     * @return void
+     */
+    public function test_build_cooldown_text_active(): void {
+        $this->assertNotSame('', round_presenter::build_cooldown_text(time() + 3600));
+    }
+
+    /**
+     * Tests that a not-yet-finished round has no feedback message.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_feedback_message
+     * @return void
+     */
+    public function test_build_feedback_message_not_finished(): void {
+        $this->assertSame('', round_presenter::build_feedback_message($this->make_state()));
+    }
+
+    /**
+     * Tests that forfeited, timed-out, final-guessed and plain-won/lost rounds each
+     * produce their own distinct message.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_feedback_message
+     * @return void
+     */
+    public function test_build_feedback_message_varies_by_outcome(): void {
+        $forfeited = round_presenter::build_feedback_message($this->make_state(['finished' => true, 'forfeited' => true]));
+        $timedout = round_presenter::build_feedback_message($this->make_state(['finished' => true, 'timedout' => true]));
+        $finalguessed = round_presenter::build_feedback_message(
+            $this->make_state(['finished' => true, 'won' => true, 'finalguessed' => true])
+        );
+        $won = round_presenter::build_feedback_message($this->make_state(['finished' => true, 'won' => true]));
+        $lost = round_presenter::build_feedback_message($this->make_state(['finished' => true]));
+
+        $messages = [$forfeited, $timedout, $finalguessed, $won, $lost];
+        $this->assertSame($messages, array_unique($messages));
+    }
+
+    /**
+     * Tests that the grading method info line is shown only when grading is enabled
+     * and more than one round is possible.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_grading_method_info
+     * @return void
+     */
+    public function test_build_grading_method_info_relevance(): void {
+        $graded = $this->make_instance(['grade' => 100, 'max_rounds' => 0]);
+        $ungraded = $this->make_instance(['grade' => 0]);
+        $singleround = $this->make_instance(['grade' => 100, 'max_rounds' => 1]);
+
+        $this->assertTrue(round_presenter::build_grading_method_info($graded)['showgradingmethodinfo']);
+        $this->assertFalse(round_presenter::build_grading_method_info($ungraded)['showgradingmethodinfo']);
+        $this->assertFalse(round_presenter::build_grading_method_info($singleround)['showgradingmethodinfo']);
+    }
+
+    /**
+     * Tests that the grade-so-far summary is absent when there is no gradebook item yet.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_grade_so_far
+     * @return void
+     */
+    public function test_build_grade_so_far_no_grade_item(): void {
+        $instance = $this->make_instance(['grade' => 0]);
+        $user = $this->getDataGenerator()->create_user();
+
+        $context = round_presenter::build_grade_so_far($instance, $user->id);
+
+        $this->assertFalse($context['showgradesofar']);
+    }
+
+    /**
+     * Tests that the grade-so-far summary surfaces the student's current computed
+     * grade once a round has finished, matching what playercross_update_grades() writes.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_grade_so_far
+     * @return void
+     */
+    public function test_build_grade_so_far_shows_current_grade(): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/playercross/lib.php');
+
+        $instance = $this->make_instance(['grade' => 100, 'grademethod' => PLAYERCROSS_GRADE_HIGHEST]);
+        $user = $this->getDataGenerator()->create_user();
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $theme = $modgenerator->create_word($instance->id, 'escola');
+        $modgenerator->create_attempt($instance->id, $user->id, $theme->id, ['score' => 80]);
+        playercross_update_grades($instance, $user->id);
+
+        $context = round_presenter::build_grade_so_far($instance, $user->id);
+
+        $this->assertTrue($context['showgradesofar']);
+        $this->assertStringContainsString('Highest grade', $context['gradesofarmessage']);
+        $this->assertStringContainsString('80', $context['gradesofarmessage']);
+    }
+
+    /** @var int|null Memoized PlayerHUD block instance ID for $this->course. */
+    private ?int $hudblockinstanceid = null;
+
+    /**
+     * Returns the PlayerHUD block instance ID for $this->course, creating it on first use.
+     *
+     * @return int
+     */
+    private function get_hud_block_instance(): int {
+        global $DB;
+
+        if ($this->hudblockinstanceid === null) {
+            $ctx = \context_course::instance($this->course->id);
+            $this->hudblockinstanceid = (int) $DB->insert_record('block_instances', (object) [
+                'blockname'         => 'playerhud',
+                'parentcontextid'   => $ctx->id,
+                'showinsubcontexts' => 0,
+                'pagetypepattern'   => 'course-view-*',
+                'subpagepattern'    => null,
+                'defaultregion'     => 'side-pre',
+                'defaultweight'     => 0,
+                'configdata'        => base64_encode(serialize(new \stdClass())),
+                'timecreated'       => time(),
+                'timemodified'      => time(),
+            ]);
+        }
+
+        return $this->hudblockinstanceid;
+    }
+
+    /**
+     * Inserts a block_playerhud_items record, skipping the test if the block is absent.
+     *
+     * @param string $name Item display name.
+     * @return int Item id.
+     */
+    private function make_hud_item(string $name): int {
+        global $DB;
+        if (!$DB->get_manager()->table_exists('block_playerhud_items')) {
+            $this->markTestSkipped('block_playerhud not installed.');
+        }
+        return $DB->insert_record('block_playerhud_items', (object)[
+            'blockinstanceid' => $this->get_hud_block_instance(),
+            'name'            => $name,
+            'xp'              => 0,
+            'image'           => '',
+            'description'     => '',
+            'enabled'         => 1,
+            'secret'          => 0,
+            'timecreated'     => time(),
+            'timemodified'    => time(),
+        ]);
+    }
+
+    /**
+     * The lobby shows a PlayerHUD cost hint when a valid item is configured, and
+     * disables starting when the user's balance is short of the required quantity.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_lobby_context
+     * @return void
+     */
+    public function test_build_lobby_context_shows_hud_cost_when_item_configured(): void {
+        $itemid = $this->make_hud_item('Chave de Ouro');
+        $instance = $this->make_instance(['hud_round_cost_item' => $itemid, 'hud_round_cost_qty' => 2]);
+        $state = $this->make_state();
+        $user = $this->getDataGenerator()->create_user();
+
+        $context = round_presenter::build_lobby_context($instance, $state, $user->id);
+
+        $this->assertTrue($context['hudstartcost']);
+        $this->assertStringContainsString('Chave de Ouro', $context['hudstartcostlabel']);
+        $this->assertFalse($context['canstart']);
+    }
+
+    /**
+     * The lobby allows starting once the user's balance meets the required quantity.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_lobby_context
+     * @return void
+     */
+    public function test_build_lobby_context_canstart_true_with_enough_balance(): void {
+        global $DB;
+
+        $itemid = $this->make_hud_item('Chave de Ouro');
+        $instance = $this->make_instance(['hud_round_cost_item' => $itemid, 'hud_round_cost_qty' => 1]);
+        $state = $this->make_state();
+        $user = $this->getDataGenerator()->create_user();
+        $DB->insert_record('block_playerhud_inventory', (object)[
+            'userid'      => $user->id,
+            'itemid'      => $itemid,
+            'dropid'      => 0,
+            'source'      => 'manual',
+            'timecreated' => time(),
+        ]);
+
+        $context = round_presenter::build_lobby_context($instance, $state, $user->id);
+
+        $this->assertTrue($context['canstart']);
+    }
+
+    /**
+     * The lobby's timer info text is populated only when the activity timer is enabled.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_lobby_context
+     * @return void
+     */
+    public function test_build_lobby_context_timer_info_only_when_enabled(): void {
+        $withtimer = $this->make_instance(['timer_minutes' => 3]);
+        $withouttimer = $this->make_instance();
+        $state = $this->make_state();
+        $user = $this->getDataGenerator()->create_user();
+
+        $enabledctx = round_presenter::build_lobby_context($withtimer, $state, $user->id);
+        $disabledctx = round_presenter::build_lobby_context($withouttimer, $state, $user->id);
+
+        $this->assertTrue($enabledctx['timerenabled']);
+        $this->assertNotSame('', $enabledctx['lobbytimerinfo']);
+        $this->assertFalse($disabledctx['timerenabled']);
+        $this->assertSame('', $disabledctx['lobbytimerinfo']);
+    }
+
+    /**
+     * The lobby always shows the clues-this-round summary, driven by the puzzle state.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_lobby_context
+     * @return void
+     */
+    public function test_build_lobby_context_shows_clues_this_round(): void {
+        $instance = $this->make_instance();
+        $state = $this->make_state(['cluestotal' => 5]);
+        $user = $this->getDataGenerator()->create_user();
+
+        $context = round_presenter::build_lobby_context($instance, $state, $user->id);
+
+        $this->assertStringContainsString('5', $context['cluesthisround']);
+    }
+
+    /**
+     * timeleft stays 0 while the round has not started yet, even with a timer configured.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_timeleft_zero_before_round_started(): void {
+        $instance = $this->make_instance(['timer_minutes' => 2]);
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        $state = $this->make_state(['roundstarted' => false]);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertSame(0, $context['timeleft']);
+    }
+
+    /**
+     * Tests that the round-panel context merges in a structurally blank result when
+     * the round is still active, never exposing the mystery phrase from session state.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_hides_reveal_when_active(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        $state = $this->make_state();
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertFalse($context['roundfinished']);
+        $this->assertSame('', $context['revealthemeword']);
+    }
+
+    /**
+     * Tests that the round-result context is structurally blank while the round is
+     * active, never exposing the mystery phrase sitting in session state.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_result_context
+     * @return void
+     */
+    public function test_build_round_result_context_blank_when_not_finished(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $state = $this->make_state();
+
+        $context = round_presenter::build_round_result_context($instance, $cm, $state, 1, false);
+
+        $this->assertSame('', $context['revealthemeword']);
+        $this->assertSame(0, $context['cooldownuntil']);
+        $this->assertSame('', $context['roundsplayedlabel']);
+        $this->assertFalse($context['showgradesofar']);
+    }
+
+    /**
+     * Tests that the round-result context reveals the mystery phrase once finished,
+     * and computes the cooldown from the current instance settings rather than
+     * session state.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_result_context
+     * @return void
+     */
+    public function test_build_round_result_context_reveals_when_finished(): void {
+        $instance = $this->make_instance(['cooldown_amount' => 2, 'cooldown_unit' => 'minutes']);
+        $user = $this->getDataGenerator()->create_user();
+        $cm = (object)['id' => 5];
+        $state = $this->make_state(['finished' => true, 'won' => true]);
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $theme = $modgenerator->create_word($instance->id, 'escola');
+        $modgenerator->create_attempt($instance->id, $user->id, $theme->id);
+
+        $context = round_presenter::build_round_result_context($instance, $cm, $state, $user->id, true);
+
+        $this->assertSame('ESCOLA', $context['revealthemeword']);
+        $this->assertGreaterThan(time(), $context['cooldownuntil']);
+        $this->assertTrue($context['cooldownactive']);
+        $this->assertSame("Rounds played: 1 / \u{221E}.", $context['roundsplayedlabel']);
+    }
+
+    /**
+     * Tests that changing cooldown_seconds after a round finished takes effect
+     * immediately — the specific behaviour that motivates computing cooldown from the
+     * DB instead of caching it in session state at the moment the round ended.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_result_context
+     * @return void
+     */
+    public function test_cooldown_reflects_a_later_settings_change(): void {
+        global $DB;
+
+        $instance = $this->make_instance(['cooldown_amount' => 1, 'cooldown_unit' => 'days']);
+        $user = $this->getDataGenerator()->create_user();
+        $cm = (object)['id' => 5];
+        $state = $this->make_state(['finished' => true, 'won' => true]);
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $theme = $modgenerator->create_word($instance->id, 'escola');
+        $modgenerator->create_attempt($instance->id, $user->id, $theme->id);
+
+        $before = round_presenter::build_round_result_context($instance, $cm, $state, $user->id, true);
+        $this->assertTrue($before['cooldownactive']);
+        $this->assertGreaterThan(time() + 3600, $before['cooldownuntil']);
+
+        $DB->set_field('playercross', 'cooldown_seconds', 0, ['id' => $instance->id]);
+        $instance = $DB->get_record('playercross', ['id' => $instance->id], '*', MUST_EXIST);
+
+        $after = round_presenter::build_round_result_context($instance, $cm, $state, $user->id, true);
+        $this->assertFalse($after['cooldownactive']);
+        $this->assertSame(0, $after['cooldownuntil']);
+    }
+
+    /**
+     * Tests that the round result announces the PlayerHUD item granted for the win,
+     * once configured and the round was actually won.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_result_context
+     * @return void
+     */
+    public function test_build_round_result_context_shows_hud_grant_label_on_win(): void {
+        $itemid = $this->make_hud_item('Gold Key');
+        $instance = $this->make_instance(['hud_win_reward_item' => $itemid, 'hud_win_reward_qty' => 2]);
+        $cm = (object)['id' => 5];
+        $state = $this->make_state(['finished' => true, 'won' => true]);
+
+        $context = round_presenter::build_round_result_context($instance, $cm, $state, 1, true);
+
+        $this->assertStringContainsString('Gold Key', $context['huditemrewardedlabel']);
+    }
+
+    /**
+     * Tests that no grant label is shown when the round was lost, even with a
+     * win-reward item configured.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_result_context
+     * @return void
+     */
+    public function test_build_round_result_context_no_hud_grant_label_on_loss(): void {
+        $itemid = $this->make_hud_item('Gold Key');
+        $instance = $this->make_instance(['hud_win_reward_item' => $itemid]);
+        $cm = (object)['id' => 5];
+        $state = $this->make_state(['finished' => true, 'won' => false]);
+
+        $context = round_presenter::build_round_result_context($instance, $cm, $state, 1, true);
+
+        $this->assertSame('', $context['huditemrewardedlabel']);
+    }
+}
