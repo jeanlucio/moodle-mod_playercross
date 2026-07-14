@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/playercross/db" VERSION="20260714" COMMENT="XMLDB file for mod_playercross"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="playercross" COMMENT="Each record is one PlayerCross activity instance">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Course this activity belongs to"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Activity name"/>
+        <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Activity description"/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="sources" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Bitmask for enabled clue-word sources: 1=manual, 2=glossary. AI words are not gated by this bitmask; they are always saved as pending regardless of its value"/>
+        <FIELD NAME="glossaryid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="Glossary to sync words from; 0 means all glossaries in the course"/>
+        <FIELD NAME="stopwords" TYPE="text" NOTNULL="false" SEQUENCE="false"
+            COMMENT="Comma-separated words to ignore when splitting multi-word glossary concepts"/>
+        <FIELD NAME="min_length" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="3" SEQUENCE="false"
+            COMMENT="Minimum accepted length for clue words"/>
+        <FIELD NAME="max_length" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="15" SEQUENCE="false"
+            COMMENT="Maximum accepted length for clue words"/>
+        <FIELD NAME="theme_min_length" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="6" SEQUENCE="false"
+            COMMENT="Minimum length for a word to be eligible as the mystery phrase"/>
+        <FIELD NAME="num_clues" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="5" SEQUENCE="false"
+            COMMENT="Clues per round, 3-10"/>
+        <FIELD NAME="max_attempts_per_clue" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="Maximum guesses per clue, 0 means unlimited"/>
+        <FIELD NAME="timer_seconds" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"
+            COMMENT="Optional timer in seconds for the whole round; null/0 means disabled"/>
+        <FIELD NAME="show_ranking" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Whether ranking is shown to students"/>
+        <FIELD NAME="wordmode" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Theme word selection mode: 1=random per round, 2=shared across students by round number"/>
+        <FIELD NAME="max_rounds" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="Maximum rounds per user, 0 means unlimited"/>
+        <FIELD NAME="cooldown_seconds" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="86400" SEQUENCE="false"
+            COMMENT="Cooldown between rounds in seconds, 0 means disabled"/>
+        <FIELD NAME="completionrounds" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="Required completed rounds for custom completion rule"/>
+        <FIELD NAME="grade" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="100.00000" SEQUENCE="false"
+            DECIMALS="5" COMMENT="Maximum grade value"/>
+        <FIELD NAME="gradepass" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0.00000" SEQUENCE="false"
+            DECIMALS="5" COMMENT="Minimum passing grade"/>
+        <FIELD NAME="grademethod" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Grade aggregation: 1=highest, 2=average, 3=first, 4=last, 5=average over all required rounds"/>
+        <FIELD NAME="hud_round_cost_item" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="block_playerhud_items.id required to start a round; 0 = disabled"/>
+        <FIELD NAME="hud_round_cost_qty" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Number of items consumed to start a round"/>
+        <FIELD NAME="hud_hint_cost_item" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="block_playerhud_items.id required to reveal a clue's hint; 0 = disabled"/>
+        <FIELD NAME="hud_hint_cost_qty" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Number of items consumed to reveal a clue's hint"/>
+        <FIELD NAME="hud_win_reward_item" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="block_playerhud_items.id granted for winning a round; 0 = disabled"/>
+        <FIELD NAME="hud_win_reward_qty" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Number of items granted for winning a round"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="course_ix" UNIQUE="false" FIELDS="course"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="playercross_words" COMMENT="Approved and pending words available as theme/clue candidates">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="playercrossid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="word" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="Game word"/>
+        <FIELD NAME="concept" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"
+            COMMENT="Original concept name; set when word is extracted from a multi-word glossary entry"/>
+        <FIELD NAME="hint" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Optional hint"/>
+        <FIELD NAME="source" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="manual" SEQUENCE="false"
+            COMMENT="Word source: manual, glossary or ai"/>
+        <FIELD NAME="glossaryid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="ID of the glossary this word was imported from; 0 for manual/ai words"/>
+        <FIELD NAME="approved" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="addedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_playercross" TYPE="foreign" FIELDS="playercrossid" REFTABLE="playercross" REFFIELDS="id"/>
+        <KEY NAME="fk_user" TYPE="foreign" FIELDS="addedby" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="playercrossid_ix" UNIQUE="false" FIELDS="playercrossid"/>
+        <INDEX NAME="approved_ix" UNIQUE="false" FIELDS="approved"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="playercross_attempts" COMMENT="Append-only log of one row per completed round">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="playercrossid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="themewordid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"
+            COMMENT="playercross_words.id used as the mystery phrase in this round"/>
+        <FIELD NAME="cluestotal" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="cluesresolved" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="finalguessed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="Round ended by a correct direct guess of the mystery phrase"/>
+        <FIELD NAME="attempts_used" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="time_used" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="completed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="score" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0.00000" SEQUENCE="false"
+            DECIMALS="5"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_playercross" TYPE="foreign" FIELDS="playercrossid" REFTABLE="playercross" REFFIELDS="id"/>
+        <KEY NAME="fk_user" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="fk_themeword" TYPE="foreign" FIELDS="themewordid" REFTABLE="playercross_words" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="playercrossid_userid_ix" UNIQUE="false" FIELDS="playercrossid, userid"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>
