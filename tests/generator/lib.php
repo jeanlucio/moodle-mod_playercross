@@ -37,19 +37,25 @@ class mod_playercross_generator extends testing_module_generator {
     public function create_instance($record = null, ?array $options = null): \stdClass {
         $record = (object)(array)$record;
 
+        // These are the same form-shaped fields playercross_normalise_instance_data() (see
+        // lib.php) expects from mod_form.php — not the raw stored columns — since
+        // add_instance()/update_instance() always recompute sources/cooldown_seconds/
+        // timer_seconds from them.
         $defaults = [
-            'sources'               => 1,
+            'source_manual'         => 1,
+            'source_glossary'       => 0,
             'glossaryid'            => 0,
             'min_length'            => 3,
             'max_length'            => 15,
             'theme_min_length'      => 6,
             'num_clues'             => 5,
             'max_attempts_per_clue' => 0,
-            'timer_seconds'         => 0,
+            'timer_minutes'         => 0,
             'show_ranking'          => 1,
             'wordmode'              => 1,
             'max_rounds'            => 0,
-            'cooldown_seconds'      => 86400,
+            'cooldown_amount'       => 1,
+            'cooldown_unit'         => 'days',
             'completionrounds'      => 0,
             'grade'                 => 100,
             'gradepass'             => 0.0,
