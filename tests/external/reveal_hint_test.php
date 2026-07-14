@@ -84,7 +84,11 @@ final class reveal_hint_test extends \advanced_testcase {
 
         $instance = $modgenerator->create_instance($record);
         $modgenerator->create_word($instance->id, 'escola');
-        $modgenerator->create_word($instance->id, 'livro', 'dica secreta');
+        // Hint "dica" (4 letters) stays under theme_min_length (6), so livro can never
+        // be picked as the theme concept itself — its own word ("livro") is 5 letters,
+        // also under the threshold, so neither its word nor its hint could introduce
+        // ambiguity there.
+        $modgenerator->create_word($instance->id, 'livro', 'dica');
 
         return $instance;
     }
