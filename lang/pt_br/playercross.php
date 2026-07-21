@@ -217,6 +217,7 @@ $string['ranking_tiebreak'] = 'Empates são desfeitos por menos tentativas usada
 $string['ranking_title'] = 'Ranking';
 $string['recentwordslabel'] = 'Banco de palavras';
 $string['resetplayercrossattempts'] = 'Excluir tentativas de rodada do PlayerCross';
+$string['resultclueslabel'] = 'Pistas desta rodada:';
 $string['reveal_uncovered_slots'] = 'Revelar letras da frase-mistério não cobertas por nenhuma pista';
 $string['reveal_uncovered_slots_help'] = 'Quando uma letra da frase-mistério não aparece em nenhuma das palavras-pista selecionadas, nenhuma pista consegue revelá-la de graça. Se ativado (padrão), essa letra já aparece revelada desde o início da rodada. Se desativado, ela fica oculta até uma dica paga revelá-la, ou até a rodada terminar.';
 $string['revealthemewordlabel'] = 'A frase-mistério era:';

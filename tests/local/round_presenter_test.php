@@ -223,6 +223,25 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that a clue the student never resolved still reveals its own answer word
+     * once the round has finished — the round-result recap (templates/round_result.
+     * mustache) relies on this to show every clue's answer, not only the ones actually
+     * solved during play.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_clue_rows
+     * @return void
+     */
+    public function test_build_clue_rows_reveals_unresolved_word_when_round_finished(): void {
+        $state = $this->make_state();
+
+        $rows = round_presenter::build_clue_rows($state, true);
+
+        $this->assertFalse($rows[0]['resolved']);
+        $this->assertSame('LIVRO', $rows[0]['revealword']);
+        $this->assertFalse($rows[0]['canguess']);
+    }
+
+    /**
      * Tests that a resolved clue reveals its word in uppercase and can no longer be
      * guessed — including its own tiles, even the letters not shared with the mystery
      * phrase, since the full word is already known once resolved.
@@ -597,6 +616,7 @@ final class round_presenter_test extends \advanced_testcase {
         $this->assertGreaterThan(time(), $context['cooldownuntil']);
         $this->assertTrue($context['cooldownactive']);
         $this->assertSame("Rounds played: 1 / \u{221E}.", $context['roundsplayedlabel']);
+        $this->assertNotSame('', $context['resultclueslabel']);
     }
 
     /**

@@ -217,6 +217,7 @@ $string['ranking_tiebreak'] = 'Ties are broken by fewer attempts used on average
 $string['ranking_title'] = 'Ranking';
 $string['recentwordslabel'] = 'Word pool';
 $string['resetplayercrossattempts'] = 'Delete PlayerCross round attempts';
+$string['resultclueslabel'] = 'Clues from this round:';
 $string['reveal_uncovered_slots'] = 'Reveal mystery-phrase letters not covered by any clue';
 $string['reveal_uncovered_slots_help'] = 'When a letter of the mystery phrase does not appear in any of the selected clue words, no clue can ever reveal it for free. If enabled (default), that letter is shown from the very start of the round. If disabled, it stays hidden until a paid hint reveals it, or the round finishes.';
 $string['revealthemewordlabel'] = 'The mystery phrase was:';

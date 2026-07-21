@@ -497,6 +497,12 @@ class round_presenter {
      * this is the security boundary AJAX callers rely on: the mystery phrase is never
      * populated in the returned array until the round has actually finished server-side.
      *
+     * The per-clue recap shown alongside this (each clue's own hint and answer word,
+     * templates/round_result.mustache) reuses the 'clues' key build_round_panel_context()
+     * already sets from build_clue_rows($state, $roundfinished) — with $roundfinished
+     * true, every clue's revealword is populated there regardless of whether the
+     * student actually resolved it, so this method does not need to build its own copy.
+     *
      * @param \stdClass $instance Activity instance record.
      * @param \stdClass $cm Course module record.
      * @param array $state Session state.
@@ -515,6 +521,7 @@ class round_presenter {
             'feedbackmessage'     => '',
             'revealthemeword'     => '',
             'revealthemewordlabel' => get_string('revealthemewordlabel', 'mod_playercross'),
+            'resultclueslabel'    => get_string('resultclueslabel', 'mod_playercross'),
             'scoreachieved'       => '',
             'scoreachievedlabel'  => get_string('scoreachievedlabel', 'mod_playercross'),
             'cooldownuntil'       => 0,
@@ -539,6 +546,7 @@ class round_presenter {
             'feedbackmessage'      => self::build_feedback_message($state),
             'revealthemeword'      => s(core_text::strtoupper(implode(' ', $state['themewords']))),
             'revealthemewordlabel' => $blank['revealthemewordlabel'],
+            'resultclueslabel'     => $blank['resultclueslabel'],
             'scoreachieved'        => format_float((float)$state['scoreaccumulated'], 2),
             'scoreachievedlabel'   => $blank['scoreachievedlabel'],
             'cooldownuntil'        => $cooldownuntil,
