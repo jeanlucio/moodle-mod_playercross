@@ -1,0 +1,35 @@
+# ✨ Funcionalidades
+
+* 🧩 **Jogo de palavras cruzadas por dedução:** Cada rodada sorteia uma **frase-mistério** (a própria dica de um conceito do curso) e um conjunto de **pistas** (outros conceitos cujas palavras compartilham letras com a frase-mistério). Resolver uma pista revela suas letras compartilhadas em todo lugar onde ocorrem — em todas as pistas pendentes e na própria frase-mistério — por identidade da letra, não por posição espacial.
+* 🎯 **Chute direto na frase-mistério:** O estudante pode arriscar um palpite direto na frase-mistério a qualquer momento da rodada, sem precisar resolver todas as pistas antes, ganhando um bônus proporcional a quantas pistas ainda estavam pendentes no momento do acerto.
+* ⚖️ **Condição de vitória configurável:** Escolha se a rodada só é vencida resolvendo todas as pistas **e** acertando a frase-mistério, ou apenas com o acerto da frase-mistério (as pistas ainda ajudam revelando letras, mas se tornam opcionais para encerrar a rodada). Veja [Nota e Ranking](grading.html).
+* 🛡️ **Derrota automática ao esgotar uma pista:** Na condição "ambos obrigatórios", uma pista que esgota as tentativas torna a vitória matematicamente impossível — a rodada encerra imediatamente como derrota, em vez de deixar o estudante travado.
+* 🔡 **Tratamento de slots não cobertos (configurável):** Uma letra da frase-mistério que nenhuma pista selecionada compartilha é, por padrão, revelada automaticamente desde o início da rodada (nenhuma pista poderia revelá-la de graça); o professor pode desativar isso para que ela fique oculta até uma dica paga ou o fim da rodada.
+* 📖 **Integração com Glossário:** Importa conceitos de um ou todos os glossários do curso como pool de palavras, usando as definições como dicas das pistas.
+* 🚧 **Stopwords configuráveis:** Uma lista de palavras separadas por vírgula, por atividade (ex.: "de, da, e"), para ignorar ao dividir um conceito de glossário com várias palavras em candidatas.
+* 🤖 **Geração de palavras por IA (Opcional):** Gera palavras candidatas e dicas para um tema informado via `local_aihub` (BYOK) ou o fallback `core_ai` do Moodle. Palavras geradas são tratadas como entrada não confiável — só termos de um único token, puramente alfabéticos e dentro do intervalo de comprimento configurado são salvos, e entram no pool pendentes de aprovação do professor.
+* ✍️ **Pool manual de palavras:** Professores podem adicionar, editar, aprovar e excluir palavras diretamente na página de gerenciamento.
+* 🔀 **Modos de palavra:** Frase-mistério aleatória por rodada (padrão) ou modo de sequência compartilhada, em que todos os estudantes recebem o mesmo puzzle na mesma ordem.
+* 📏 **Intervalos de comprimento independentes:** O comprimento mínimo (e máximo, opcional) em letras da frase-mistério é configurado separadamente do intervalo de comprimento das próprias palavras-pista, de modo que uma dica longa e descritiva ainda pode gerar um puzzle administrável.
+* 🔢 **Número de pistas configurável:** De 3 a 10 pistas por rodada (padrão 5), equilibrando dificuldade do puzzle e tamanho do pool.
+* ⏳ **Tentativas por pista configuráveis:** Limita o número de palpites permitidos por pista individual (0 = ilimitado), independentemente do próprio chute na frase-mistério.
+* 💡 **Sistema de dica por pista:** A dica de cada pista (a definição do conceito) fica oculta por padrão e é revelada de forma independente — não uma dica única por rodada — opcionalmente com custo em item via PlayerHUD.
+* 🏳️ **Desistir:** O estudante pode desistir da rodada atual a qualquer momento — a frase-mistério correta e todas as palavras-pista são reveladas imediatamente.
+* ⏱️ **Intervalo configurável:** Espera mínima entre rodadas (minutos, horas ou dias), sempre recalculada a partir da configuração atual da atividade.
+* 🔢 **Limite de rodadas:** Professores podem limitar o total de rodadas por estudante (1–10 ou ilimitado).
+* 🔡 **Correspondência insensível a acentos:** Acentos são sempre removidos antes de comparar um palpite com seu alvo.
+* 🧮 **Pontuação por pista:** Os pontos se acumulam conforme cada pista é resolvida (crédito total nas duas primeiras tentativas, depois decrescendo conforme o limite de tentativas se aproxima), mais um bônus opcional por acertar a frase-mistério diretamente — veja [Nota e Ranking](grading.html).
+* 📊 **Métodos de avaliação:** Maior nota, média das notas, primeira tentativa, última tentativa, ou média sobre todas as rodadas exigidas.
+* 📋 **Integração com o diário de notas:** As notas são lançadas automaticamente a cada conclusão de rodada.
+* ✅ **Regra de conclusão personalizada:** Número mínimo de rodadas concluídas, avaliado e aplicado imediatamente após cada rodada.
+* 🔄 **Suporte a redefinição de curso:** "Redefinir curso" limpa as tentativas dos estudantes e reseta as notas da atividade, restrito ao curso alvo.
+* 🏆 **Ranking top 5:** Classificação restrita à atividade, limitada aos 5 primeiros, com uma linha extra para um estudante fora do topo ver sua posição real. Respeita `SEPARATEGROUPS`.
+* 📋 **Histórico de tentativas:** O estudante revisa cada rodada finalizada própria — frase-mistério, pistas resolvidas, tentativas usadas, tempo e pontuação — pela barra de ferramentas. Quem gerencia a atividade vê o histórico de todos os estudantes, em um relatório paginado.
+* ❓ **Ajuda no jogo:** Uma página de ajuda dedicada explica a mecânica do puzzle, tentativas, dicas, cronômetro e a condição de vitória e método de avaliação da atividade.
+* 👋 **Onboarding na primeira visita:** O modal "Como jogar" abre automaticamente na primeiríssima vez que um usuário visita qualquer atividade PlayerCross no site — uma única vez, sempre, em todo o site — e nunca mais se repete; o ícone de ajuda na barra de ferramentas sempre o reabre sob demanda.
+* ♿ **Acessibilidade:** Contraste WCAG AA em cada peça do puzzle; indicadores de estado não-cromáticos; `aria-label` em cada campo; o comportamento de foco por caixa de letra reflete um campo de código de verificação, para navegação previsível por teclado e clique.
+* ⚡ **Totalmente AJAX:** Toda transição de rodada (palpite de pista, palpite final, dica, desistência, tempo esgotado, início, nova rodada) acontece sem recarregar a página.
+* 🎮 **Integração com o PlayerHUD (Opcional):** Exige itens do inventário para iniciar uma rodada ou revelar a dica de uma pista, com consumo FIFO atômico. Também pode **conceder** um item a cada rodada vencida; seguindo a mesma regra antifarming do PlayerHUD, nenhum XP é concedido por esse item enquanto a atividade permitir rodadas ilimitadas.
+* 🛡️ **Integração segura entre cursos:** Toda referência a item do PlayerHUD é validada contra a instância de bloco do próprio curso, nunca um item obsoleto ou de outro curso — mesmo após backup/restore ou duplicação de curso.
+* 📦 **Backup e Restauração:** Suporte completo a backup/restore Moodle 2, incluindo a ação "Duplicar atividade", o pool de palavras, tentativas, e remapeamento seguro de itens do PlayerHUD.
+* 🔐 **API de Privacidade:** Compatível com LGPD/GDPR — exportação e exclusão completas de todos os dados pessoais armazenados.
