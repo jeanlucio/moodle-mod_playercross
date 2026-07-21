@@ -37,6 +37,12 @@
  * buildFinalGuess). No row carries a visible submit button — every guess is confirmed
  * via the keyboard's own Enviar key or a physical Enter key.
  *
+ * Long-pressing a keyboard key with accent variants (A, E, I, O, U — see
+ * initAccentLongPress/ACCENT_VARIANTS) opens a popup to type the accented form
+ * instead, mirroring a phone's own native long-press-for-diacritics keyboard.
+ * Matching stays accent-insensitive throughout (word_normalizer::normalize()) — this
+ * is purely a typing convenience, touch-only, never a requirement to guess correctly.
+ *
  * @module     mod_playercross/game
  * @copyright  2026 Jean Lúcio
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -653,6 +659,21 @@ const wireStartRound = (cmid, timertotal) => {
 };
 
 /**
+ * Writes one letter into whichever box last had focus and advances to the next one —
+ * shared by a normal keyboard tap and an accent-popup selection, so both go through
+ * the exact same write-and-advance step. A no-op if no box has been activated yet.
+ *
+ * @param {string} letter Single letter to write.
+ */
+const writeLetterIntoActiveBox = (letter) => {
+    if (!activeInput) {
+        return;
+    }
+    activeInput.value = letter;
+    focusAdjacentBox(activeInput, 1);
+};
+
+/**
  * Wires the virtual keyboard's clicks to whichever letter box last had focus.
  * Delegated once on the stage (see wireStageDelegation), since the keyboard element
  * itself is destroyed and recreated on every round-panel re-render. A no-op if no
@@ -686,16 +707,180 @@ const handleKeyboardKey = (key) => {
         }
         return;
     }
-    activeInput.value = key;
-    focusAdjacentBox(activeInput, 1);
+    writeLetterIntoActiveBox(key);
+};
+
+/**
+ * Accent variants offered by the long-press popup, keyed by the base letter's own
+ * keyboard key. Matching is accent-insensitive throughout the game (see
+ * word_normalizer::normalize()) — this is purely a typing convenience so students can
+ * practise proper Portuguese spelling, never a requirement to guess correctly.
+ *
+ * @type {Object<string, string[]>}
+ */
+const ACCENT_VARIANTS = {
+    A: ['Á', 'À', 'Â', 'Ã'],
+    E: ['É', 'Ê'],
+    I: ['Í'],
+    O: ['Ó', 'Ô', 'Õ'],
+    U: ['Ú'],
+};
+
+/** @type {number} Touch hold duration, in ms, before the accent popup appears. */
+const ACCENT_LONG_PRESS_MS = 450;
+
+/** @type {?HTMLElement} The accent popup currently on screen, if any. */
+let accentPopup = null;
+
+/**
+ * Removes the accent popup, if one is currently shown. Safe to call unconditionally.
+ */
+const removeAccentPopup = () => {
+    if (accentPopup) {
+        accentPopup.remove();
+        accentPopup = null;
+    }
+};
+
+/**
+ * Marks one accent-popup option as the one that will be committed on release, mirroring
+ * a phone's own native long-press-for-diacritics keyboard, where sliding a finger
+ * across the popup before lifting it picks whichever option is currently underneath.
+ *
+ * @param {HTMLElement} popup The accent popup element.
+ * @param {HTMLElement} target The option to highlight.
+ */
+const highlightAccentOption = (popup, target) => {
+    popup.querySelectorAll('.pc-accent-option').forEach((opt) => {
+        opt.classList.toggle('is-active', opt === target);
+    });
+};
+
+/**
+ * Builds and positions the accent popup above the long-pressed key, options being the
+ * plain base letter (pre-selected, so a long press released without sliding still
+ * types the same letter a normal tap would) followed by each accented variant.
+ *
+ * @param {HTMLElement} keyboard The keyboard container — the popup's own positioning parent.
+ * @param {HTMLElement} btn The long-pressed key button.
+ * @param {string} baseLetter The key's own base letter, e.g. "E".
+ */
+const showAccentPopup = (keyboard, btn, baseLetter) => {
+    removeAccentPopup();
+    const popup = document.createElement('div');
+    popup.className = 'pc-accent-popup';
+    [baseLetter, ...ACCENT_VARIANTS[baseLetter]].forEach((letter, i) => {
+        const opt = document.createElement('button');
+        opt.type = 'button';
+        opt.tabIndex = -1;
+        opt.className = 'pc-accent-option' + (i === 0 ? ' is-active' : '');
+        opt.textContent = letter;
+        opt.dataset.letter = letter;
+        popup.appendChild(opt);
+    });
+
+    const btnRect = btn.getBoundingClientRect();
+    const kbRect = keyboard.getBoundingClientRect();
+    popup.style.left = `${btnRect.left - kbRect.left + (btnRect.width / 2)}px`;
+    popup.style.top = `${btnRect.top - kbRect.top}px`;
+    keyboard.appendChild(popup);
+
+    // Keys near either edge of the keyboard (A is the leftmost key with variants)
+    // would otherwise centre the popup partly off-screen — nudge it back in.
+    const popupRect = popup.getBoundingClientRect();
+    if (popupRect.left < kbRect.left) {
+        popup.style.left = `${parseFloat(popup.style.left) + (kbRect.left - popupRect.left) + 4}px`;
+    } else if (popupRect.right > kbRect.right) {
+        popup.style.left = `${parseFloat(popup.style.left) - (popupRect.right - kbRect.right) - 4}px`;
+    }
+
+    accentPopup = popup;
+};
+
+/**
+ * Wires the accent-popup long-press gesture on every keyboard key that has variants
+ * (see ACCENT_VARIANTS), delegated once on the stage — same rationale as
+ * wireStageDelegation itself, since #playercross-stage is never replaced across
+ * re-renders. Touch-only by nature: a long press has no equivalent on a physical
+ * keyboard, which can already type accents through the operating system, so desktop
+ * typing is entirely unaffected. A normal (short) tap still falls through to the
+ * stage's own click handler exactly as before.
+ *
+ * @param {HTMLElement} stage The #playercross-stage element.
+ */
+const initAccentLongPress = (stage) => {
+    let pressTimer = null;
+    let longPressActive = false;
+
+    const clearPressTimer = () => {
+        if (pressTimer) {
+            window.clearTimeout(pressTimer);
+            pressTimer = null;
+        }
+    };
+
+    const endLongPress = (commit) => {
+        if (commit && accentPopup) {
+            const active = accentPopup.querySelector('.pc-accent-option.is-active');
+            if (active) {
+                writeLetterIntoActiveBox(active.dataset.letter);
+            }
+        }
+        removeAccentPopup();
+        longPressActive = false;
+    };
+
+    stage.addEventListener('touchstart', (e) => {
+        const btn = e.target.closest('#playercross-keyboard [data-key]');
+        const baseLetter = btn?.dataset.key;
+        if (!baseLetter || !ACCENT_VARIANTS[baseLetter]) {
+            return;
+        }
+        const keyboard = document.getElementById('playercross-keyboard');
+        clearPressTimer();
+        pressTimer = window.setTimeout(() => {
+            longPressActive = true;
+            showAccentPopup(keyboard, btn, baseLetter);
+        }, ACCENT_LONG_PRESS_MS);
+    }, {passive: true});
+
+    stage.addEventListener('touchmove', (e) => {
+        if (!longPressActive || !accentPopup) {
+            return;
+        }
+        // Backs up the long-press keys' own touch-action: none (see styles.css) —
+        // without this the page could still scroll under the player's finger while
+        // they slide across the accent options.
+        e.preventDefault();
+        const touch = e.touches[0];
+        const option = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.pc-accent-option');
+        if (option) {
+            highlightAccentOption(accentPopup, option);
+        }
+    });
+
+    stage.addEventListener('touchend', (e) => {
+        clearPressTimer();
+        if (longPressActive) {
+            // Suppresses the synthetic click touchend would otherwise fire next,
+            // which would type the plain base letter a second time.
+            e.preventDefault();
+            endLongPress(true);
+        }
+    });
+
+    stage.addEventListener('touchcancel', () => {
+        clearPressTimer();
+        endLongPress(false);
+    });
 };
 
 /**
  * Wires a round-result's new-round button via mod_playercross_new_round, the global
- * hint button, click-to-activate on any guess row, the virtual keyboard, and every
- * guess form (clues and the mystery phrase alike, both share .mod-playercross-guess-
- * form) — all via event delegation on #playercross-stage, which is never itself
- * replaced across re-renders.
+ * hint button, click-to-activate on any guess row, the virtual keyboard (including its
+ * accent long-press popup, see initAccentLongPress), and every guess form (clues and
+ * the mystery phrase alike, both share .mod-playercross-guess-form) — all via event
+ * delegation on #playercross-stage, which is never itself replaced across re-renders.
  *
  * @param {number} cmid Course-module id.
  * @param {number} timertotal Total seconds configured for the round (0 = no timer).
@@ -705,6 +890,8 @@ const wireStageDelegation = (cmid, timertotal) => {
     if (!stage) {
         return;
     }
+
+    initAccentLongPress(stage);
 
     stage.addEventListener('click', async(e) => {
         const newRoundButton = e.target.closest('#playercross-new-round-button');
