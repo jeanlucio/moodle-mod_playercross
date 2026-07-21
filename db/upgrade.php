@@ -59,5 +59,20 @@ function xmldb_playercross_upgrade(int $oldversion): bool {
         upgrade_mod_savepoint(true, 2026072101, 'playercross');
     }
 
+    if ($oldversion < 2026072200) {
+        // Reintroduces win_condition as a genuine per-activity teacher setting (two
+        // modes this time: both required, or the mystery phrase alone) — every
+        // activity, new or already existing, was running the "both required" rule
+        // unconditionally since 2026072101, so defaulting every row to 1 here changes
+        // nothing for anyone already using the plugin.
+        $table = new xmldb_table('playercross');
+        $field = new xmldb_field('win_condition', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '1');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026072200, 'playercross');
+    }
+
     return true;
 }

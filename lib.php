@@ -49,6 +49,15 @@ define('PLAYERCROSS_GRADE_LAST', 4);
 /** Grade aggregation: average over all required rounds (uses max_rounds as denominator). */
 define('PLAYERCROSS_GRADE_AVERAGE_ALL', 5);
 
+/** Win condition: winning requires resolving every clue and guessing the mystery phrase. */
+define('PLAYERCROSS_WINCONDITION_BOTH', 1);
+
+/**
+ * Win condition: winning requires only guessing the mystery phrase; resolving every
+ * clue never ends the round by itself.
+ */
+define('PLAYERCROSS_WINCONDITION_FINALONLY', 2);
+
 /**
  * Tells Moodle this plugin uses a branded icon (disables purpose recolour filter).
  *
@@ -136,6 +145,18 @@ function playercross_get_grademethod_options(): array {
         PLAYERCROSS_GRADE_FIRST       => get_string('grademethod_first', 'mod_playercross'),
         PLAYERCROSS_GRADE_LAST        => get_string('grademethod_last', 'mod_playercross'),
         PLAYERCROSS_GRADE_AVERAGE_ALL => get_string('grademethod_average_all', 'mod_playercross'),
+    ];
+}
+
+/**
+ * Returns the available win condition options, keyed by their PLAYERCROSS_WINCONDITION_* constant.
+ *
+ * @return array<int, string>
+ */
+function playercross_get_wincondition_options(): array {
+    return [
+        PLAYERCROSS_WINCONDITION_BOTH      => get_string('win_condition_both', 'mod_playercross'),
+        PLAYERCROSS_WINCONDITION_FINALONLY => get_string('win_condition_finalonly', 'mod_playercross'),
     ];
 }
 

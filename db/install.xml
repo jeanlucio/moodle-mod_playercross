@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/playercross/db" VERSION="20260721" COMMENT="XMLDB file for mod_playercross"
+<XMLDB PATH="mod/playercross/db" VERSION="20260722" COMMENT="XMLDB file for mod_playercross"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -27,6 +27,8 @@
             COMMENT="Clues per round, 3-10"/>
         <FIELD NAME="reveal_uncovered_slots" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
             COMMENT="Whether mystery-phrase letters not covered by any selected clue are revealed from the start of the round"/>
+        <FIELD NAME="win_condition" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="How a round can be won: 1=every clue plus the mystery phrase, 2=the mystery phrase alone"/>
         <FIELD NAME="max_attempts_per_clue" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
             COMMENT="Maximum guesses per clue, 0 means unlimited"/>
         <FIELD NAME="timer_seconds" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"

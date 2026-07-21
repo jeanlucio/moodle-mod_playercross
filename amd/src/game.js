@@ -529,10 +529,29 @@ const endRound = async(cmid, reason) => {
 };
 
 /**
+ * Briefly shakes and reddens a clue's card to give an unmistakable visual cue that its
+ * last guess was wrong — the toast notification alone (see notify()) is easy to miss
+ * in a fast-paced typing flow. A no-op if the card no longer exists, e.g. because the
+ * round just ended (a clue running out of attempts can finish the round on its own —
+ * see round_service::submit_clue_guess()).
+ *
+ * @param {number} clueid Clue word id.
+ */
+const flashWrongClue = (clueid) => {
+    const card = document.querySelector(`.mod-playercross-clue[data-clue-id="${clueid}"]`);
+    if (!card) {
+        return;
+    }
+    card.classList.add('is-wrong');
+    card.addEventListener('animationend', () => card.classList.remove('is-wrong'), {once: true});
+};
+
+/**
  * Submits a clue guess via mod_playercross_submit_clue_guess. On a wrong (or
  * exhausted) guess, restores the typed text into the freshly re-rendered clue instead
  * of leaving it blank — an explicit re-send corrects a mistake without punishing the
- * player for a typo they have not yet had the chance to review.
+ * player for a typo they have not yet had the chance to review — and flashes the card
+ * (see flashWrongClue) so a wrong guess is never silently invisible.
  *
  * @param {number} cmid Course-module id.
  * @param {number} clueid Clue word id.
@@ -557,6 +576,7 @@ const submitClueGuess = async(cmid, clueid, guess, timertotal) => {
     await showRoundPanel(payload.panel, cmid, timertotal);
     if (!payload.resolved) {
         restoreClueGuess(clueid, guess);
+        flashWrongClue(clueid);
     }
 };
 

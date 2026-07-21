@@ -105,6 +105,7 @@ final class round_presenter_test extends \advanced_testcase {
             'forfeited'        => false,
             'timedout'         => false,
             'finalguessed'     => false,
+            'cluesexhausted'   => false,
         ], $overrides);
     }
 
@@ -264,6 +265,35 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that an exhausted clue carries a human-readable exhaustedlabel — not just
+     * the bare attemptsused count the template used to print directly.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_clue_rows
+     * @return void
+     */
+    public function test_build_clue_rows_exhausted_label(): void {
+        $state = $this->make_state();
+        $state['clues'][0]['exhausted'] = true;
+        $state['clues'][0]['attemptsused'] = 3;
+
+        $rows = round_presenter::build_clue_rows($state, false);
+
+        $this->assertSame(get_string('clueexhaustedlabel', 'mod_playercross', 3), $rows[0]['exhaustedlabel']);
+    }
+
+    /**
+     * Tests that a clue not (yet) exhausted carries a blank exhaustedlabel.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_clue_rows
+     * @return void
+     */
+    public function test_build_clue_rows_exhausted_label_blank_when_not_exhausted(): void {
+        $rows = round_presenter::build_clue_rows($this->make_state(), false);
+
+        $this->assertSame('', $rows[0]['exhaustedlabel']);
+    }
+
+    /**
      * Tests that the clue's phrase is always present in the row — it is the question
      * itself, never gated behind any reveal state.
      *
@@ -324,8 +354,8 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that forfeited, timed-out, final-guessed and plain-won/lost rounds each
-     * produce their own distinct message.
+     * Tests that forfeited, timed-out, clues-exhausted, final-guessed and plain-
+     * won/lost rounds each produce their own distinct message.
      *
      * @covers \mod_playercross\local\round_presenter::build_feedback_message
      * @return void
@@ -333,13 +363,16 @@ final class round_presenter_test extends \advanced_testcase {
     public function test_build_feedback_message_varies_by_outcome(): void {
         $forfeited = round_presenter::build_feedback_message($this->make_state(['finished' => true, 'forfeited' => true]));
         $timedout = round_presenter::build_feedback_message($this->make_state(['finished' => true, 'timedout' => true]));
+        $cluesexhausted = round_presenter::build_feedback_message(
+            $this->make_state(['finished' => true, 'cluesexhausted' => true])
+        );
         $finalguessed = round_presenter::build_feedback_message(
             $this->make_state(['finished' => true, 'won' => true, 'finalguessed' => true])
         );
         $won = round_presenter::build_feedback_message($this->make_state(['finished' => true, 'won' => true]));
         $lost = round_presenter::build_feedback_message($this->make_state(['finished' => true]));
 
-        $messages = [$forfeited, $timedout, $finalguessed, $won, $lost];
+        $messages = [$forfeited, $timedout, $cluesexhausted, $finalguessed, $won, $lost];
         $this->assertSame($messages, array_unique($messages));
     }
 

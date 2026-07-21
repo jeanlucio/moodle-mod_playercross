@@ -122,6 +122,7 @@ class round_service {
             'timedout'      => false,
             'finalguessed'  => false,
             'finalguesscorrect' => false,
+            'cluesexhausted' => false,
         ];
     }
 
@@ -384,9 +385,16 @@ class round_service {
      * mystery phrase and, implicitly, in every other pending clue that shares one of
      * those slots too, since revealedslots is a single set shared by the whole puzzle.
      *
-     * Winning a round always requires both conditions: resolving the last pending clue
-     * only finishes the round if the mystery phrase has already been guessed correctly
-     * (submit_final_guess() sets finalguesscorrect) — otherwise the round stays open.
+     * Under PLAYERCROSS_WINCONDITION_BOTH (the default), resolving the last pending
+     * clue only finishes the round if the mystery phrase has already been guessed
+     * correctly (submit_final_guess() sets finalguesscorrect) — otherwise the round
+     * stays open. Under PLAYERCROSS_WINCONDITION_FINALONLY, resolving every clue never
+     * finishes the round by itself; only a direct guess of the mystery phrase does.
+     *
+     * A clue running out of attempts under PLAYERCROSS_WINCONDITION_BOTH makes winning
+     * this round mathematically impossible from that moment on — cluesresolved can
+     * never reach cluestotal again — so the round ends immediately as a loss instead of
+     * being left open with no way forward.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
@@ -430,9 +438,16 @@ class round_service {
             $maxattempts = (int)$instance->max_attempts_per_clue;
             if ($maxattempts > 0 && $state['clues'][$index]['attemptsused'] >= $maxattempts) {
                 $state['clues'][$index]['exhausted'] = true;
+
+                $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
+                if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH) {
+                    $state = self::finish_round($state, $instance, $cmid, $userid, false, false, false, false, true);
+                    return [$state, false, get_string('feedback_cluesexhausted', 'mod_playercross'), 'warning'];
+                }
+
                 return [$state, false, get_string('clueexhausted', 'mod_playercross'), 'warning'];
             }
-            return [$state, false, null, null];
+            return [$state, false, get_string('clueguesswrong', 'mod_playercross'), 'warning'];
         }
 
         $state['clues'][$index]['resolved'] = true;
@@ -447,7 +462,8 @@ class round_service {
         $state['scoreaccumulated'] += $points;
 
         if ($state['cluesresolved'] >= $state['cluestotal']) {
-            if (!empty($state['finalguesscorrect'])) {
+            $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
+            if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH && !empty($state['finalguesscorrect'])) {
                 $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, true);
                 return [$state, true, get_string('roundwon', 'mod_playercross'), 'success'];
             }
@@ -468,11 +484,12 @@ class round_service {
      * casing, accents and stray punctuation, but still requires every word of the
      * phrase, in order.
      *
-     * Winning a round always requires both conditions: every clue resolved and the
-     * mystery phrase guessed correctly. A correct guess here does not finish the round
-     * by itself if clues are still pending — it is recorded (finalguesscorrect), so
-     * resolving the last remaining clue afterwards finishes the round immediately
-     * instead of requiring the same phrase to be guessed twice.
+     * Under PLAYERCROSS_WINCONDITION_BOTH (the default), a correct guess here does not
+     * finish the round by itself if clues are still pending — it is recorded
+     * (finalguesscorrect), so resolving the last remaining clue afterwards finishes the
+     * round immediately instead of requiring the same phrase to be guessed twice. Under
+     * PLAYERCROSS_WINCONDITION_FINALONLY, a correct guess always finishes the round on
+     * the spot, however many clues are still pending.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
@@ -505,7 +522,8 @@ class round_service {
 
         $state['finalguesscorrect'] = true;
 
-        if ($state['cluesresolved'] < $state['cluestotal']) {
+        $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
+        if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH && $state['cluesresolved'] < $state['cluestotal']) {
             return [$state, true, get_string('finalguesscorrectneedsclues', 'mod_playercross'), 'success'];
         }
 
@@ -583,6 +601,10 @@ class round_service {
      * @param bool $forfeited Whether the player gave up.
      * @param bool $timedout Whether the timer expired.
      * @param bool $finalguessed Whether the round ended via a correct direct guess.
+     * @param bool $cluesexhausted Whether the round ended because a clue ran out of
+     *     attempts under PLAYERCROSS_WINCONDITION_BOTH, making a win impossible. Only
+     *     ever used to pick the right feedback message — not persisted to the attempts
+     *     table, which already records the loss via $won.
      * @return array Updated state.
      */
     private static function finish_round(
@@ -593,7 +615,8 @@ class round_service {
         bool $won,
         bool $forfeited,
         bool $timedout,
-        bool $finalguessed
+        bool $finalguessed,
+        bool $cluesexhausted = false
     ): array {
         global $CFG, $DB;
         require_once($CFG->dirroot . '/mod/playercross/lib.php');
@@ -602,6 +625,7 @@ class round_service {
         $state['endtime']      = time();
         $state['won']          = $won;
         $state['forfeited']    = $forfeited;
+        $state['cluesexhausted'] = $cluesexhausted;
         $state['timedout']     = $timedout;
         $state['finalguessed'] = $finalguessed;
 

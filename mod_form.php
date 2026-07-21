@@ -126,6 +126,16 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->setDefault('num_clues', 5);
 
         $mform->addElement(
+            'select',
+            'win_condition',
+            get_string('win_condition', 'mod_playercross'),
+            playercross_get_wincondition_options()
+        );
+        $mform->setType('win_condition', PARAM_INT);
+        $mform->setDefault('win_condition', PLAYERCROSS_WINCONDITION_BOTH);
+        $mform->addHelpButton('win_condition', 'win_condition', 'mod_playercross');
+
+        $mform->addElement(
             'advcheckbox',
             'reveal_uncovered_slots',
             get_string('reveal_uncovered_slots', 'mod_playercross')

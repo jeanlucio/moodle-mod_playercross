@@ -111,6 +111,9 @@ class round_presenter {
                 'resolved'     => $clue['resolved'],
                 'exhausted'    => $clue['exhausted'],
                 'attemptsused' => (int)$clue['attemptsused'],
+                'exhaustedlabel' => $clue['exhausted']
+                    ? get_string('clueexhaustedlabel', 'mod_playercross', (int)$clue['attemptsused'])
+                    : '',
                 'revealword'   => $reveal ? s(core_text::strtoupper($clue['word'])) : '',
                 'tiles'        => self::build_word_tiles($clue['word'], $clue['slots'], $state['revealedslots'], $reveal),
                 'canguess'     => !$clue['resolved'] && !$clue['exhausted'] && !$roundfinished,
@@ -149,6 +152,9 @@ class round_presenter {
         }
         if (!empty($state['timedout'])) {
             return get_string('feedback_timeout', 'mod_playercross');
+        }
+        if (!empty($state['cluesexhausted'])) {
+            return get_string('feedback_cluesexhausted', 'mod_playercross');
         }
         if (!empty($state['finalguessed'])) {
             return get_string('feedback_finalguessed', 'mod_playercross');

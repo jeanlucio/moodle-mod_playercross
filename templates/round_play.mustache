@@ -54,6 +54,7 @@
                 "resolved": false,
                 "exhausted": false,
                 "attemptsused": 1,
+                "exhaustedlabel": "",
                 "revealword": "",
                 "tiles": [
                     {"letter": "", "revealed": false, "slotnum": "3", "arialabel": "Hidden letter, slot 3"},
@@ -67,6 +68,7 @@
                 "resolved": true,
                 "exhausted": false,
                 "attemptsused": 1,
+                "exhaustedlabel": "",
                 "revealword": "CANETA",
                 "tiles": [],
                 "canguess": false
@@ -92,7 +94,7 @@
                     <span class="mod-playercross-clue-answer">&#10003; {{revealword}}</span>
                 {{/resolved}}
                 {{#exhausted}}
-                    <span class="text-muted small">{{attemptsused}}</span>
+                    <span class="text-muted small">{{exhaustedlabel}}</span>
                 {{/exhausted}}
                 {{#canguess}}
                     <form class="mod-playercross-clue-form mod-playercross-guess-form" data-clue-id="{{clueid}}">

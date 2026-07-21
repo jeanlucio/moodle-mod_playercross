@@ -267,6 +267,24 @@
     border-color: var(--primary, #0f6cbf);
 }
 
+.path-mod-playercross .mod-playercross-clue.is-wrong {
+    border-color: var(--danger, #dc3545);
+    animation: playercross-shake 0.4s;
+}
+
+@keyframes playercross-shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .path-mod-playercross .mod-playercross-clue.is-wrong {
+        animation: none;
+    }
+}
+
 .path-mod-playercross .mod-playercross-clue-phrase {
     margin-bottom: 0.5rem;
     font-size: 0.9rem;

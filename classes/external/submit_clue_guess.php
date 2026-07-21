@@ -199,6 +199,10 @@ class submit_clue_guess extends external_api {
                     'resolved'     => new external_value(PARAM_BOOL, 'Whether this clue is resolved'),
                     'exhausted'    => new external_value(PARAM_BOOL, 'Whether attempts ran out for this clue'),
                     'attemptsused' => new external_value(PARAM_INT, 'Attempts used on this clue'),
+                    'exhaustedlabel' => new external_value(
+                        PARAM_TEXT,
+                        'Human-readable "no success after N attempts" label, empty unless exhausted'
+                    ),
                     'revealword'   => new external_value(
                         PARAM_TEXT,
                         'This clue\'s word, empty unless resolved or the round finished'

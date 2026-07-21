@@ -176,7 +176,7 @@ final class round_service_test extends \advanced_testcase {
         $clueid = (int)$state['clues'][0]['wordid'];
         $revealedbefore = $state['revealedslots'];
 
-        [$state, $resolved] = round_service::submit_clue_guess(
+        [$state, $resolved, $notification, $notificationtype] = round_service::submit_clue_guess(
             $state,
             $instance,
             $cm->cmid,
@@ -189,6 +189,8 @@ final class round_service_test extends \advanced_testcase {
         $this->assertSame(1, $state['clues'][0]['attemptsused']);
         $this->assertFalse($state['clues'][0]['resolved']);
         $this->assertSame($revealedbefore, $state['revealedslots']);
+        $this->assertSame(get_string('clueguesswrong', 'mod_playercross'), $notification);
+        $this->assertSame('warning', $notificationtype);
     }
 
     /**
@@ -404,13 +406,14 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * A clue becomes exhausted (never resolvable again this round) once its
-     * max_attempts_per_clue is reached, without ending the whole round.
+     * PLAYERCROSS_WINCONDITION_BOTH (the default): a clue running out of attempts
+     * makes winning mathematically impossible from then on, so the round ends
+     * immediately as a loss instead of being left open with no way forward.
      *
      * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
-    public function test_clue_becomes_exhausted_after_max_attempts(): void {
+    public function test_clue_exhaustion_ends_round_as_loss_under_both(): void {
         [$instance, $cm] = $this->make_ready_instance([
             'num_clues' => 3,
             'theme_min_length' => 6,
@@ -426,11 +429,123 @@ final class round_service_test extends \advanced_testcase {
 
         [$state] = round_service::submit_clue_guess($state, $instance, $cm->cmid, $this->user->id, $clueid, 'erradoum');
         $this->assertFalse($state['clues'][0]['exhausted']);
+        $this->assertFalse($state['finished']);
+
+        [$state, $resolved, $notification] = round_service::submit_clue_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            $clueid,
+            'erradodois'
+        );
+
+        $this->assertFalse($resolved);
+        $this->assertTrue($state['clues'][0]['exhausted']);
+        $this->assertFalse($state['clues'][0]['resolved']);
+        $this->assertTrue($state['finished']);
+        $this->assertFalse($state['won']);
+        $this->assertTrue($state['cluesexhausted']);
+        $this->assertSame(get_string('feedback_cluesexhausted', 'mod_playercross'), $notification);
+    }
+
+    /**
+     * PLAYERCROSS_WINCONDITION_FINALONLY: a clue running out of attempts never ends
+     * the round by itself — the mystery phrase alone can still win it.
+     *
+     * @covers \mod_playercross\local\round_service::submit_clue_guess
+     * @return void
+     */
+    public function test_clue_exhaustion_does_not_end_round_under_finalonly(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'max_attempts_per_clue' => 2,
+            'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        $clueid = (int)$state['clues'][0]['wordid'];
+
+        [$state] = round_service::submit_clue_guess($state, $instance, $cm->cmid, $this->user->id, $clueid, 'erradoum');
         [$state] = round_service::submit_clue_guess($state, $instance, $cm->cmid, $this->user->id, $clueid, 'erradodois');
 
         $this->assertTrue($state['clues'][0]['exhausted']);
         $this->assertFalse($state['clues'][0]['resolved']);
         $this->assertFalse($state['finished']);
+    }
+
+    /**
+     * PLAYERCROSS_WINCONDITION_FINALONLY: resolving every clue never finishes the
+     * round on its own — only a direct guess of the mystery phrase does.
+     *
+     * @covers \mod_playercross\local\round_service::submit_clue_guess
+     * @return void
+     */
+    public function test_finalonly_resolving_all_clues_does_not_finish_round(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        foreach ($state['clues'] as $clue) {
+            [$state] = round_service::submit_clue_guess(
+                $state,
+                $instance,
+                $cm->cmid,
+                $this->user->id,
+                (int)$clue['wordid'],
+                $clue['word']
+            );
+        }
+
+        $this->assertSame(3, $state['cluesresolved']);
+        $this->assertFalse($state['finished']);
+    }
+
+    /**
+     * PLAYERCROSS_WINCONDITION_FINALONLY: a correct direct guess wins the round
+     * immediately, even with every clue still pending.
+     *
+     * @covers \mod_playercross\local\round_service::submit_final_guess
+     * @return void
+     */
+    public function test_finalonly_final_guess_wins_round_immediately(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        [$state, $correct] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+
+        $this->assertTrue($correct);
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['won']);
+        $this->assertTrue($state['finalguessed']);
     }
 
     /**
