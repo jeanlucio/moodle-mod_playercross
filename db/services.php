@@ -81,6 +81,14 @@ $functions = [
         'capabilities'  => 'mod/playercross:addinstance',
         'loginrequired' => true,
     ],
+    'mod_playercross_count_eligible_theme_words' => [
+        'classname'     => 'mod_playercross\external\count_eligible_theme_words',
+        'description'   => 'Count approved pool hints eligible as the mystery phrase within a given length range.',
+        'type'          => 'read',
+        'ajax'          => true,
+        'capabilities'  => 'mod/playercross:addinstance',
+        'loginrequired' => true,
+    ],
     'mod_playercross_count_glossary_candidates' => [
         'classname'     => 'mod_playercross\external\count_glossary_candidates',
         'description'   => 'Preview how many glossary-sourced words fit a length range, before an activity exists.',

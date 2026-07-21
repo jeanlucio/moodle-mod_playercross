@@ -150,6 +150,24 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->addRule('theme_min_length', null, 'numeric', null, 'client');
         $mform->addHelpButton('theme_min_length', 'theme_min_length', 'mod_playercross');
 
+        $mform->addElement('text', 'theme_max_length', get_string('theme_max_length', 'mod_playercross'));
+        $mform->setType('theme_max_length', PARAM_INT);
+        $mform->setDefault('theme_max_length', 0);
+        $mform->addRule('theme_max_length', null, 'numeric', null, 'client');
+        $mform->addHelpButton('theme_max_length', 'theme_max_length', 'mod_playercross');
+
+        if (!empty($this->_instance)) {
+            $mform->addElement(
+                'static',
+                'themeeligiblewordscount',
+                '',
+                html_writer::div('', 'alert alert-info py-2 mb-2', [
+                    'id'        => 'playercross-theme-eligible-count',
+                    'aria-live' => 'polite',
+                ])
+            );
+        }
+
         $mform->addElement('text', 'min_length', get_string('min_length', 'mod_playercross'));
         $mform->setType('min_length', PARAM_INT);
         $mform->setDefault('min_length', 3);
@@ -345,6 +363,12 @@ class mod_playercross_mod_form extends moodleform_mod {
                 'id_max_length',
                 'playercross-eligible-count',
             ]);
+            $PAGE->requires->js_call_amd('mod_playercross/themeeligiblewords', 'init', [
+                (int) $this->_cm->id,
+                'id_theme_min_length',
+                'id_theme_max_length',
+                'playercross-theme-eligible-count',
+            ]);
         } else {
             $PAGE->requires->js_call_amd('mod_playercross/glossarypreview', 'init', [
                 (int) $COURSE->id,
@@ -456,6 +480,13 @@ class mod_playercross_mod_form extends moodleform_mod {
 
         if ((int)$data['theme_min_length'] < 1) {
             $errors['theme_min_length'] = get_string('error_thememinlength', 'mod_playercross');
+        }
+
+        $thememaxlength = (int)$data['theme_max_length'];
+        $thememaxlengthinvalid = $thememaxlength < 0
+            || ($thememaxlength > 0 && $thememaxlength < (int)$data['theme_min_length']);
+        if ($thememaxlengthinvalid) {
+            $errors['theme_max_length'] = get_string('error_thememaxlength', 'mod_playercross');
         }
 
         if ((int)$data['min_length'] < 1) {

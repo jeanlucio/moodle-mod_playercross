@@ -31,9 +31,10 @@ use core_text;
  *
  * Ported from mod_playerwords\local\words_repository, same method signatures and
  * behaviour except where the puzzle mechanic genuinely differs: theme-word candidates
- * are filtered by theme_min_length (no upper bound) instead of the min_length/max_length
- * range used for clue words, and the attempts table tracks one theme word per round
- * (themewordid) instead of one word per round.
+ * are filtered by theme_min_length/theme_max_length (its own range, the latter 0 for
+ * unlimited) instead of the min_length/max_length range used for clue words, and the
+ * attempts table tracks one theme word per round (themewordid) instead of one word per
+ * round.
  */
 class words_repository {
     /**
@@ -114,13 +115,16 @@ class words_repository {
     /**
      * Returns approved words eligible as the theme concept: their own hint normalizes
      * to at least one letter-only word, and the phrase's total letter count (summed
-     * across every word, spaces excluded) is at least theme_min_length long. The
-     * concept's own word is shown openly as a caption, never tiled (SCOPE.md §20.2
-     * v1.9) — the mystery phrase to guess is the hint — so the word's own length no
-     * longer matters for eligibility.
+     * across every word, spaces excluded) is at least theme_min_length long — and, if
+     * theme_max_length is set (non-zero), no more than that. The concept's own word is
+     * shown openly as a caption, never tiled (SCOPE.md §20.2 v1.9) — the mystery phrase
+     * to guess is the hint — so the word's own length no longer matters for
+     * eligibility.
      *
-     * Unlike get_candidate_words(), there is no upper bound — a longer hint simply
-     * produces more distinct letter slots, which puzzle_builder covers with more clues.
+     * theme_max_length exists purely as a teacher-facing pacing/screen-size control —
+     * a longer hint is never unplayable, it simply produces more distinct letter slots
+     * for puzzle_builder to cover with more clues, and mod_playercross/round_panel
+     * already wraps arbitrarily long words onto multiple lines without overflowing.
      *
      * @param \stdClass $instance Activity instance.
      * @return array
@@ -139,6 +143,8 @@ class words_repository {
             'id, word, hint, concept'
         );
 
+        $thememaxlength = (int)($instance->theme_max_length ?? 0);
+
         $candidates = [];
         foreach ($records as $record) {
             $phrasewords = word_normalizer::normalize_phrase((string)$record->hint);
@@ -151,6 +157,9 @@ class words_repository {
                 $phrasewords
             ));
             if ($letters < (int)$instance->theme_min_length) {
+                continue;
+            }
+            if ($thememaxlength > 0 && $letters > $thememaxlength) {
                 continue;
             }
 

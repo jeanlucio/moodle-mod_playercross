@@ -48,8 +48,8 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * Theme candidates respect theme_min_length with no upper bound, unlike clue
-     * candidates which are bounded on both ends.
+     * With theme_max_length left at its default (0 = unlimited), theme candidates
+     * respect theme_min_length with no upper bound.
      *
      * @covers \mod_playercross\local\words_repository::get_theme_candidate_words
      * @return void
@@ -67,6 +67,29 @@ final class words_repository_test extends \advanced_testcase {
         $themecandidates = words_repository::get_theme_candidate_words($instance);
         $this->assertCount(1, $themecandidates);
         $this->assertSame('floresta', reset($themecandidates)->word);
+    }
+
+    /**
+     * With theme_max_length set to a real ceiling, a hint whose total letter count
+     * exceeds it is excluded from theme eligibility, even though it clears
+     * theme_min_length comfortably.
+     *
+     * @covers \mod_playercross\local\words_repository::get_theme_candidate_words
+     * @return void
+     */
+    public function test_get_theme_candidate_words_respects_max_length_when_set(): void {
+        $instance = $this->modgenerator->create_instance([
+            'course' => $this->course->id,
+            'theme_min_length' => 6,
+            'theme_max_length' => 10,
+        ]);
+        $this->modgenerator->create_word($instance->id, 'sol', 'floresta');        // 8 letters, eligible.
+        $this->modgenerator->create_word($instance->id, 'mar', 'incrivelmente');   // 13 letters, too long.
+
+        $themecandidates = words_repository::get_theme_candidate_words($instance);
+
+        $this->assertCount(1, $themecandidates);
+        $this->assertSame('sol', reset($themecandidates)->word);
     }
 
     /**

@@ -185,6 +185,62 @@ final class backup_restore_test extends \advanced_testcase {
     }
 
     /**
+     * Every column declared for the {playercross} table in install.xml must also be
+     * listed in backup_playercross_stepslib.php's own backup_nested_element() attribute
+     * array — a static, column-by-column regression guard for the same checklist rule
+     * test_backup_restore_preserves_attempt_columns() covers per-value for the
+     * attempts table. A column added to install.xml but forgotten here silently keeps
+     * its DB default on every restore, and nothing in PHPCS, moodlecheck or PHPStan
+     * catches the omission — this is exactly the failure mode that let win_condition
+     * ship without being backed up at all for one release.
+     *
+     * @covers \backup_playercross_activity_structure_step::define_structure
+     * @return void
+     */
+    public function test_backup_step_mirrors_every_install_xml_column(): void {
+        global $CFG;
+
+        $installxmlfields = [];
+        $xml = simplexml_load_file($CFG->dirroot . '/mod/playercross/db/install.xml');
+        foreach ($xml->TABLES->TABLE as $table) {
+            if ((string)$table['NAME'] !== 'playercross') {
+                continue;
+            }
+            foreach ($table->FIELDS->FIELD as $field) {
+                $installxmlfields[] = (string)$field['NAME'];
+            }
+        }
+        $this->assertNotEmpty($installxmlfields, 'Could not read the playercross table from install.xml.');
+
+        $backupsource = file_get_contents($CFG->dirroot . '/mod/playercross/backup/moodle2/backup_playercross_stepslib.php');
+        $this->assertNotFalse($backupsource);
+        $this->assertMatchesRegularExpression(
+            "/new backup_nested_element\\('playercross', \\['id'\\], \\[(.*?)\\]\\)/s",
+            $backupsource
+        );
+        preg_match(
+            "/new backup_nested_element\\('playercross', \\['id'\\], \\[(.*?)\\]\\)/s",
+            $backupsource,
+            $matches
+        );
+        preg_match_all("/'([a-z_]+)'/", $matches[1], $attributematches);
+        $backupattributes = $attributematches[1];
+
+        // Column "id" is declared separately (the element's own final-element), and
+        // "course" is never backed up per-instance — the generic activity restore
+        // mechanism already supplies the target course id. Every other column must
+        // appear in the backup attribute list.
+        $expectedfields = array_values(array_diff($installxmlfields, ['id', 'course']));
+        $missing = array_diff($expectedfields, $backupattributes);
+
+        $this->assertSame(
+            [],
+            array_values($missing),
+            'Column(s) in install.xml missing from backup_playercross_stepslib.php: ' . implode(', ', $missing)
+        );
+    }
+
+    /**
      * A full course backup/restore must preserve playercross_words.timemodified — a
      * column-drift regression guard mirroring the exact bug class that hit
      * PlayerWords in production before this checklist rule existed.
