@@ -156,7 +156,6 @@ $string['keyboard_backspace'] = 'Delete last letter';
 $string['keyboard_enter'] = 'Submit';
 $string['keyboard_enter_text'] = 'Send';
 $string['keyboard_label'] = 'Virtual keyboard';
-$string['keyboard_space'] = 'Space';
 $string['lobby_timerinfo'] = 'You have {$a} to solve the puzzle.';
 $string['managewords_fragmentedconcept_warning'] = 'This word is one of several extracted from the same glossary concept ("{$a}") — review whether it makes sense on its own.';
 $string['managewordslabel'] = 'Manage words';

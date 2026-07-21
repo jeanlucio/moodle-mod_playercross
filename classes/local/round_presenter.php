@@ -433,7 +433,6 @@ class round_presenter {
             'keyboardenterlabel' => get_string('keyboard_enter', 'mod_playercross'),
             'keyboardentertext' => get_string('keyboard_enter_text', 'mod_playercross'),
             'keyboardbackspacelabel' => get_string('keyboard_backspace', 'mod_playercross'),
-            'keyboardspacelabel' => get_string('keyboard_space', 'mod_playercross'),
             'showcedilla' => words_repository::has_cedilla_word((int)$instance->id),
         ] + self::build_global_hint_context($instance, $state, $userid, $roundfinished)
           + self::build_round_result_context($instance, $cm, $state, $userid, $roundfinished);

@@ -156,7 +156,6 @@ $string['keyboard_backspace'] = 'Apagar última letra';
 $string['keyboard_enter'] = 'Confirmar';
 $string['keyboard_enter_text'] = 'Enviar';
 $string['keyboard_label'] = 'Teclado virtual';
-$string['keyboard_space'] = 'Espaço';
 $string['lobby_timerinfo'] = 'Você tem {$a} para resolver o quebra-cabeça.';
 $string['managewords_fragmentedconcept_warning'] = 'Esta palavra é uma das várias extraídas do mesmo conceito de glossário ("{$a}") — revise se ela faz sentido sozinha.';
 $string['managewordslabel'] = 'Gerenciar palavras';

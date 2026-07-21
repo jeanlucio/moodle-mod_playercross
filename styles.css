@@ -379,11 +379,6 @@
     font-size: 0.95rem;
 }
 
-.path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-space {
-    flex: 1;
-    min-width: 0;
-}
-
 .path-mod-playercross .mod-playercross-feedback {
     color: var(--primary, #0f6cbf);
 }

@@ -238,10 +238,6 @@ class submit_clue_guess extends external_api {
                 PARAM_TEXT,
                 'Virtual keyboard backspace key accessible label'
             ),
-            'keyboardspacelabel' => new external_value(
-                PARAM_TEXT,
-                'Virtual keyboard space key accessible label'
-            ),
             'showcedilla'        => new external_value(PARAM_BOOL, 'Whether the Ç key should be shown'),
             'forfeitlabel'       => new external_value(PARAM_TEXT, 'Forfeit button label'),
             'forfeitconfirm'     => new external_value(PARAM_TEXT, 'Forfeit confirmation message'),

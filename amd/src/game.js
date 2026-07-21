@@ -686,11 +686,6 @@ const handleKeyboardKey = (key) => {
         }
         return;
     }
-    if (key === 'SPACE') {
-        // Word boundaries in the mystery phrase are structural, one word group per
-        // word (see buildFinalGuess) — there is nothing for this key to write.
-        return;
-    }
     activeInput.value = key;
     focusAdjacentBox(activeInput, 1);
 };
