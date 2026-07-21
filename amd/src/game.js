@@ -24,16 +24,18 @@
  * Templates.replaceNodeContents()), so delegation survives every AJAX round-trip
  * without needing to be rewired.
  *
- * A single virtual keyboard writes into whichever guess input last received focus,
- * tracked in activeInput below — a clue's own input, or the mystery phrase's own
- * (rendered inline above the clue list, not a separate section: see
- * mod_playercross/round_panel). Every guess row keeps its own source-of-truth <input>
- * (inputmode="none", so the device's own keyboard never appears); typed letters are
- * mirrored live into that row's tile row for visual feedback, overlaying whatever the
- * server originally rendered there (a revealed letter or a hidden slot's number),
- * restored once the typed text no longer reaches that position. No row carries a
- * visible submit button — every guess is confirmed via the keyboard's own Enviar key
- * or a physical Enter key.
+ * Every still-hidden letter of a guess row (a clue's own word, or the mystery phrase)
+ * is its own real single-character <input> — a locked, already-revealed letter is a
+ * plain, non-focusable <span> instead (inputmode="none" on every box, so the device's
+ * own keyboard never appears). A single virtual keyboard writes into whichever box
+ * last received focus, tracked in activeInput below, then advances focus to the next
+ * hidden box in that row automatically — locked letters are skipped, since they were
+ * never boxes to begin with. Clicking a specific box focuses exactly that one (native
+ * browser behaviour), so a single wrong letter can be fixed without retyping the rest.
+ * A guess is assembled at submit time by reading every tile in a row, in order: a
+ * locked span's own letter, or a box's typed value (see buildClueGuess/
+ * buildFinalGuess). No row carries a visible submit button — every guess is confirmed
+ * via the keyboard's own Enviar key or a physical Enter key.
  *
  * @module     mod_playercross/game
  * @copyright  2026 Jean Lúcio
@@ -55,7 +57,7 @@ let timerHandle = null;
 /** @type {?number} Handle of the pending cooldown-countdown tick, if any. */
 let cooldownHandle = null;
 
-/** @type {?HTMLElement} Guess input the virtual keyboard currently writes into. */
+/** @type {?HTMLElement} Letter box (.mod-playercross-tile-input) the virtual keyboard currently writes into. */
 let activeInput = null;
 
 /**
@@ -267,84 +269,154 @@ const initForfeit = (cmid) => {
 };
 
 /**
- * Returns how many letters a guess input accepts: the mystery-phrase input carries its
- * own data-length attribute, while a clue input has none — its length is exactly the
- * number of tiles already rendered for that clue.
+ * Returns every tile-wrap element within a scope, in position order — one per letter,
+ * whether that position is a locked (already-revealed) tile or an editable box.
  *
- * @param {HTMLElement} input Guess input.
- * @returns {number}
+ * @param {HTMLElement} scope A clue's tiles container, or one mystery-phrase word group.
+ * @returns {HTMLElement[]}
  */
-const getMaxLength = (input) => {
-    if (input.dataset.length) {
-        return parseInt(input.dataset.length, 10) || 0;
-    }
-    const tiles = input.closest('.mod-playercross-guess-form')?.querySelectorAll('.mod-playercross-tile');
-    return tiles ? tiles.length : 0;
+const getTileWraps = (scope) => Array.from(scope.querySelectorAll('.mod-playercross-tile-wrap'));
+
+/**
+ * Reads one tile-wrap's current letter: a locked tile's own text, or an editable box's
+ * typed value.
+ *
+ * @param {HTMLElement} wrap One .mod-playercross-tile-wrap element.
+ * @returns {string}
+ */
+const readTileWrap = (wrap) => {
+    const locked = wrap.querySelector('.mod-playercross-tile.is-revealed');
+    return locked ? locked.textContent : (wrap.querySelector('.mod-playercross-tile-input')?.value ?? '');
 };
 
 /**
- * Mirrors a guess input's current value into its tile row, letter by letter,
- * overlaying whatever each tile originally showed (a revealed letter or a hidden
- * slot's number) — both the mystery phrase's own row and every clue's row are always
- * server-rendered this way, so the same logic mirrors into either one. Spaces in the
- * mystery phrase's own value are stripped before mapping onto tiles, since there is no
- * tile for the gap between words (see mod_playercross/round_panel's word-group
- * wrapper) — a clue's own value never contains one, so this is a no-op there. Positions
- * the typed text has not reached yet fall back to the tile's original content,
- * captured into a data attribute the first time this runs for a given tile — so
- * backspacing past a position restores it exactly as the server rendered it.
+ * Assembles a clue's full guess from its tile row: each locked tile's own letter, or
+ * each editable box's typed letter, in position order.
  *
- * @param {HTMLElement} input Guess input that just changed.
+ * @param {HTMLElement} tilesContainer A clue's .mod-playercross-clue-tiles element.
+ * @returns {string}
  */
-const updateTilePreview = (input) => {
-    const tilesContainer = input.id === 'playercross-final-guess'
-        ? document.querySelector('.mod-playercross-theme')
-        : input.closest('.mod-playercross-clue-form')?.querySelector('.mod-playercross-clue-tiles');
+const buildClueGuess = (tilesContainer) => getTileWraps(tilesContainer).map(readTileWrap).join('');
+
+/**
+ * Assembles the mystery phrase's full guess from its tile rows: each word group's own
+ * letters joined together, with a single space inserted between word groups. The
+ * player never types that space — the boundary between words is structural, one
+ * .mod-playercross-word-group per word (see mod_playercross/round_panel).
+ *
+ * @param {HTMLElement} themeContainer The .mod-playercross-theme element.
+ * @returns {string}
+ */
+const buildFinalGuess = (themeContainer) => Array.from(themeContainer.querySelectorAll('.mod-playercross-word-group'))
+    .map((group) => getTileWraps(group).map(readTileWrap).join(''))
+    .join(' ');
+
+/**
+ * Writes a guess's characters back into a tile row's editable boxes, skipping locked
+ * positions — the row's structure (which letters are locked) never changes between a
+ * wrong guess and the re-render that follows it, so the characters line up with the
+ * fresh tile-wraps one for one.
+ *
+ * @param {HTMLElement} scope A clue's tiles container, or one word group.
+ * @param {string[]} chars Characters to distribute, one per tile-wrap in scope.
+ */
+const distributeIntoWraps = (scope, chars) => {
+    getTileWraps(scope).forEach((wrap, i) => {
+        const box = wrap.querySelector('.mod-playercross-tile-input');
+        if (box && chars[i] !== undefined) {
+            box.value = chars[i].toUpperCase();
+        }
+    });
+};
+
+/**
+ * Restores a clue's guess into its freshly re-rendered boxes after a wrong (or
+ * exhausted) submission, and focuses its first editable box. A no-op once the clue is
+ * actually resolved or the round finished — canguess is then false server-side, so no
+ * matching form exists to restore into.
+ *
+ * @param {number} clueid Clue word id.
+ * @param {string} guess The guess text the player had submitted.
+ */
+const restoreClueGuess = (clueid, guess) => {
+    const tilesContainer = document.querySelector(`.mod-playercross-clue-tiles[data-clue-tiles="${clueid}"]`);
     if (!tilesContainer) {
         return;
     }
-    const tiles = Array.from(tilesContainer.querySelectorAll('.mod-playercross-tile'));
-    if (!tiles.length) {
-        return;
-    }
-    tiles.forEach((tile) => {
-        if (tile.dataset.original === undefined) {
-            tile.dataset.original = tile.textContent;
-        }
-    });
-    const val = input.value.toUpperCase().replace(/ /g, '');
-    tiles.forEach((tile, i) => {
-        tile.textContent = i < val.length ? val[i] : tile.dataset.original;
-    });
+    distributeIntoWraps(tilesContainer, guess.split(''));
+    tilesContainer.querySelector('.mod-playercross-tile-input')?.focus();
 };
 
 /**
- * Filters a guess input's value down to letters only (plus a space, but only for the
- * mystery phrase's own input — a clue's own word never contains one) and enforces its
- * max length, then mirrors the result into its tile row. Delegated on the stage (see
+ * Restores the mystery-phrase guess into its freshly re-rendered boxes after a wrong
+ * submission, word group by word group, and focuses the first editable box.
+ *
+ * @param {string} guess The guess text the player had submitted.
+ */
+const restoreFinalGuess = (guess) => {
+    const themeContainer = document.querySelector('.mod-playercross-theme');
+    if (!themeContainer) {
+        return;
+    }
+    const words = guess.split(' ');
+    Array.from(themeContainer.querySelectorAll('.mod-playercross-word-group')).forEach((group, i) => {
+        distributeIntoWraps(group, (words[i] ?? '').split(''));
+    });
+    themeContainer.querySelector('.mod-playercross-tile-input')?.focus();
+};
+
+/**
+ * Returns every editable box within the same guess form as the given box, in position
+ * order — spans every word group for the mystery phrase, so typing carries straight
+ * from the last letter of one word into the first letter of the next.
+ *
+ * @param {HTMLElement} box A .mod-playercross-tile-input element.
+ * @returns {HTMLElement[]}
+ */
+const getFormBoxes = (box) => {
+    const form = box.closest('.mod-playercross-guess-form');
+    return form ? Array.from(form.querySelectorAll('.mod-playercross-tile-input')) : [];
+};
+
+/**
+ * Moves focus to the editable box immediately before or after the given one, in the
+ * same guess form, if any — locked tiles are never part of getFormBoxes(), so this
+ * skips over them automatically.
+ *
+ * @param {HTMLElement} box A .mod-playercross-tile-input element.
+ * @param {number} offset -1 for the previous box, 1 for the next.
+ */
+const focusAdjacentBox = (box, offset) => {
+    const boxes = getFormBoxes(box);
+    boxes[boxes.indexOf(box) + offset]?.focus();
+};
+
+/**
+ * Filters a letter box's value down to a single letter and, once filled, advances
+ * focus to the next editable box in the same guess form. Delegated on the stage (see
  * wireStageDelegation) so it applies uniformly whether the letter came from a physical
  * keyboard or the on-screen one, without needing to be rewired per render.
  *
- * @param {HTMLElement} input Guess input that just changed.
+ * @param {HTMLElement} box Letter box that just changed.
  */
-const filterAndPreview = (input) => {
-    const max = getMaxLength(input);
-    const allowedchars = input.id === 'playercross-final-guess' ? /[^\p{L} ]/gu : /[^\p{L}]/gu;
-    const filtered = input.value.replace(allowedchars, '').slice(0, max > 0 ? max : undefined);
-    if (filtered !== input.value) {
-        input.value = filtered;
+const handleBoxInput = (box) => {
+    const filtered = box.value.replace(/[^\p{L}]/gu, '').slice(0, 1).toUpperCase();
+    box.value = filtered;
+    if (filtered !== '') {
+        focusAdjacentBox(box, 1);
     }
-    updateTilePreview(input);
 };
 
 /**
- * Marks the guess row containing the focused input as active (amber highlight) — a
- * clue's own <li> card, or the mystery phrase's <form> when that is the target — and
- * remembers the input as the virtual keyboard's write target. Delegated on focusin
- * (see wireStageDelegation), so it fires whether focus arrived via a click on the
- * row's tiles, physical Tab navigation, or a script-driven .focus() call.
+ * Marks the guess row containing the focused box as active (amber highlight) — a
+ * clue's own <li> card, or the mystery phrase's <form> when that is the target —
+ * remembers the box as the virtual keyboard's write target, and selects its existing
+ * content so a physical keystroke replaces it instead of being silently rejected by
+ * the box's own maxlength="1". Delegated on focusin (see wireStageDelegation), so it
+ * fires whether focus arrived via a click on a specific box, physical Tab navigation,
+ * or a script-driven .focus() call.
  *
- * @param {HTMLElement} input Guess input that just gained focus.
+ * @param {HTMLElement} input Letter box that just gained focus.
  */
 const setActiveInput = (input) => {
     activeInput = input;
@@ -353,41 +425,7 @@ const setActiveInput = (input) => {
     });
     const row = input.closest('.mod-playercross-clue') ?? input.closest('.mod-playercross-theme-form');
     row?.classList.add('is-active');
-};
-
-/**
- * Restores a clue's guess text after a wrong (or exhausted) submission, since the
- * whole panel was just re-rendered with a fresh, empty input for that clue. A no-op
- * once the clue is actually resolved or the round finished — canguess is then false
- * server-side, so no matching form exists to restore into.
- *
- * @param {number} clueid Clue word id.
- * @param {string} guess The guess text the player had typed.
- */
-const restoreClueGuess = (clueid, guess) => {
-    const input = document.querySelector(`.mod-playercross-clue-form[data-clue-id="${clueid}"] .mod-playercross-guess-input`);
-    if (!input) {
-        return;
-    }
-    input.value = guess;
-    input.focus();
-    input.dispatchEvent(new Event('input', {bubbles: true}));
-};
-
-/**
- * Restores the final-guess text after a wrong submission, for the same reason as
- * restoreClueGuess above.
- *
- * @param {string} guess The guess text the player had typed.
- */
-const restoreFinalGuess = (guess) => {
-    const input = document.getElementById('playercross-final-guess');
-    if (!input) {
-        return;
-    }
-    input.value = guess;
-    input.focus();
-    input.dispatchEvent(new Event('input', {bubbles: true}));
+    input.select();
 };
 
 /**
@@ -423,9 +461,9 @@ const applyPanelSideEffects = (panelcontext, cmid, timertotal) => {
         startTimer(panelcontext.timeleft, timertotal, cmid);
     }
 
-    const firstClueInput = document.querySelector('#playercross-clues-list .mod-playercross-guess-input');
-    const finalInput = document.getElementById('playercross-final-guess');
-    (firstClueInput ?? finalInput)?.focus({preventScroll: true});
+    const firstClueBox = document.querySelector('#playercross-clues-list .mod-playercross-tile-input');
+    const finalBox = document.querySelector('.mod-playercross-theme .mod-playercross-tile-input');
+    (firstClueBox ?? finalBox)?.focus({preventScroll: true});
 };
 
 /**
@@ -595,10 +633,10 @@ const wireStartRound = (cmid, timertotal) => {
 };
 
 /**
- * Wires the virtual keyboard's clicks to whichever guess input last had focus.
+ * Wires the virtual keyboard's clicks to whichever letter box last had focus.
  * Delegated once on the stage (see wireStageDelegation), since the keyboard element
  * itself is destroyed and recreated on every round-panel re-render. A no-op if no
- * guess input has been activated yet (see setActiveInput).
+ * box has been activated yet (see setActiveInput).
  *
  * @param {string} key The data-key value of the button that was clicked.
  */
@@ -607,30 +645,34 @@ const handleKeyboardKey = (key) => {
         return;
     }
     if (key === 'BACKSPACE') {
-        activeInput.value = activeInput.value.slice(0, -1);
-    } else if (key === 'ENTER') {
+        if (activeInput.value !== '') {
+            activeInput.value = '';
+            return;
+        }
+        const boxes = getFormBoxes(activeInput);
+        const prev = boxes[boxes.indexOf(activeInput) - 1];
+        if (prev) {
+            prev.value = '';
+            prev.focus();
+        }
+        return;
+    }
+    if (key === 'ENTER') {
         const form = activeInput.closest('form');
         if (form?.requestSubmit) {
             form.requestSubmit();
         } else {
             form?.submit();
         }
-    } else if (key === 'SPACE') {
-        // A clue's own word never contains a space — only the mystery phrase's own
-        // input (a multi-word phrase) accepts one.
-        if (activeInput.id === 'playercross-final-guess') {
-            const max = getMaxLength(activeInput);
-            if (max === 0 || activeInput.value.length < max) {
-                activeInput.value += ' ';
-            }
-        }
-    } else {
-        const max = getMaxLength(activeInput);
-        if (max === 0 || activeInput.value.length < max) {
-            activeInput.value += key;
-        }
+        return;
     }
-    activeInput.dispatchEvent(new Event('input', {bubbles: true}));
+    if (key === 'SPACE') {
+        // Word boundaries in the mystery phrase are structural, one word group per
+        // word (see buildFinalGuess) — there is nothing for this key to write.
+        return;
+    }
+    activeInput.value = key;
+    focusAdjacentBox(activeInput, 1);
 };
 
 /**
@@ -705,22 +747,50 @@ const wireStageDelegation = (cmid, timertotal) => {
             return;
         }
 
+        // Clicking a specific box already focuses it natively — only fall back to the
+        // row's first editable box when the click landed elsewhere in the row (its
+        // phrase text, a locked tile, the row's own padding), never overriding a click
+        // that already targeted one particular box.
+        if (e.target.closest('.mod-playercross-tile-input')) {
+            return;
+        }
         const activatable = e.target.closest('.mod-playercross-guess-form');
-        activatable?.querySelector('.mod-playercross-guess-input')?.focus();
+        activatable?.querySelector('.mod-playercross-tile-input')?.focus();
     });
 
     stage.addEventListener('focusin', (e) => {
-        const input = e.target.closest('.mod-playercross-guess-input');
+        const input = e.target.closest('.mod-playercross-tile-input');
         if (input) {
             setActiveInput(input);
         }
     });
 
     stage.addEventListener('input', (e) => {
-        const input = e.target.closest('.mod-playercross-guess-input');
+        const input = e.target.closest('.mod-playercross-tile-input');
         if (input) {
-            filterAndPreview(input);
+            handleBoxInput(input);
         }
+    });
+
+    // Backspace on an already-empty box moves back to the previous editable box and
+    // clears it too — the 'input' listener above only fires when a box's value
+    // actually changes, which an empty box's own backspace never does.
+    stage.addEventListener('keydown', (e) => {
+        if (e.key !== 'Backspace') {
+            return;
+        }
+        const box = e.target.closest('.mod-playercross-tile-input');
+        if (!box || box.value !== '') {
+            return;
+        }
+        const boxes = getFormBoxes(box);
+        const prev = boxes[boxes.indexOf(box) - 1];
+        if (!prev) {
+            return;
+        }
+        e.preventDefault();
+        prev.value = '';
+        prev.focus();
     });
 
     stage.addEventListener('submit', async(e) => {
@@ -729,10 +799,11 @@ const wireStageDelegation = (cmid, timertotal) => {
             return;
         }
         e.preventDefault();
-        const guess = form.querySelector('.mod-playercross-guess-input').value;
         if (form.dataset.clueId) {
+            const guess = buildClueGuess(form.querySelector('.mod-playercross-clue-tiles'));
             await submitClueGuess(cmid, Number(form.dataset.clueId), guess, timertotal);
         } else {
+            const guess = buildFinalGuess(document.querySelector('.mod-playercross-theme'));
             await submitFinalGuess(cmid, guess, timertotal);
         }
     });

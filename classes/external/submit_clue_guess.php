@@ -226,7 +226,6 @@ class submit_clue_guess extends external_api {
             'hudhintcostlabel'   => new external_value(PARAM_TEXT, 'PlayerHUD hint cost label'),
             'canaffordhint'      => new external_value(PARAM_BOOL, 'Whether the user can afford the hint'),
             'canfinalguess'      => new external_value(PARAM_BOOL, 'Whether a final guess can still be submitted'),
-            'finalguesslength'   => new external_value(PARAM_INT, 'Mystery phrase length, in characters'),
             'submitfinalguess'   => new external_value(PARAM_TEXT, 'Submit final guess button label'),
             'keyboardlabel' => new external_value(PARAM_TEXT, 'Virtual keyboard accessible group label'),
             'keyboardenterlabel' => new external_value(PARAM_TEXT, 'Virtual keyboard submit key accessible label'),

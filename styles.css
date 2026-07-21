@@ -212,6 +212,19 @@
     border-color: var(--primary, #0f6cbf);
 }
 
+.path-mod-playercross .mod-playercross-tile-input {
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+}
+
+.path-mod-playercross .mod-playercross-tile-input:focus {
+    outline: 2px solid var(--primary, #0f6cbf);
+    outline-offset: 1px;
+}
+
 .path-mod-playercross .mod-playercross-tile-num {
     height: 0.9rem;
     font-size: 0.7rem;
@@ -268,17 +281,6 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
-}
-
-.path-mod-playercross .mod-playercross-guess-input {
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: 0;
-    border: 0;
-    opacity: 0;
-    position: absolute;
-    pointer-events: none;
 }
 
 .path-mod-playercross .mod-playercross-clue-tiles {

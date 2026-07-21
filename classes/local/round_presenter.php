@@ -420,10 +420,6 @@ class round_presenter {
             'guesslabel' => get_string('guesslabel', 'mod_playercross'),
             'submitclueguess' => get_string('submitclueguess', 'mod_playercross'),
             'canfinalguess' => !$roundfinished,
-            // Letters plus one space between each pair of words — the virtual
-            // keyboard's own Space key (see amd/src/game.js) is only enabled for this
-            // input, so the maxlength must budget for it too.
-            'finalguesslength' => count($state['themeslots']) + max(0, count($state['themewords']) - 1),
             'submitfinalguess' => get_string('submitfinalguess', 'mod_playercross'),
             'forfeitlabel' => get_string('forfeitbutton', 'mod_playercross'),
             'forfeitconfirm' => get_string('forfeitconfirm', 'mod_playercross'),
