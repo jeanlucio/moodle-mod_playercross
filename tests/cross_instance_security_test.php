@@ -135,6 +135,7 @@ final class cross_instance_security_test extends \advanced_testcase {
      * that activity, never for another one owned by the same student.
      *
      * @covers \mod_playercross\local\round_service::submit_final_guess
+     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_attempts_are_scoped_to_their_own_activity(): void {
@@ -149,6 +150,15 @@ final class cross_instance_security_test extends \advanced_testcase {
         $state = round_service::load_state($instancea->cmid, $user->id);
         $state = round_service::ensure_round_state($state, $instancea, $instancea->cmid, $user->id);
         [$state] = round_service::start_round($state, $instancea, $user->id);
+        $clue = $state['clues'][0];
+        [$state] = round_service::submit_clue_guess(
+            $state,
+            $instancea,
+            $instancea->cmid,
+            $user->id,
+            (int)$clue['wordid'],
+            $clue['word']
+        );
         [, $correct] = round_service::submit_final_guess($state, $instancea, $instancea->cmid, $user->id, 'escola');
 
         $this->assertTrue($correct);

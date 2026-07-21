@@ -107,13 +107,14 @@ final class submit_final_guess_test extends \advanced_testcase {
     }
 
     /**
-     * A correct direct guess wins the round immediately, even with clues pending, and
-     * reveals the mystery phrase only in that final response.
+     * A correct direct guess with clues still pending does not win the round on its
+     * own — winning always requires every clue resolved too — and does not reveal the
+     * mystery phrase until the round actually finishes.
      *
      * @covers \mod_playercross\external\submit_final_guess::execute
      * @return void
      */
-    public function test_correct_final_guess_wins_and_reveals_theme_word(): void {
+    public function test_correct_final_guess_alone_does_not_win_or_reveal_theme_word(): void {
         [$instance, $cm] = $this->make_ready_instance();
         $this->setUser($this->student);
 
@@ -129,6 +130,38 @@ final class submit_final_guess_test extends \advanced_testcase {
         $result = submit_final_guess::execute($cm->cmid, $themephrase);
 
         $this->assertTrue($result['correct']);
+        $this->assertFalse($result['finished']);
+        $this->assertSame('', $result['panel']['revealthemeword']);
+    }
+
+    /**
+     * A correct direct guess, followed by resolving every remaining clue, wins the
+     * round and reveals the mystery phrase only in that final response.
+     *
+     * @covers \mod_playercross\external\submit_final_guess::execute
+     * @covers \mod_playercross\external\submit_clue_guess::execute
+     * @return void
+     */
+    public function test_final_guess_then_all_clues_wins_and_reveals_theme_word(): void {
+        [$instance, $cm] = $this->make_ready_instance();
+        $this->setUser($this->student);
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->student->id),
+            $instance,
+            $cm->cmid,
+            $this->student->id
+        );
+        round_service::save_state($cm->cmid, $this->student->id, $state);
+
+        $themephrase = implode(' ', $state['themewords']);
+        submit_final_guess::execute($cm->cmid, $themephrase);
+
+        $result = null;
+        foreach ($state['clues'] as $clue) {
+            $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
+        }
+
         $this->assertTrue($result['finished']);
         $this->assertSame(core_text::strtoupper($themephrase), $result['panel']['revealthemeword']);
     }

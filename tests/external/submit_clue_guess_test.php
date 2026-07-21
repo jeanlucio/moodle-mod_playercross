@@ -109,10 +109,12 @@ final class submit_clue_guess_test extends \advanced_testcase {
     }
 
     /**
-     * Once every clue is resolved, the mystery phrase and every clue word are
-     * revealed in the final response — but only then.
+     * Resolving every clue alone does not finish the round — winning always requires
+     * the mystery phrase to be guessed too — and the theme word stays hidden until the
+     * round actually finishes.
      *
      * @covers \mod_playercross\external\submit_clue_guess::execute
+     * @covers \mod_playercross\external\submit_final_guess::execute
      * @return void
      */
     public function test_resolving_every_clue_reveals_theme_word_only_at_the_end(): void {
@@ -127,18 +129,14 @@ final class submit_clue_guess_test extends \advanced_testcase {
         );
         round_service::save_state($cm->cmid, $this->student->id, $state);
 
-        $clues = $state['clues'];
-        $lastindex = count($clues) - 1;
-
-        foreach ($clues as $index => $clue) {
+        foreach ($state['clues'] as $clue) {
             $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
             $this->assertTrue($result['resolved']);
-
-            if ($index < $lastindex) {
-                $this->assertFalse($result['finished']);
-                $this->assertSame('', $result['panel']['revealthemeword']);
-            }
+            $this->assertFalse($result['finished']);
+            $this->assertSame('', $result['panel']['revealthemeword']);
         }
+
+        $result = submit_final_guess::execute($cm->cmid, implode(' ', $state['themewords']));
 
         $this->assertTrue($result['finished']);
         $this->assertSame(core_text::strtoupper(implode(' ', $state['themewords'])), $result['panel']['revealthemeword']);

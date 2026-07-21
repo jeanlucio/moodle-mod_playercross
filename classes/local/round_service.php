@@ -121,6 +121,7 @@ class round_service {
             'forfeited'     => false,
             'timedout'      => false,
             'finalguessed'  => false,
+            'finalguesscorrect' => false,
         ];
     }
 
@@ -383,6 +384,10 @@ class round_service {
      * mystery phrase and, implicitly, in every other pending clue that shares one of
      * those slots too, since revealedslots is a single set shared by the whole puzzle.
      *
+     * Winning a round always requires both conditions: resolving the last pending clue
+     * only finishes the round if the mystery phrase has already been guessed correctly
+     * (submit_final_guess() sets finalguesscorrect) — otherwise the round stays open.
+     *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
      * @param int $cmid Course module id.
@@ -442,8 +447,12 @@ class round_service {
         $state['scoreaccumulated'] += $points;
 
         if ($state['cluesresolved'] >= $state['cluestotal']) {
-            $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, false);
-            return [$state, true, get_string('roundwon', 'mod_playercross'), 'success'];
+            if (!empty($state['finalguesscorrect'])) {
+                $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, true);
+                return [$state, true, get_string('roundwon', 'mod_playercross'), 'success'];
+            }
+
+            return [$state, true, get_string('cluescompleteneedsfinal', 'mod_playercross'), 'success'];
         }
 
         return [$state, true, get_string('clueresolved', 'mod_playercross'), 'success'];
@@ -458,6 +467,12 @@ class round_service {
      * accents per word) before comparing word-by-word — tolerant of extra whitespace,
      * casing, accents and stray punctuation, but still requires every word of the
      * phrase, in order.
+     *
+     * Winning a round always requires both conditions: every clue resolved and the
+     * mystery phrase guessed correctly. A correct guess here does not finish the round
+     * by itself if clues are still pending — it is recorded (finalguesscorrect), so
+     * resolving the last remaining clue afterwards finishes the round immediately
+     * instead of requiring the same phrase to be guessed twice.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
@@ -486,6 +501,12 @@ class round_service {
 
         if ($guesswords !== $state['themewords']) {
             return [$state, false, get_string('finalguesswrong', 'mod_playercross'), 'warning'];
+        }
+
+        $state['finalguesscorrect'] = true;
+
+        if ($state['cluesresolved'] < $state['cluestotal']) {
+            return [$state, true, get_string('finalguesscorrectneedsclues', 'mod_playercross'), 'success'];
         }
 
         $bonus = gameplay_service::calculate_final_guess_bonus(

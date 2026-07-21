@@ -108,8 +108,15 @@ class puzzle_builder {
         }
         $coveredslots = array_values(array_unique($coveredslots));
 
-        $alwaysrevealedslots = array_values(array_diff(array_values($slotsbyletter), $coveredslots));
-        sort($alwaysrevealedslots);
+        // Teacher-configurable (SCOPE.md §4.4): with the setting on (default), a mystery-
+        // phrase letter no selected clue can ever reveal for free is shown from the start
+        // instead of sitting behind a mandatory paid hint. With it off, that letter stays
+        // hidden like any other slot.
+        $alwaysrevealedslots = [];
+        if ((int)($instance->reveal_uncovered_slots ?? 1) === 1) {
+            $alwaysrevealedslots = array_values(array_diff(array_values($slotsbyletter), $coveredslots));
+            sort($alwaysrevealedslots);
+        }
 
         $themeconcept = trim((string)$themeword->concept);
         if ($themeconcept === '') {

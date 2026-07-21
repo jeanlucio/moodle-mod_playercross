@@ -225,13 +225,13 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * Resolving every clue in the round wins it and writes the attempts row.
+     * Resolving every clue alone does not finish the round while the mystery phrase has
+     * not been guessed yet — winning always requires both conditions.
      *
      * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
-    public function test_resolving_all_clues_finishes_and_wins_the_round(): void {
-        global $DB;
+    public function test_resolving_all_clues_alone_does_not_finish_round(): void {
         [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
@@ -251,23 +251,19 @@ final class round_service_test extends \advanced_testcase {
             );
         }
 
-        $this->assertTrue($state['finished']);
-        $this->assertTrue($state['won']);
-        $this->assertFalse($state['finalguessed']);
-
-        $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
-        $this->assertSame(3, (int)$attempt->cluesresolved);
-        $this->assertSame(1, (int)$attempt->completed);
+        $this->assertSame(3, $state['cluesresolved']);
+        $this->assertFalse($state['finished']);
     }
 
     /**
-     * A correct direct guess of the mystery phrase wins the round immediately, even
-     * with clues still pending.
+     * A correct direct guess of the mystery phrase alone does not finish the round while
+     * clues are still pending — winning always requires both conditions. The correct
+     * guess is still recorded (finalguesscorrect).
      *
      * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
-    public function test_submit_final_guess_correct_wins_round(): void {
+    public function test_submit_final_guess_correct_alone_does_not_finish_round(): void {
         [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
@@ -285,9 +281,8 @@ final class round_service_test extends \advanced_testcase {
         );
 
         $this->assertTrue($correct);
-        $this->assertTrue($state['finished']);
-        $this->assertTrue($state['won']);
-        $this->assertTrue($state['finalguessed']);
+        $this->assertFalse($state['finished']);
+        $this->assertTrue($state['finalguesscorrect']);
     }
 
     /**
@@ -315,6 +310,97 @@ final class round_service_test extends \advanced_testcase {
 
         $this->assertFalse($correct);
         $this->assertFalse($state['finished']);
+    }
+
+    /**
+     * Resolving every clue first, then guessing the mystery phrase, finishes and wins
+     * the round and writes the attempts row.
+     *
+     * @covers \mod_playercross\local\round_service::submit_clue_guess
+     * @covers \mod_playercross\local\round_service::submit_final_guess
+     * @return void
+     */
+    public function test_clues_then_final_guess_finishes_and_wins_round(): void {
+        global $DB;
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        foreach ($state['clues'] as $clue) {
+            [$state] = round_service::submit_clue_guess(
+                $state,
+                $instance,
+                $cm->cmid,
+                $this->user->id,
+                (int)$clue['wordid'],
+                $clue['word']
+            );
+        }
+        $this->assertFalse($state['finished']);
+
+        [$state, $correct] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+
+        $this->assertTrue($correct);
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['won']);
+        $this->assertTrue($state['finalguessed']);
+
+        $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
+        $this->assertSame(3, (int)$attempt->cluesresolved);
+        $this->assertSame(1, (int)$attempt->completed);
+    }
+
+    /**
+     * Guessing the mystery phrase first, then resolving every remaining clue, finishes
+     * and wins the round, recording the earlier correct guess as finalguessed.
+     *
+     * @covers \mod_playercross\local\round_service::submit_final_guess
+     * @covers \mod_playercross\local\round_service::submit_clue_guess
+     * @return void
+     */
+    public function test_final_guess_then_clues_finishes_and_wins_round(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        [$state, $correct] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+        $this->assertTrue($correct);
+        $this->assertFalse($state['finished']);
+
+        foreach ($state['clues'] as $clue) {
+            [$state] = round_service::submit_clue_guess(
+                $state,
+                $instance,
+                $cm->cmid,
+                $this->user->id,
+                (int)$clue['wordid'],
+                $clue['word']
+            );
+        }
+
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['won']);
+        $this->assertTrue($state['finalguessed']);
     }
 
     /**
@@ -469,13 +555,14 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * Winning a round by resolving every clue fires round_completed exactly once, with
-     * the outcome recorded in its "other" payload.
+     * Winning a round — resolving every clue, then guessing the mystery phrase — fires
+     * round_completed exactly once, with the outcome recorded in its "other" payload.
      *
      * @covers \mod_playercross\local\round_service::submit_clue_guess
+     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
-    public function test_resolving_all_clues_fires_round_completed_event(): void {
+    public function test_winning_the_round_fires_round_completed_event(): void {
         [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
@@ -495,11 +582,18 @@ final class round_service_test extends \advanced_testcase {
                 $clue['word']
             );
         }
+        [$state] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
 
         $events = array_values(array_filter($sink->get_events(), fn($e) => $e instanceof round_completed));
         $this->assertCount(1, $events);
         $this->assertTrue($events[0]->other['completed']);
-        $this->assertFalse($events[0]->other['finalguessed']);
+        $this->assertTrue($events[0]->other['finalguessed']);
         $this->assertSame(3, $events[0]->other['cluesresolved']);
         $this->assertSame(3, $events[0]->other['cluestotal']);
     }

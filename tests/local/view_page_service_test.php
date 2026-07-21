@@ -135,6 +135,15 @@ final class view_page_service_test extends \advanced_testcase {
         $state = round_service::load_state((int)$cm->id, $this->user->id);
         $state = round_service::ensure_round_state($state, $instance, (int)$cm->id, $this->user->id);
         [$state] = round_service::start_round($state, $instance, $this->user->id);
+        $clue = $state['clues'][0];
+        [$state] = round_service::submit_clue_guess(
+            $state,
+            $instance,
+            (int)$cm->id,
+            $this->user->id,
+            (int)$clue['wordid'],
+            $clue['word']
+        );
         [$state] = round_service::submit_final_guess($state, $instance, (int)$cm->id, $this->user->id, 'escola');
         round_service::save_state((int)$cm->id, $this->user->id, $state);
 
@@ -336,6 +345,15 @@ final class view_page_service_test extends \advanced_testcase {
         $state = round_service::load_state((int)$cm->id, $this->user->id);
         $state = round_service::ensure_round_state($state, $instance, (int)$cm->id, $this->user->id);
         [$state] = round_service::start_round($state, $instance, $this->user->id);
+        $clue = $state['clues'][0];
+        [$state] = round_service::submit_clue_guess(
+            $state,
+            $instance,
+            (int)$cm->id,
+            $this->user->id,
+            (int)$clue['wordid'],
+            $clue['word']
+        );
         [$state] = round_service::submit_final_guess($state, $instance, (int)$cm->id, $this->user->id, 'escola');
         round_service::save_state((int)$cm->id, $this->user->id, $state);
 

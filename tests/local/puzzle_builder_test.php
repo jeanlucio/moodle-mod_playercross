@@ -161,6 +161,35 @@ final class puzzle_builder_test extends \advanced_testcase {
     }
 
     /**
+     * With reveal_uncovered_slots disabled, an uncoverable theme letter stays hidden
+     * instead of being marked always-revealed — the teacher-configurable opt-out from
+     * the graceful degradation rule (SCOPE.md §4.4, v1.10).
+     *
+     * @covers \mod_playercross\local\puzzle_builder::build_round
+     * @return void
+     */
+    public function test_build_round_graceful_degradation_can_be_disabled(): void {
+        $instance = $this->modgenerator->create_instance([
+            'course' => $this->course->id,
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'reveal_uncovered_slots' => 0,
+        ]);
+
+        // Same fixture as test_build_round_graceful_degradation(): q and x are never
+        // covered by any of the three clue candidates.
+        $this->modgenerator->create_word($instance->id, 'quixote');
+        $this->modgenerator->create_word($instance->id, 'bola');
+        $this->modgenerator->create_word($instance->id, 'fita');
+        $this->modgenerator->create_word($instance->id, 'dedo');
+
+        $puzzle = puzzle_builder::build_round($instance);
+
+        $this->assertCount(3, $puzzle->clues);
+        $this->assertSame([], $puzzle->alwaysrevealedslots);
+    }
+
+    /**
      * A word picked as the theme concept exposes its own hint as the multi-word
      * mystery phrase (SCOPE.md §20.2 v1.9), flattened into one per-position slot
      * array across every word (no entry for the gaps between them) — not the word

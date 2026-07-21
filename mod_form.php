@@ -125,6 +125,15 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->setType('num_clues', PARAM_INT);
         $mform->setDefault('num_clues', 5);
 
+        $mform->addElement(
+            'advcheckbox',
+            'reveal_uncovered_slots',
+            get_string('reveal_uncovered_slots', 'mod_playercross')
+        );
+        $mform->setType('reveal_uncovered_slots', PARAM_INT);
+        $mform->setDefault('reveal_uncovered_slots', 1);
+        $mform->addHelpButton('reveal_uncovered_slots', 'reveal_uncovered_slots', 'mod_playercross');
+
         $mform->addElement('text', 'theme_min_length', get_string('theme_min_length', 'mod_playercross'));
         $mform->setType('theme_min_length', PARAM_INT);
         $mform->setDefault('theme_min_length', 6);

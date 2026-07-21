@@ -46,6 +46,7 @@ class backup_playercross_activity_structure_step extends backup_activity_structu
             'max_length',
             'theme_min_length',
             'num_clues',
+            'reveal_uncovered_slots',
             'max_attempts_per_clue',
             'timer_seconds',
             'show_ranking',
