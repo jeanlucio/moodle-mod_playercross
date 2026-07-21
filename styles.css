@@ -174,8 +174,7 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.6rem 0;
-    width: fit-content;
-    max-width: 100%;
+    max-width: 30rem;
     margin-inline: auto;
 }
 
