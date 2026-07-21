@@ -180,6 +180,8 @@
 
 .path-mod-playercross .mod-playercross-word-group {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 0.375rem;
     margin-inline: 0.55rem;
 }
@@ -422,11 +424,6 @@
 @media (max-width: 480px) {
     .path-mod-playercross .mod-playercross-theme {
         gap: 0.25rem;
-    }
-
-    .path-mod-playercross .mod-playercross-tile {
-        width: 2.1rem;
-        font-size: 0.85rem;
     }
 
     .path-mod-playercross .mod-playercross-keyboard {
