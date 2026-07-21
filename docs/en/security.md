@@ -21,3 +21,12 @@ site administrator has configured. PlayerCross never contacts an AI provider dir
 request and its disclosure/consent are entirely owned by `local_aihub` or by `core_ai`. If
 neither is installed or configured, the AI word source is unavailable and every other feature
 keeps working normally.
+
+* **Cost:** None required by PlayerCross itself. If used, any cost is whatever the underlying
+  provider charges through a `local_aihub` BYOK key, or nothing at all via a free/institutional
+  `core_ai` provider the site admin may have already configured.
+* **API keys / credentials:** Not configured in PlayerCross. Obtain and configure a personal or
+  site key inside `local_aihub` (see its own documentation), or ask the site administrator to
+  configure a `core_ai` provider instead.
+* **Demo credentials:** Not applicable — no credentials are required to install or use
+  PlayerCross; AI generation is entirely opt-in.

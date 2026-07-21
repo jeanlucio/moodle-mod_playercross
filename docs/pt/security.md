@@ -22,3 +22,12 @@ provedor de IA diretamente; a requisição e sua divulgação/consentimento são
 responsabilidade do `local_aihub` ou do `core_ai`. Se nenhum dos dois estiver instalado ou
 configurado, a fonte de palavras por IA fica indisponível e todas as demais funcionalidades
 continuam funcionando normalmente.
+
+* **Custo:** Nenhum é exigido pelo próprio PlayerCross. Se usada, qualquer custo é o que o
+  provedor cobrar através de uma chave BYOK no `local_aihub`, ou nenhum custo via um provedor
+  `core_ai` gratuito/institucional que o administrador do site já tenha configurado.
+* **Chaves de API / credenciais:** Não são configuradas no PlayerCross. Obtenha e configure uma
+  chave pessoal ou do site dentro do `local_aihub` (veja a documentação própria dele), ou peça
+  ao administrador do site para configurar um provedor `core_ai`.
+* **Credenciais de demonstração:** Não aplicável — nenhuma credencial é exigida para instalar ou
+  usar o PlayerCross; a geração por IA é totalmente opcional.
