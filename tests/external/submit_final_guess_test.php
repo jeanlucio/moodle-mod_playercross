@@ -109,7 +109,10 @@ final class submit_final_guess_test extends \advanced_testcase {
     /**
      * A correct direct guess with clues still pending does not win the round on its
      * own — winning always requires every clue resolved too — and does not reveal the
-     * mystery phrase until the round actually finishes.
+     * mystery phrase's readable text (revealthemeword) until the round actually
+     * finishes. Its tile-by-tile grid (themetiles), however, lights up immediately: the
+     * player just demonstrated they know the whole phrase, so nothing is left blank
+     * pending the still-unsolved clues.
      *
      * @covers \mod_playercross\external\submit_final_guess::execute
      * @return void
@@ -132,6 +135,12 @@ final class submit_final_guess_test extends \advanced_testcase {
         $this->assertTrue($result['correct']);
         $this->assertFalse($result['finished']);
         $this->assertSame('', $result['panel']['revealthemeword']);
+        foreach ($result['panel']['themetiles'] as $wordgroup) {
+            foreach ($wordgroup['tiles'] as $tile) {
+                $this->assertTrue($tile['revealed']);
+                $this->assertNotSame('', $tile['letter']);
+            }
+        }
     }
 
     /**

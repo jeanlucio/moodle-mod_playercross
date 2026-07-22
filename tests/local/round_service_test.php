@@ -368,7 +368,10 @@ final class round_service_test extends \advanced_testcase {
     /**
      * A correct direct guess of the mystery phrase alone does not finish the round while
      * clues are still pending — winning always requires both conditions. The correct
-     * guess is still recorded (finalguesscorrect).
+     * guess is still recorded (finalguesscorrect), and every mystery-phrase tile is
+     * revealed immediately even though the round stays open — the player just
+     * demonstrated they know the whole phrase, so the grid must reflect that right away
+     * rather than only once every clue is also solved.
      *
      * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
@@ -393,6 +396,9 @@ final class round_service_test extends \advanced_testcase {
         $this->assertTrue($correct);
         $this->assertFalse($state['finished']);
         $this->assertTrue($state['finalguesscorrect']);
+        foreach ($state['themeslots'] as $slot) {
+            $this->assertContains($slot, $state['revealedslots']);
+        }
     }
 
     /**

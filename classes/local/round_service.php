@@ -546,6 +546,15 @@ class round_service {
 
         $state['finalguesscorrect'] = true;
 
+        // Reveals the mystery phrase's own tiles immediately, independently of whether the
+        // round finishes here — a correct guess demonstrates the player already knows every
+        // letter, so leaving the tiles blank until every clue is also solved (WINCONDITION_BOTH)
+        // would contradict the positive feedback they just received. themeslots (the phrase's
+        // own slot numbers) is used here rather than the round-wide slotcount range, so this
+        // never reveals a slot exclusive to a still-unsolved clue's own word — same distinction
+        // reveal_hint() draws (see its docblock).
+        $state['revealedslots'] = array_values(array_unique(array_merge($state['revealedslots'], $state['themeslots'])));
+
         $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
         if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH && $state['cluesresolved'] < $state['cluestotal']) {
             return [$state, true, get_string('finalguesscorrectneedsclues', 'mod_playercross'), 'success'];
