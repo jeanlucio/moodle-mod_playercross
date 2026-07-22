@@ -40,7 +40,13 @@ define([], function() {
     const init = (maxRoundsId, gradeMethodId, averageAllValue, fallbackValue) => {
         const maxRounds = document.getElementById(maxRoundsId);
         const gradeMethod = document.getElementById(gradeMethodId);
-        if (!maxRounds || !gradeMethod) {
+        // Once the activity has a real grade, mod_form.php freezes grademethod: Moodle
+        // then renders it as a hidden <input> carrying the same id instead of a
+        // <select> (MoodleQuickForm_select::getFrozenHtml()), so this guard must reject
+        // that case too — reading .options off it would throw and leave
+        // M.util.js_pending('mod_playercross/grademethod') stuck forever, since
+        // js_call_amd() calls M.util.js_complete() only after init() returns normally.
+        if (!maxRounds || !gradeMethod || gradeMethod.tagName !== 'SELECT') {
             return;
         }
 
