@@ -709,6 +709,9 @@ final class round_presenter_test extends \advanced_testcase {
             $user->id
         );
         $this->assertTrue($partial['showglobalhint']);
+        // No max_hints_per_round configured (make_instance()'s default): unlimited, so
+        // there is no "remaining" count to show in the first place.
+        $this->assertFalse($partial['showhintsremaining']);
 
         $complete = round_presenter::build_round_panel_context(
             $instance,
@@ -717,6 +720,52 @@ final class round_presenter_test extends \advanced_testcase {
             $user->id
         );
         $this->assertFalse($complete['showglobalhint']);
+    }
+
+    /**
+     * When the teacher configures max_hints_per_round, the hint button carries a
+     * visible remaining-hints count that counts down as hintsused grows, disappearing
+     * only once the button itself is withdrawn at the limit (see
+     * test_build_round_panel_context_hint_limit_hides_button()).
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_shows_hints_remaining_count(): void {
+        $instance = $this->make_instance(['max_hints_per_round' => 3]);
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+
+        $fresh = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6], 'hintsused' => 0]),
+            $user->id
+        );
+        $this->assertTrue($fresh['showhintsremaining']);
+        $this->assertSame(3, $fresh['hintsremaining']);
+        $this->assertSame(get_string('hintsremaining', 'mod_playercross', 3), $fresh['hintsremaininglabel']);
+
+        $afterone = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6], 'hintsused' => 1]),
+            $user->id
+        );
+        $this->assertSame(2, $afterone['hintsremaining']);
+
+        $afterall = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6], 'hintsused' => 3]),
+            $user->id
+        );
+        // The button itself is withdrawn at the limit, so there is nothing left to
+        // count down — showhintsremaining reverts to the same false/blank shape as an
+        // unlimited round, not a "0 left" count.
+        $this->assertFalse($afterall['showglobalhint']);
+        $this->assertFalse($afterall['showhintsremaining']);
+        $this->assertSame(0, $afterall['hintsremaining']);
     }
 
     /**

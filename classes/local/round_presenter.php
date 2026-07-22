@@ -462,21 +462,35 @@ class round_presenter {
         $hiddenslots = array_diff(range(1, (int)$state['slotcount']), $state['revealedslots']);
 
         $blank = [
-            'showglobalhint'   => false,
-            'globalhintlabel'  => get_string('hintbuttonlabel', 'mod_playercross'),
-            'hudhintcost'      => false,
-            'hudhintcostlabel' => '',
-            'canaffordhint'    => true,
+            'showglobalhint'      => false,
+            'globalhintlabel'     => get_string('hintbuttonlabel', 'mod_playercross'),
+            'showhintsremaining'  => false,
+            'hintsremaining'      => 0,
+            'hintsremaininglabel' => '',
+            'hudhintcost'         => false,
+            'hudhintcostlabel'    => '',
+            'canaffordhint'       => true,
         ];
 
         $maxhints = (int)($instance->max_hints_per_round ?? 0);
-        $hintlimitreached = $maxhints > 0 && (int)($state['hintsused'] ?? 0) >= $maxhints;
+        $hintsused = (int)($state['hintsused'] ?? 0);
+        $hintlimitreached = $maxhints > 0 && $hintsused >= $maxhints;
 
         if ($roundfinished || empty($hiddenslots) || $hintlimitreached) {
             return $blank;
         }
 
         $blank['showglobalhint'] = true;
+
+        // Only shown when the teacher actually configured a cap: with no limit
+        // (max_hints_per_round 0, the default), there is no "remaining" count to
+        // display in the first place.
+        if ($maxhints > 0) {
+            $hintsremaining = $maxhints - $hintsused;
+            $blank['showhintsremaining'] = true;
+            $blank['hintsremaining'] = $hintsremaining;
+            $blank['hintsremaininglabel'] = get_string('hintsremaining', 'mod_playercross', $hintsremaining);
+        }
 
         $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
         if ($hintcostitem > 0) {

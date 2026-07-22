@@ -132,6 +132,7 @@ $string['hintbuttonlabel'] = 'Hint';
 $string['hintlimitreached'] = 'No more hints allowed this round.';
 $string['hintnotavailable'] = 'No hidden letter left to reveal.';
 $string['hintrevealed'] = 'A letter was revealed!';
+$string['hintsremaining'] = 'Hints left: {$a}';
 $string['hud_balancecost'] = 'You have {$a->available}× {$a->item}. Costs {$a->required}×.';
 $string['hud_header'] = 'PlayerHUD Integration';
 $string['hud_hint_cost_item'] = 'Item to reveal a clue\'s hint';

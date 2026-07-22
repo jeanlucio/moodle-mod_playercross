@@ -132,6 +132,7 @@ $string['hintbuttonlabel'] = 'Dica';
 $string['hintlimitreached'] = 'Não há mais dicas permitidas nesta rodada.';
 $string['hintnotavailable'] = 'Não há mais nenhuma letra oculta para revelar.';
 $string['hintrevealed'] = 'Uma letra foi revelada!';
+$string['hintsremaining'] = 'Dicas restantes: {$a}';
 $string['hud_balancecost'] = 'Você tem {$a->available}× {$a->item}. Custa {$a->required}×.';
 $string['hud_header'] = 'Integração com o PlayerHUD';
 $string['hud_hint_cost_item'] = 'Item para revelar a dica de uma pista';
