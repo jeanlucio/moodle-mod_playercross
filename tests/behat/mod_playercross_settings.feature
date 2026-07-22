@@ -37,8 +37,8 @@ Feature: PlayerCross teacher-facing settings behaviour
     And I am on the "Cross Freeze" "playercross activity editing" page
     And I click on "a.collapseexpand" "css_element"
     Then I should see "Because this activity has already recorded a real grade"
-    And the "#id_num_clues" element should be disabled
-    And the "#id_grademethod" element should be disabled
+    And "select#id_num_clues" "css_element" should not exist
+    And "select#id_grademethod" "css_element" should not exist
 
   Scenario: Adding a manual word that already exists in the pool is rejected
     Given the following "activities" exist:
