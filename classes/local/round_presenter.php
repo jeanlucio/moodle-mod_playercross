@@ -469,7 +469,10 @@ class round_presenter {
             'canaffordhint'    => true,
         ];
 
-        if ($roundfinished || empty($hiddenslots)) {
+        $maxhints = (int)($instance->max_hints_per_round ?? 0);
+        $hintlimitreached = $maxhints > 0 && (int)($state['hintsused'] ?? 0) >= $maxhints;
+
+        if ($roundfinished || empty($hiddenslots) || $hintlimitreached) {
             return $blank;
         }
 

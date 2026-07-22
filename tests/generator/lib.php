@@ -54,6 +54,7 @@ class mod_playercross_generator extends testing_module_generator {
             'show_ranking'          => 1,
             'wordmode'              => 1,
             'max_rounds'            => 0,
+            'max_hints_per_round'   => 0,
             'cooldown_amount'       => 1,
             'cooldown_unit'         => 'days',
             'completionrounds'      => 0,

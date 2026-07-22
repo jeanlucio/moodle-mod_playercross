@@ -255,6 +255,30 @@ final class reveal_hint_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that max_hints_per_round blocks further reveals once the configured
+     * teacher-set cap is reached, even though hidden slots remain (the pool here has 5
+     * hintable slots left, see class docblock — the cap of 2 must stop the round well
+     * before that natural exhaustion point).
+     *
+     * @covers \mod_playercross\external\reveal_hint::execute
+     * @return void
+     */
+    public function test_rejects_once_hint_limit_is_reached(): void {
+        $instance = $this->make_instance_with_pool(['max_hints_per_round' => 2]);
+        $this->setUser($this->student);
+
+        $this->call_reveal_hint($instance->cmid);
+        $second = $this->call_reveal_hint($instance->cmid);
+        $revealedaftertwo = $this->count_revealed_tiles($second['data']['panel']);
+
+        $third = $this->call_reveal_hint($instance->cmid);
+
+        $this->assertFalse($third['error']);
+        $this->assertSame('warning', $third['data']['notificationtype']);
+        $this->assertSame($revealedaftertwo, $this->count_revealed_tiles($third['data']['panel']));
+    }
+
+    /**
      * Tests that a user without the view capability in the module context is rejected.
      *
      * @covers \mod_playercross\external\reveal_hint::execute

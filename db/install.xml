@@ -41,6 +41,8 @@
             COMMENT="Theme word selection mode: 1=random per round, 2=shared across students by round number"/>
         <FIELD NAME="max_rounds" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
             COMMENT="Maximum rounds per user, 0 means unlimited"/>
+        <FIELD NAME="max_hints_per_round" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="Maximum hint reveals per round, 0 means unlimited"/>
         <FIELD NAME="cooldown_seconds" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="86400" SEQUENCE="false"
             COMMENT="Cooldown between rounds in seconds, 0 means disabled"/>
         <FIELD NAME="completionrounds" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"

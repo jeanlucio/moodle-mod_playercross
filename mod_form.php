@@ -238,6 +238,19 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->setType('max_rounds', PARAM_INT);
         $mform->setDefault('max_rounds', 0);
 
+        $maxhintsoptions = [0 => get_string('max_hints_per_round_unlimited', 'mod_playercross')];
+        for ($i = 1; $i <= 10; $i++) {
+            $maxhintsoptions[$i] = $i;
+        }
+        $mform->addElement(
+            'select',
+            'max_hints_per_round',
+            get_string('max_hints_per_round', 'mod_playercross'),
+            $maxhintsoptions
+        );
+        $mform->setType('max_hints_per_round', PARAM_INT);
+        $mform->setDefault('max_hints_per_round', 0);
+
         $cooldowngroup = [];
         $cooldowngroup[] = $mform->createElement('text', 'cooldown_amount', '', ['size' => 5]);
         $cooldowngroup[] = $mform->createElement(

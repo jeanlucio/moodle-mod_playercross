@@ -114,6 +114,7 @@ class round_service {
             'themeslots'    => [],
             'slotcount'     => 0,
             'revealedslots' => [],
+            'hintsused'     => 0,
             'clues'         => [],
             'cluestotal'    => 0,
             'cluesresolved' => 0,
@@ -365,6 +366,11 @@ class round_service {
             return [$state, get_string('hintnotavailable', 'mod_playercross'), 'warning'];
         }
 
+        $maxhints = (int)($instance->max_hints_per_round ?? 0);
+        if ($maxhints > 0 && (int)($state['hintsused'] ?? 0) >= $maxhints) {
+            return [$state, get_string('hintlimitreached', 'mod_playercross'), 'warning'];
+        }
+
         $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
         if ($hintcostitem > 0) {
             $blockinstanceid = hud_service::resolve_block_instance_id($instance);
@@ -382,6 +388,7 @@ class round_service {
 
         sort($hiddenslots);
         $state['revealedslots'][] = $hiddenslots[0];
+        $state['hintsused'] = (int)($state['hintsused'] ?? 0) + 1;
 
         return [$state, get_string('hintrevealed', 'mod_playercross'), 'success'];
     }

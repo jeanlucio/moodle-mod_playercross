@@ -720,6 +720,36 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that a configured max_hints_per_round hides the hint button once the
+     * student's own hint count reaches it, even though hidden slots remain (slots
+     * 7..9 are still unrevealed under the default make_state() override below).
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_hint_limit_hides_button(): void {
+        $instance = $this->make_instance(['max_hints_per_round' => 1]);
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+
+        $underlimit = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6], 'hintsused' => 0]),
+            $user->id
+        );
+        $this->assertTrue($underlimit['showglobalhint']);
+
+        $atlimit = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6], 'hintsused' => 1]),
+            $user->id
+        );
+        $this->assertFalse($atlimit['showglobalhint']);
+    }
+
+    /**
      * Tests that the round result announces the PlayerHUD item granted for the win,
      * once configured and the round was actually won.
      *

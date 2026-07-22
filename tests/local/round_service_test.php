@@ -216,6 +216,46 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * reveal_hint() counts each successful reveal in hintsused, and once
+     * max_hints_per_round is reached, further calls are rejected with a warning
+     * instead of revealing another letter or incrementing the counter further.
+     *
+     * @covers \mod_playercross\local\round_service::reveal_hint
+     * @return void
+     */
+    public function test_reveal_hint_stops_at_configured_limit(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'max_hints_per_round' => 2,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        [$state] = round_service::reveal_hint($state, $instance, $this->user->id);
+        $this->assertSame(1, $state['hintsused']);
+
+        [$state] = round_service::reveal_hint($state, $instance, $this->user->id);
+        $this->assertSame(2, $state['hintsused']);
+        $revealedslotsatlimit = $state['revealedslots'];
+
+        [$state, $notification, $notificationtype] = round_service::reveal_hint(
+            $state,
+            $instance,
+            $this->user->id
+        );
+
+        $this->assertSame(2, $state['hintsused']);
+        $this->assertSame($revealedslotsatlimit, $state['revealedslots']);
+        $this->assertSame(get_string('hintlimitreached', 'mod_playercross'), $notification);
+        $this->assertSame('warning', $notificationtype);
+    }
+
+    /**
      * A wrong clue guess increments its attempt counter without resolving it or
      * revealing any theme letters.
      *
