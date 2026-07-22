@@ -260,7 +260,6 @@ const initForfeit = (cmid) => {
             ModalSaveCancel.create({
                 title: button.dataset.title,
                 body: button.dataset.confirm,
-                show: true,
                 removeOnClose: true,
             }),
             getString('yes', 'core'),
@@ -269,6 +268,7 @@ const initForfeit = (cmid) => {
             modal.getRoot().on(ModalEvents.save, () => {
                 endRound(cmid, 'forfeit');
             });
+            modal.show();
             return;
         }).catch(Notification.exception);
     });
