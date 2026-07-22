@@ -465,7 +465,7 @@ class round_presenter {
             'showglobalhint'      => false,
             'globalhintlabel'     => get_string('hintbuttonlabel', 'mod_playercross'),
             'showhintsremaining'  => false,
-            'hintsremaining'      => 0,
+            'hintsremainingvalue' => '',
             'hintsremaininglabel' => '',
             'hudhintcost'         => false,
             'hudhintcostlabel'    => '',
@@ -482,15 +482,13 @@ class round_presenter {
 
         $blank['showglobalhint'] = true;
 
-        // Only shown when the teacher actually configured a cap: with no limit
-        // (max_hints_per_round 0, the default), there is no "remaining" count to
-        // display in the first place.
-        if ($maxhints > 0) {
-            $hintsremaining = $maxhints - $hintsused;
-            $blank['showhintsremaining'] = true;
-            $blank['hintsremaining'] = $hintsremaining;
-            $blank['hintsremaininglabel'] = get_string('hintsremaining', 'mod_playercross', $hintsremaining);
-        }
+        // Same "∞ for no limit" convention already used for the rounds-played counter
+        // (build_rounds_played_label()) — an unlimited round still shows the badge, just
+        // with nothing to count down from.
+        $hintsremainingvalue = $maxhints > 0 ? (string)($maxhints - $hintsused) : "\u{221E}";
+        $blank['showhintsremaining'] = true;
+        $blank['hintsremainingvalue'] = $hintsremainingvalue;
+        $blank['hintsremaininglabel'] = get_string('hintsremaining', 'mod_playercross', $hintsremainingvalue);
 
         $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
         if ($hintcostitem > 0) {

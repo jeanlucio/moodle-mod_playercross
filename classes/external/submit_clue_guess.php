@@ -233,11 +233,11 @@ class submit_clue_guess extends external_api {
             'submitclueguess'    => new external_value(PARAM_TEXT, 'Submit clue guess button label'),
             'showglobalhint'     => new external_value(PARAM_BOOL, 'Whether the round-wide hint action is available'),
             'globalhintlabel'    => new external_value(PARAM_TEXT, 'Round-wide hint button label'),
-            'showhintsremaining' => new external_value(
-                PARAM_BOOL,
-                'Whether max_hints_per_round is capped, so a remaining count applies'
+            'showhintsremaining' => new external_value(PARAM_BOOL, 'Whether the hint button shows a remaining count'),
+            'hintsremainingvalue' => new external_value(
+                PARAM_TEXT,
+                'Hints left before max_hints_per_round is reached, or the infinity glyph when unlimited'
             ),
-            'hintsremaining' => new external_value(PARAM_INT, 'Hints left before max_hints_per_round is reached'),
             'hintsremaininglabel' => new external_value(
                 PARAM_TEXT,
                 'Accessible label for the remaining-hints count, empty unless showhintsremaining'

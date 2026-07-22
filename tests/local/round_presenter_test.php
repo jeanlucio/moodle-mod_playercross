@@ -710,8 +710,10 @@ final class round_presenter_test extends \advanced_testcase {
         );
         $this->assertTrue($partial['showglobalhint']);
         // No max_hints_per_round configured (make_instance()'s default): unlimited, so
-        // there is no "remaining" count to show in the first place.
-        $this->assertFalse($partial['showhintsremaining']);
+        // the badge shows the infinity glyph rather than a counting-down number — same
+        // convention as build_rounds_played_label()'s own "3 / ∞".
+        $this->assertTrue($partial['showhintsremaining']);
+        $this->assertSame("\u{221E}", $partial['hintsremainingvalue']);
 
         $complete = round_presenter::build_round_panel_context(
             $instance,
@@ -743,8 +745,8 @@ final class round_presenter_test extends \advanced_testcase {
             $user->id
         );
         $this->assertTrue($fresh['showhintsremaining']);
-        $this->assertSame(3, $fresh['hintsremaining']);
-        $this->assertSame(get_string('hintsremaining', 'mod_playercross', 3), $fresh['hintsremaininglabel']);
+        $this->assertSame('3', $fresh['hintsremainingvalue']);
+        $this->assertSame(get_string('hintsremaining', 'mod_playercross', '3'), $fresh['hintsremaininglabel']);
 
         $afterone = round_presenter::build_round_panel_context(
             $instance,
@@ -752,7 +754,7 @@ final class round_presenter_test extends \advanced_testcase {
             $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6], 'hintsused' => 1]),
             $user->id
         );
-        $this->assertSame(2, $afterone['hintsremaining']);
+        $this->assertSame('2', $afterone['hintsremainingvalue']);
 
         $afterall = round_presenter::build_round_panel_context(
             $instance,
@@ -761,11 +763,11 @@ final class round_presenter_test extends \advanced_testcase {
             $user->id
         );
         // The button itself is withdrawn at the limit, so there is nothing left to
-        // count down — showhintsremaining reverts to the same false/blank shape as an
-        // unlimited round, not a "0 left" count.
+        // count down — showhintsremaining reverts to the same false/blank shape as
+        // roundfinished/no-hidden-slots does, not a "0 left" count.
         $this->assertFalse($afterall['showglobalhint']);
         $this->assertFalse($afterall['showhintsremaining']);
-        $this->assertSame(0, $afterall['hintsremaining']);
+        $this->assertSame('', $afterall['hintsremainingvalue']);
     }
 
     /**
