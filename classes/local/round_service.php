@@ -427,6 +427,15 @@ class round_service {
         $state['revealedslots'][] = $hiddenslots[0];
         $state['hintsused'] = (int)($state['hintsused'] ?? 0) + 1;
 
+        // Same safeguard as submit_final_guess(): if this was the clue's own last hidden
+        // slot, revealing it can leave every one of that clue's tiles locked-and-revealed
+        // with no editable box left — mark it resolved instead of leaving resolved stuck at
+        // false forever. Unlike submit_final_guess(), this never finishes the round on its
+        // own (reveal_hint() has no $cmid to call finish_round() with, by design — it is not
+        // a round-ending action) — if this happens to complete every clue, the round still
+        // needs a correct submit_final_guess() call to actually finish, same as always.
+        $state = self::resolve_fully_revealed_clues($state, $instance);
+
         // A toast (auto-dismissing) rather than a persistent notification: this fires once per
         // hint use, potentially many times in a single round, and would otherwise pile up
         // requiring the player to manually close each one — unlike the warnings above, which

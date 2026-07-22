@@ -234,6 +234,11 @@ final class reveal_hint_test extends \advanced_testcase {
      * instead of erroring — the pool here has exactly 5 slots left to hint (see class
      * docblock): livro's own 2 shared theme letters plus its 3 exclusive ones.
      *
+     * Also covers round_service::resolve_fully_revealed_clues(): the 5th call reveals
+     * livro's own last hidden slot, leaving every one of its tiles locked-and-revealed
+     * with no editable box left — without that safeguard, its resolved flag would stay
+     * false forever with no way for the player to ever set it themselves.
+     *
      * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
@@ -247,6 +252,8 @@ final class reveal_hint_test extends \advanced_testcase {
             $panel = $response['data']['panel'];
         }
         $this->assertSame([], $this->hidden_slotnums($panel));
+        $this->assertTrue($panel['clues'][0]['resolved']);
+        $this->assertSame(1, $panel['cluesresolved']);
 
         $rejected = $this->call_reveal_hint($instance->cmid);
 
