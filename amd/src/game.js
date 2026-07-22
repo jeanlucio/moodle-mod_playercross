@@ -928,7 +928,6 @@ const wireStageDelegation = (cmid, timertotal) => {
                 ModalSaveCancel.create({
                     title: hintButton.dataset.hudConfirmTitle,
                     body: hintButton.dataset.hudConfirmBody,
-                    show: true,
                     removeOnClose: true,
                 }),
                 getString('yes', 'core'),
@@ -938,6 +937,7 @@ const wireStageDelegation = (cmid, timertotal) => {
                     modal.setButtonDisabled('save', true);
                 }
                 modal.getRoot().on(ModalEvents.save, () => revealHint(cmid, timertotal));
+                modal.show();
                 return;
             }).catch(Notification.exception);
             return;
