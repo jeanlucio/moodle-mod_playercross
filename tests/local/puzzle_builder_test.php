@@ -225,6 +225,47 @@ final class puzzle_builder_test extends \advanced_testcase {
     }
 
     /**
+     * A clue word and the theme's own hint keep their original accented spelling
+     * available (originalword, themehint) alongside the normalized ones used for slot
+     * matching (word, themewords) — matching stays accent-insensitive throughout (see
+     * word_normalizer::normalize()), but the post-round reveal (round_presenter::
+     * build_clue_rows()/build_round_result_context()) needs the real spelling, which
+     * would otherwise never survive past this method — see select_clues() and
+     * build_round()'s own themehint field.
+     *
+     * @covers \mod_playercross\local\puzzle_builder::build_round
+     * @return void
+     */
+    public function test_build_round_preserves_original_accented_spelling(): void {
+        $instance = $this->modgenerator->create_instance([
+            'course' => $this->course->id,
+            'num_clues' => 2,
+            'theme_min_length' => 5,
+            'min_length' => 3,
+            'max_length' => 15,
+        ]);
+
+        // Theme: hint carries a real accent ("área"), too short to be picked as a clue
+        // itself since it is the only theme candidate (theme_min_length 5).
+        $this->modgenerator->create_word($instance->id, 'administracao', 'área de gestão');
+        // Clue: the word itself carries a real accent.
+        $this->modgenerator->create_word($instance->id, 'café');
+        $this->modgenerator->create_word($instance->id, 'casa');
+
+        $puzzle = puzzle_builder::build_round($instance);
+
+        $this->assertSame('area de gestao', implode(' ', $puzzle->themewords));
+        $this->assertSame('área de gestão', $puzzle->themehint);
+
+        $byword = [];
+        foreach ($puzzle->clues as $clue) {
+            $byword[$clue->word] = $clue;
+        }
+        $this->assertArrayHasKey('cafe', $byword);
+        $this->assertSame('café', $byword['cafe']->originalword);
+    }
+
+    /**
      * A pool smaller than num_clues + 1 approved words must never start a round.
      *
      * @covers \mod_playercross\local\puzzle_builder::build_round

@@ -80,6 +80,7 @@ final class round_presenter_test extends \advanced_testcase {
             'themewordid'      => 1,
             'themeconcept'     => 'Escola',
             'themewords'       => ['escola'],
+            'themehint'        => 'escola',
             'themeslots'       => [1, 2, 3, 4, 5, 6],
             'slotcount'        => 9,
             'revealedslots'    => [],
@@ -87,6 +88,7 @@ final class round_presenter_test extends \advanced_testcase {
                 [
                     'wordid'       => 2,
                     'word'         => 'livro',
+                    'originalword' => 'livro',
                     'hint'         => 'dica',
                     'slots'        => [5, 7, 8, 9, 4],
                     'resolved'     => false,

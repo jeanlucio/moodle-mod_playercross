@@ -72,23 +72,28 @@ class round_service {
     /**
      * Checks that a round's state still matches the shape the current code expects:
      * that it carries the round-wide mystery phrase (themewords — see SCOPE.md §20.2
-     * v1.9, before which the mystery was a single themeword string), and that every
+     * v1.9, before which the mystery was a single themeword string), its own original
+     * (accented) spelling (themehint, added for the post-round reveal), that every
      * clue's per-position slots array is exactly as long as its own word (before slots
-     * became a round-wide, per-position map, see §20.2 v1.7). A round started under an
-     * older version of puzzle_builder can still be sitting in a live PHP session at the
-     * moment the plugin is upgraded; without this check, round_presenter would fatal on
-     * an undefined array key the first time that stale round is rendered, instead of
-     * transparently starting a fresh one.
+     * became a round-wide, per-position map, see §20.2 v1.7), and that every clue
+     * carries its own original spelling too (originalword, same reveal purpose as
+     * themehint). A round started under an older version of puzzle_builder can still be
+     * sitting in a live PHP session at the moment the plugin is upgraded; without this
+     * check, round_presenter would fatal on an undefined array key the first time that
+     * stale round is rendered, instead of transparently starting a fresh one.
      *
      * @param array $state Session state.
      * @return bool
      */
     private static function state_is_valid(array $state): bool {
-        if (!isset($state['themewords']) || !is_array($state['themewords'])) {
+        if (!isset($state['themewords'], $state['themehint']) || !is_array($state['themewords'])) {
             return false;
         }
         foreach ($state['clues'] ?? [] as $clue) {
-            if (!isset($clue['slots'], $clue['word']) || count($clue['slots']) !== count(word_normalizer::chars($clue['word']))) {
+            if (
+                !isset($clue['slots'], $clue['word'], $clue['originalword'])
+                || count($clue['slots']) !== count(word_normalizer::chars($clue['word']))
+            ) {
                 return false;
             }
         }
@@ -105,6 +110,7 @@ class round_service {
             'themewordid'   => 0,
             'themeconcept'  => '',
             'themewords'    => [],
+            'themehint'     => '',
             'themeslots'    => [],
             'slotcount'     => 0,
             'revealedslots' => [],
@@ -253,6 +259,7 @@ class round_service {
             $clues[] = [
                 'wordid'       => $clue->wordid,
                 'word'         => $clue->word,
+                'originalword' => $clue->originalword,
                 'hint'         => $clue->hint,
                 'slots'        => $clue->slots,
                 'resolved'     => false,
@@ -265,6 +272,7 @@ class round_service {
         $state['themewordid']   = $puzzle->themewordid;
         $state['themeconcept']  = $puzzle->themeconcept;
         $state['themewords']    = $puzzle->themewords;
+        $state['themehint']     = $puzzle->themehint;
         $state['themeslots']    = $puzzle->themeslots;
         $state['slotcount']     = $puzzle->slotcount;
         $state['revealedslots'] = $puzzle->alwaysrevealedslots;

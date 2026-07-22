@@ -114,7 +114,7 @@ class round_presenter {
                 'exhaustedlabel' => $clue['exhausted']
                     ? get_string('clueexhaustedlabel', 'mod_playercross', (int)$clue['attemptsused'])
                     : '',
-                'revealword'   => $reveal ? s(core_text::strtoupper($clue['word'])) : '',
+                'revealword'   => $reveal ? s(core_text::strtoupper($clue['originalword'])) : '',
                 'tiles'        => self::build_word_tiles($clue['word'], $clue['slots'], $state['revealedslots'], $reveal),
                 'canguess'     => !$clue['resolved'] && !$clue['exhausted'] && !$roundfinished,
             ];
@@ -545,7 +545,7 @@ class round_presenter {
 
         return [
             'feedbackmessage'      => self::build_feedback_message($state),
-            'revealthemeword'      => s(core_text::strtoupper(implode(' ', $state['themewords']))),
+            'revealthemeword'      => s(core_text::strtoupper($state['themehint'])),
             'revealthemewordlabel' => $blank['revealthemewordlabel'],
             'resultclueslabel'     => $blank['resultclueslabel'],
             'scoreachieved'        => format_float((float)$state['scoreaccumulated'], 2),

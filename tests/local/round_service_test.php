@@ -142,6 +142,63 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * load_state() also discards a round left over from just before themehint/
+     * originalword existed (added for the post-round reveal to keep its accented
+     * spelling — see puzzle_builder::build_round()): themewords and every clue's slots
+     * are already the current, correctly-sized shape, but themehint and originalword
+     * are simply absent, the way a session saved by the previous code version would be.
+     *
+     * @covers \mod_playercross\local\round_service::load_state
+     * @return void
+     */
+    public function test_load_state_discards_state_missing_reveal_spelling_fields(): void {
+        global $SESSION;
+
+        $cmid = 43;
+        $sessionkey = gameplay_service::build_session_key($cmid, $this->user->id);
+        $SESSION->mod_playercross = [
+            $sessionkey => [
+                'themewordid'      => 1,
+                'themeconcept'     => 'Escola',
+                'themewords'       => ['escola'],
+                // Themehint intentionally absent — the pre-upgrade shape.
+                'themeslots'       => [1, 2, 3, 4, 5, 6],
+                'slotcount'        => 6,
+                'revealedslots'    => [],
+                'clues'            => [
+                    [
+                        'wordid'       => 2,
+                        'word'         => 'livro',
+                        // Originalword intentionally absent — the pre-upgrade shape.
+                        'hint'         => 'dica',
+                        'slots'        => [1, 2, 3, 4, 5],
+                        'resolved'     => false,
+                        'attemptsused' => 0,
+                        'exhausted'    => false,
+                    ],
+                ],
+                'cluestotal'       => 1,
+                'cluesresolved'    => 0,
+                'scoreaccumulated' => 0.0,
+                'attemptsused'     => 0,
+                'starttime'        => 0,
+                'endtime'          => 0,
+                'roundstarted'     => false,
+                'finished'         => false,
+                'won'              => false,
+                'forfeited'        => false,
+                'timedout'         => false,
+                'finalguessed'     => false,
+            ],
+        ];
+
+        $state = round_service::load_state($cmid, $this->user->id);
+
+        $this->assertSame(0, $state['themewordid']);
+        $this->assertSame([], $state['clues']);
+    }
+
+    /**
      * ensure_round_state() builds a real puzzle from the approved pool.
      *
      * @covers \mod_playercross\local\round_service::ensure_round_state

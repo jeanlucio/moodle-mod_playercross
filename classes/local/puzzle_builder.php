@@ -48,9 +48,10 @@ class puzzle_builder {
      *     used for deterministic theme selection in PLAYERCROSS_WORDMODE_SHARED.
      * @param int $excludethemeid Theme word id to avoid repeating immediately, 0 for none.
      * @return \stdClass Puzzle state: themewordid, themeconcept (caption, always
-     *     shown), themewords (mystery phrase, normalized words), themeslots, slotcount,
-     *     clues (wordid, word, hint, slots — one slot number per character position,
-     *     round-wide, not just phrase letters) and alwaysrevealedslots.
+     *     shown), themewords (mystery phrase, normalized words), themehint (the same
+     *     phrase, original spelling, reveal-only), themeslots, slotcount,
+     *     clues (wordid, word, originalword, hint, slots — one slot number per character
+     *     position, round-wide, not just phrase letters) and alwaysrevealedslots.
      * @throws moodle_exception If the approved pool cannot support num_clues clues, or has
      *     no word eligible as the theme concept.
      */
@@ -127,6 +128,10 @@ class puzzle_builder {
             'themewordid' => (int)$themeword->id,
             'themeconcept' => $themeconcept,
             'themewords' => $themewords,
+            // Kept only for the post-round reveal (round_presenter::build_round_result_
+            // context()) — every other use (slot cipher, guess comparison) stays on the
+            // normalized themewords above, since matching is accent-insensitive.
+            'themehint' => trim((string)$themeword->hint),
             'themeslots' => $themeslots,
             'slotcount' => count($slotsbyletter),
             'clues' => $selectedclues,
@@ -239,8 +244,8 @@ class puzzle_builder {
      * @param int[] $slotsbyletter Letter => slot number map from the theme word (string keys).
      * @param int $numclues Maximum number of clues to select.
      * @param int $instanceid Activity instance id, used to seed the tie-break order.
-     * @return array{0: \stdClass[]} Selected clues (wordid, word, hint), their own
-     *     ->slots not yet assigned — see build_round(), which fills it in once the
+     * @return array{0: \stdClass[]} Selected clues (wordid, word, originalword, hint), their
+     *     own ->slots not yet assigned — see build_round(), which fills it in once the
      *     round-wide slot map exists.
      */
     private static function select_clues(
@@ -255,6 +260,10 @@ class puzzle_builder {
             $pool[] = (object)[
                 'wordid' => (int)$candidate->id,
                 'word' => $normalizedword,
+                // Kept only for the post-round reveal (round_presenter::build_clue_rows())
+                // — every other use (slot matching, guess comparison) stays on the
+                // normalized ->word above, since matching is accent-insensitive.
+                'originalword' => trim((string)$candidate->word),
                 'hint' => (string)($candidate->hint ?? ''),
                 'coverage' => self::word_slot_coverage($normalizedword, $slotsbyletter),
             ];
@@ -283,6 +292,7 @@ class puzzle_builder {
             $selected[] = (object)[
                 'wordid' => $chosen->wordid,
                 'word' => $chosen->word,
+                'originalword' => $chosen->originalword,
                 'hint' => $chosen->hint,
             ];
             $covered = array_values(array_unique(array_merge($covered, $chosen->coverage)));
