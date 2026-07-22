@@ -109,6 +109,34 @@ final class submit_clue_guess_test extends \advanced_testcase {
     }
 
     /**
+     * An ordinary mid-round clue (others still pending) is flagged toast-worthy, so the
+     * player-facing "Pista resolvida!" message auto-dismisses instead of piling up —
+     * see round_service::submit_clue_guess() and amd/src/game.js::notify().
+     *
+     * @covers \mod_playercross\external\submit_clue_guess::execute
+     * @return void
+     */
+    public function test_ordinary_resolved_clue_is_flagged_as_a_toast(): void {
+        [$instance, $cm] = $this->make_ready_instance();
+        $this->setUser($this->student);
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->student->id),
+            $instance,
+            $cm->cmid,
+            $this->student->id
+        );
+        round_service::save_state($cm->cmid, $this->student->id, $state);
+        $clue = $state['clues'][0];
+
+        $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
+
+        $this->assertTrue($result['resolved']);
+        $this->assertSame('success', $result['notificationtype']);
+        $this->assertTrue($result['toast']);
+    }
+
+    /**
      * Resolving every clue alone does not finish the round — winning always requires
      * the mystery phrase to be guessed too — and the theme word stays hidden until the
      * round actually finishes.

@@ -72,12 +72,13 @@ class reveal_hint extends external_api {
         $state = round_service::load_state($cmid, $userid);
         $state = round_service::ensure_round_state($state, $instance, $cmid, $userid);
 
-        [$state, $notification, $notificationtype] = round_service::reveal_hint($state, $instance, $userid);
+        [$state, $notification, $notificationtype, $toast] = round_service::reveal_hint($state, $instance, $userid);
         round_service::save_state($cmid, $userid, $state);
 
         return [
             'notification'     => $notification ?? '',
             'notificationtype' => $notificationtype ?? '',
+            'toast'            => $toast,
             'panel'            => round_presenter::build_round_panel_context($instance, $cm, $state, $userid),
         ];
     }
@@ -95,6 +96,12 @@ class reveal_hint extends external_api {
                 'Notification type: success or warning',
                 VALUE_DEFAULT,
                 ''
+            ),
+            'toast' => new external_value(
+                PARAM_BOOL,
+                'Whether to show the notification as an auto-dismissing toast instead of a persistent one',
+                VALUE_DEFAULT,
+                false
             ),
             'panel' => submit_clue_guess::panel_structure(),
         ]);

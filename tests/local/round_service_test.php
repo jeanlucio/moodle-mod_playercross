@@ -243,7 +243,7 @@ final class round_service_test extends \advanced_testcase {
         $this->assertSame(2, $state['hintsused']);
         $revealedslotsatlimit = $state['revealedslots'];
 
-        [$state, $notification, $notificationtype] = round_service::reveal_hint(
+        [$state, $notification, $notificationtype, $toast] = round_service::reveal_hint(
             $state,
             $instance,
             $this->user->id
@@ -253,6 +253,7 @@ final class round_service_test extends \advanced_testcase {
         $this->assertSame($revealedslotsatlimit, $state['revealedslots']);
         $this->assertSame(get_string('hintlimitreached', 'mod_playercross'), $notification);
         $this->assertSame('warning', $notificationtype);
+        $this->assertFalse($toast);
     }
 
     /**
@@ -306,7 +307,7 @@ final class round_service_test extends \advanced_testcase {
         );
         $clue = $state['clues'][0];
 
-        [$state, $resolved] = round_service::submit_clue_guess(
+        [$state, $resolved, , $notificationtype, $toast] = round_service::submit_clue_guess(
             $state,
             $instance,
             $cm->cmid,
@@ -318,6 +319,11 @@ final class round_service_test extends \advanced_testcase {
         $this->assertTrue($resolved);
         $this->assertTrue($state['clues'][0]['resolved']);
         $this->assertSame(1, $state['cluesresolved']);
+        $this->assertSame('success', $notificationtype);
+        // A mid-round clue (2 of 3 still pending) is toast-worthy; the round-completing
+        // milestones (cluescompleteneedsfinal, roundwon) deliberately are not — see
+        // round_service::submit_clue_guess().
+        $this->assertTrue($toast);
         foreach ($clue['slots'] as $slot) {
             $this->assertContains($slot, $state['revealedslots']);
         }
@@ -339,8 +345,9 @@ final class round_service_test extends \advanced_testcase {
             $this->user->id
         );
 
+        $lasttoast = null;
         foreach ($state['clues'] as $clue) {
-            [$state] = round_service::submit_clue_guess(
+            [$state, , , , $lasttoast] = round_service::submit_clue_guess(
                 $state,
                 $instance,
                 $cm->cmid,
@@ -352,6 +359,10 @@ final class round_service_test extends \advanced_testcase {
 
         $this->assertSame(3, $state['cluesresolved']);
         $this->assertFalse($state['finished']);
+        // The last clue resolves them all, triggering cluescompleteneedsfinal instead of the
+        // ordinary per-clue message — a milestone, deliberately not toast-worthy, unlike the
+        // earlier clues in this same loop (see test_submit_clue_guess_correct_resolves_and_reveals_slots).
+        $this->assertFalse($lasttoast);
     }
 
     /**
@@ -596,8 +607,9 @@ final class round_service_test extends \advanced_testcase {
             $this->user->id
         );
 
+        $lasttoast = null;
         foreach ($state['clues'] as $clue) {
-            [$state] = round_service::submit_clue_guess(
+            [$state, , , , $lasttoast] = round_service::submit_clue_guess(
                 $state,
                 $instance,
                 $cm->cmid,
@@ -609,6 +621,10 @@ final class round_service_test extends \advanced_testcase {
 
         $this->assertSame(3, $state['cluesresolved']);
         $this->assertFalse($state['finished']);
+        // The last clue resolves them all, triggering cluescompleteneedsfinal instead of the
+        // ordinary per-clue message — a milestone, deliberately not toast-worthy, unlike the
+        // earlier clues in this same loop (see test_submit_clue_guess_correct_resolves_and_reveals_slots).
+        $this->assertFalse($lasttoast);
     }
 
     /**
@@ -1162,9 +1178,10 @@ final class round_service_test extends \advanced_testcase {
         );
         $revealedbefore = count($state['revealedslots']);
 
-        [$state, , $notificationtype] = round_service::reveal_hint($state, $instance, $this->user->id);
+        [$state, , $notificationtype, $toast] = round_service::reveal_hint($state, $instance, $this->user->id);
 
         $this->assertSame('success', $notificationtype);
+        $this->assertTrue($toast);
         $this->assertGreaterThan($revealedbefore, count($state['revealedslots']));
     }
 

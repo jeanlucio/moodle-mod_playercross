@@ -225,6 +225,7 @@ final class reveal_hint_test extends \advanced_testcase {
 
         $this->assertFalse($after['error']);
         $this->assertSame('success', $after['data']['notificationtype']);
+        $this->assertTrue($after['data']['toast']);
         $this->assertSame($revealedbefore + 1, $this->count_revealed_tiles($after['data']['panel']));
     }
 
@@ -313,6 +314,7 @@ final class reveal_hint_test extends \advanced_testcase {
         $this->assertFalse($result['error']);
         $this->assertSame('warning', $result['data']['notificationtype']);
         $this->assertNotEmpty($result['data']['notification']);
+        $this->assertFalse($result['data']['toast']);
         $this->assertSame(4, $this->count_revealed_tiles($result['data']['panel']));
     }
 
@@ -334,6 +336,7 @@ final class reveal_hint_test extends \advanced_testcase {
 
         $this->assertFalse($result['error']);
         $this->assertSame('success', $result['data']['notificationtype']);
+        $this->assertTrue($result['data']['toast']);
         $this->assertSame(5, $this->count_revealed_tiles($result['data']['panel']));
     }
 }

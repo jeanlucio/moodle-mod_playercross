@@ -56,6 +56,7 @@ import ModalSaveCancel from 'core/modal_save_cancel';
 import Notification from 'core/notification';
 import {getString} from 'core/str';
 import Templates from 'core/templates';
+import {add as addToast} from 'core/toast';
 
 /** @type {?number} Handle of the pending round-timer tick, if any. */
 let timerHandle = null;
@@ -79,13 +80,22 @@ const announce = (message) => {
 };
 
 /**
- * Shows a visible Moodle notification.
+ * Shows visible player feedback, either as an auto-dismissing toast (frequent,
+ * low-stakes updates such as a clue resolved or a hint revealed — see
+ * round_service::submit_clue_guess()/reveal_hint()) or as a persistent Moodle
+ * notification the player must close themselves (everything else: warnings, errors,
+ * round-ending milestones).
  *
  * @param {string} message Notification text.
  * @param {string} type Notification type: success, info, warning or error.
+ * @param {boolean} [toast] Whether the server flagged this message as toast-worthy.
  */
-const notify = (message, type) => {
+const notify = (message, type, toast) => {
     if (!message) {
+        return;
+    }
+    if (toast) {
+        addToast(message, {type: type || 'success'});
         return;
     }
     Notification.addNotification({message, type: type || 'info'});
@@ -584,7 +594,7 @@ const submitClueGuess = async(cmid, clueid, guess, timertotal) => {
         Notification.exception(error);
         return;
     }
-    notify(payload.notification, payload.notificationtype);
+    notify(payload.notification, payload.notificationtype, payload.toast);
     if (payload.resolved) {
         announce(payload.notification);
     }
@@ -637,7 +647,7 @@ const revealHint = async(cmid, timertotal) => {
         Notification.exception(error);
         return;
     }
-    notify(payload.notification, payload.notificationtype);
+    notify(payload.notification, payload.notificationtype, payload.toast);
     await showRoundPanel(payload.panel, cmid, timertotal);
 };
 

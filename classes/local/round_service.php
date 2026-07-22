@@ -354,21 +354,21 @@ class round_service {
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
      * @param int $userid User id.
-     * @return array [$state, $notification, $notificationtype]
+     * @return array [$state, $notification, $notificationtype, $toast]
      */
     public static function reveal_hint(array $state, \stdClass $instance, int $userid): array {
         if (empty($state['themewordid']) || !empty($state['finished'])) {
-            return [$state, get_string('roundfinished', 'mod_playercross'), 'warning'];
+            return [$state, get_string('roundfinished', 'mod_playercross'), 'warning', false];
         }
 
         $hiddenslots = array_values(array_diff(range(1, (int)$state['slotcount']), $state['revealedslots']));
         if (empty($hiddenslots)) {
-            return [$state, get_string('hintnotavailable', 'mod_playercross'), 'warning'];
+            return [$state, get_string('hintnotavailable', 'mod_playercross'), 'warning', false];
         }
 
         $maxhints = (int)($instance->max_hints_per_round ?? 0);
         if ($maxhints > 0 && (int)($state['hintsused'] ?? 0) >= $maxhints) {
-            return [$state, get_string('hintlimitreached', 'mod_playercross'), 'warning'];
+            return [$state, get_string('hintlimitreached', 'mod_playercross'), 'warning', false];
         }
 
         $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
@@ -382,7 +382,7 @@ class round_service {
             );
             if (!$consumed) {
                 $itemname = hud_service::get_item_name($blockinstanceid, $hintcostitem);
-                return [$state, get_string('hud_insufficient_hint', 'mod_playercross', $itemname), 'warning'];
+                return [$state, get_string('hud_insufficient_hint', 'mod_playercross', $itemname), 'warning', false];
             }
         }
 
@@ -390,7 +390,11 @@ class round_service {
         $state['revealedslots'][] = $hiddenslots[0];
         $state['hintsused'] = (int)($state['hintsused'] ?? 0) + 1;
 
-        return [$state, get_string('hintrevealed', 'mod_playercross'), 'success'];
+        // A toast (auto-dismissing) rather than a persistent notification: this fires once per
+        // hint use, potentially many times in a single round, and would otherwise pile up
+        // requiring the player to manually close each one — unlike the warnings above, which
+        // are rarer and worth leaving up until acknowledged.
+        return [$state, get_string('hintrevealed', 'mod_playercross'), 'success', true];
     }
 
     /**
@@ -417,7 +421,7 @@ class round_service {
      * @param int $userid User id.
      * @param int $clueid Clue word id.
      * @param string $guess Raw guess text.
-     * @return array [$state, $resolved, $notification, $notificationtype]
+     * @return array [$state, $resolved, $notification, $notificationtype, $toast]
      */
     public static function submit_clue_guess(
         array $state,
@@ -428,22 +432,22 @@ class round_service {
         string $guess
     ): array {
         if (!empty($state['finished'])) {
-            return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning'];
+            return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning', false];
         }
 
         $index = self::find_clue_index($state, $clueid);
         if ($index === null) {
-            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning'];
+            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning', false];
         }
 
         $clue = $state['clues'][$index];
         if ($clue['resolved'] || $clue['exhausted']) {
-            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning'];
+            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning', false];
         }
 
         $normalizedguess = word_normalizer::normalize($guess);
         if (!word_normalizer::is_valid_charset($normalizedguess)) {
-            return [$state, false, get_string('error_invalidchars', 'mod_playercross'), 'warning'];
+            return [$state, false, get_string('error_invalidchars', 'mod_playercross'), 'warning', false];
         }
 
         $state['attemptsused']++;
@@ -457,12 +461,12 @@ class round_service {
                 $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
                 if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH) {
                     $state = self::finish_round($state, $instance, $cmid, $userid, false, false, false, false, true);
-                    return [$state, false, get_string('feedback_cluesexhausted', 'mod_playercross'), 'warning'];
+                    return [$state, false, get_string('feedback_cluesexhausted', 'mod_playercross'), 'warning', false];
                 }
 
-                return [$state, false, get_string('clueexhausted', 'mod_playercross'), 'warning'];
+                return [$state, false, get_string('clueexhausted', 'mod_playercross'), 'warning', false];
             }
-            return [$state, false, get_string('clueguesswrong', 'mod_playercross'), 'warning'];
+            return [$state, false, get_string('clueguesswrong', 'mod_playercross'), 'warning', false];
         }
 
         $state['clues'][$index]['resolved'] = true;
@@ -480,13 +484,18 @@ class round_service {
             $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
             if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH && !empty($state['finalguesscorrect'])) {
                 $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, true);
-                return [$state, true, get_string('roundwon', 'mod_playercross'), 'success'];
+                return [$state, true, get_string('roundwon', 'mod_playercross'), 'success', false];
             }
 
-            return [$state, true, get_string('cluescompleteneedsfinal', 'mod_playercross'), 'success'];
+            return [$state, true, get_string('cluescompleteneedsfinal', 'mod_playercross'), 'success', false];
         }
 
-        return [$state, true, get_string('clueresolved', 'mod_playercross'), 'success'];
+        // A toast (auto-dismissing) rather than a persistent notification: this fires on every
+        // ordinary mid-round clue, potentially several per round, and would otherwise pile up
+        // requiring the player to manually close each one. The two milestone messages above
+        // (round won, all clues done pending the final guess) stay as persistent notifications
+        // since they are rarer and worth leaving up until acknowledged.
+        return [$state, true, get_string('clueresolved', 'mod_playercross'), 'success', true];
     }
 
     /**
