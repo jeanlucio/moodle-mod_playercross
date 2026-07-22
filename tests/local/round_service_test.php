@@ -402,6 +402,48 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * A clue made entirely of letters shared with the mystery phrase (here "casa",
+     * every letter of which also appears in the theme "escola") ends up with every
+     * tile revealed the instant a correct final guess reveals the whole phrase — see
+     * test_submit_final_guess_correct_alone_does_not_finish_round(). Without
+     * round_service::resolve_fully_revealed_clues(), that clue's own resolved flag
+     * would stay false with no editable box left to ever set it: every tile locked,
+     * nothing left to type. This asserts it is auto-resolved instead, so the round can
+     * still finish once every other clue is solved too.
+     *
+     * @covers \mod_playercross\local\round_service::submit_final_guess
+     * @return void
+     */
+    public function test_final_guess_auto_resolves_a_clue_made_entirely_of_shared_letters(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        $casaindex = null;
+        foreach ($state['clues'] as $index => $clue) {
+            if ($clue['word'] === 'casa') {
+                $casaindex = $index;
+            }
+        }
+        $this->assertNotNull($casaindex, 'Fixture assumption: casa must be selected as a clue.');
+
+        [$state] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+
+        $this->assertTrue($state['clues'][$casaindex]['resolved']);
+        $this->assertSame(1, $state['cluesresolved']);
+    }
+
+    /**
      * A wrong direct guess of the mystery phrase leaves the round open.
      *
      * @covers \mod_playercross\local\round_service::submit_final_guess

@@ -337,6 +337,43 @@ class round_service {
     }
 
     /**
+     * Marks any still-active clue as resolved once every one of its own slots is
+     * already in revealedslots — reached, for instance, when a clue's word happens to
+     * be made entirely of letters shared with the mystery phrase, and a correct final
+     * guess reveals every phrase slot at once (see submit_final_guess()). Without this,
+     * such a clue would sit with every tile locked-and-revealed but no editable box
+     * left for the player to ever submit its own guess through — resolved stays false
+     * and the round can never finish under PLAYERCROSS_WINCONDITION_BOTH.
+     *
+     * Awarded the same points a direct correct guess would, treated as solved on the
+     * first attempt since none was actually made — the player already demonstrated
+     * full knowledge of every one of its letters.
+     *
+     * @param array $state Current state.
+     * @param \stdClass $instance Activity instance.
+     * @return array Updated state.
+     */
+    private static function resolve_fully_revealed_clues(array $state, \stdClass $instance): array {
+        foreach ($state['clues'] as $index => $clue) {
+            if ($clue['resolved'] || $clue['exhausted']) {
+                continue;
+            }
+            if (array_diff($clue['slots'], $state['revealedslots']) !== []) {
+                continue;
+            }
+
+            $state['clues'][$index]['resolved'] = true;
+            $state['cluesresolved']++;
+            $state['scoreaccumulated'] += gameplay_service::calculate_clue_points(
+                $instance,
+                (int)$state['cluestotal'],
+                (int)$state['clues'][$index]['attemptsused']
+            );
+        }
+        return $state;
+    }
+
+    /**
      * Reveals one still-hidden letter anywhere in the round, optionally consuming a
      * PlayerHUD item cost. A global action, not scoped to any single clue or to the
      * mystery phrase specifically: the revealed slot lights up in the mystery phrase
@@ -554,6 +591,7 @@ class round_service {
         // never reveals a slot exclusive to a still-unsolved clue's own word — same distinction
         // reveal_hint() draws (see its docblock).
         $state['revealedslots'] = array_values(array_unique(array_merge($state['revealedslots'], $state['themeslots'])));
+        $state = self::resolve_fully_revealed_clues($state, $instance);
 
         $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
         if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH && $state['cluesresolved'] < $state['cluestotal']) {
