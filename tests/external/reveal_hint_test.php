@@ -230,14 +230,20 @@ final class reveal_hint_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that once every slot in the round is revealed, a further call is rejected
-     * instead of erroring — the pool here has exactly 5 slots left to hint (see class
-     * docblock): livro's own 2 shared theme letters plus its 3 exclusive ones.
+     * Tests that revealing every slot in the round via hints alone — never a typed
+     * guess through either the phrase's own form or livro's — both resolves livro
+     * (round_service::resolve_fully_revealed_clues()) and confirms the phrase itself
+     * (round_service::confirm_fully_revealed_theme()), finishing and winning the round
+     * on the very call that completes it. Without those safeguards, every tile of both
+     * forms ends up locked-and-revealed with no editable box left, and resolved /
+     * finalguesscorrect would stay false forever with no way to ever set them.
      *
-     * Also covers round_service::resolve_fully_revealed_clues(): the 5th call reveals
-     * livro's own last hidden slot, leaving every one of its tiles locked-and-revealed
-     * with no editable box left — without that safeguard, its resolved flag would stay
-     * false forever with no way for the player to ever set it themselves.
+     * The pool here has exactly 5 slots left to hint (see class docblock): livro's own
+     * 2 shared theme letters plus its 3 exclusive ones. The theme's own slots (4, 5)
+     * are always numbered — and therefore always revealed — before livro's exclusive
+     * ones (7, 8, 9), so the phrase itself is already fully known by the 2nd call; the
+     * round only actually finishes on the 5th, once livro's last exclusive slot makes
+     * it resolved too and both PLAYERCROSS_WINCONDITION_BOTH conditions are met.
      *
      * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
@@ -246,11 +252,16 @@ final class reveal_hint_test extends \advanced_testcase {
         $instance = $this->make_instance_with_pool();
         $this->setUser($this->student);
 
-        $panel = null;
+        $response = null;
         for ($i = 0; $i < 5; $i++) {
             $response = $this->call_reveal_hint($instance->cmid);
-            $panel = $response['data']['panel'];
         }
+        $panel = $response['data']['panel'];
+
+        $this->assertFalse($response['error']);
+        $this->assertTrue($response['data']['finished']);
+        $this->assertSame('success', $response['data']['notificationtype']);
+        $this->assertFalse($response['data']['toast']);
         $this->assertSame([], $this->hidden_slotnums($panel));
         $this->assertTrue($panel['clues'][0]['resolved']);
         $this->assertSame(1, $panel['cluesresolved']);

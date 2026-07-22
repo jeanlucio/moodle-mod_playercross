@@ -374,6 +374,26 @@ class round_service {
     }
 
     /**
+     * Marks the mystery phrase itself as correctly guessed once every one of its own
+     * slots is already revealed — the same situation resolve_fully_revealed_clues()
+     * handles for a single clue, but for the phrase's own guess form: reached when
+     * reveal_hint() alone, never a typed-and-submitted guess through that form, has
+     * revealed every theme slot. Without this, finalguesscorrect stays false forever
+     * with no editable box left in the phrase's own form to ever set it through, and
+     * the round can never finish (PLAYERCROSS_WINCONDITION_BOTH) or award its final
+     * bonus (PLAYERCROSS_WINCONDITION_FINALONLY).
+     *
+     * @param array $state Current state.
+     * @return array Updated state.
+     */
+    private static function confirm_fully_revealed_theme(array $state): array {
+        if (empty($state['finalguesscorrect']) && array_diff($state['themeslots'], $state['revealedslots']) === []) {
+            $state['finalguesscorrect'] = true;
+        }
+        return $state;
+    }
+
+    /**
      * Reveals one still-hidden letter anywhere in the round, optionally consuming a
      * PlayerHUD item cost. A global action, not scoped to any single clue or to the
      * mystery phrase specifically: the revealed slot lights up in the mystery phrase
@@ -388,12 +408,22 @@ class round_service {
      * keeps the action useful even after the whole mystery phrase is already revealed,
      * as long as any clue still has a hidden letter of its own.
      *
+     * Also closes a soft-lock possible once every hidden slot in the round has been
+     * hinted away: with no clue and no phrase tile left unrevealed, neither the
+     * phrase's own guess form nor the last clue's has any editable box left, so the
+     * player could never submit a guess through them again to actually finish the
+     * round. resolve_fully_revealed_clues() and confirm_fully_revealed_theme() below
+     * cover exactly that, and — unlike a plain hint reveal — a call that completes the
+     * round this way finishes it immediately, the same as a correct submit_final_guess()
+     * would.
+     *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
+     * @param int $cmid Course module id.
      * @param int $userid User id.
      * @return array [$state, $notification, $notificationtype, $toast]
      */
-    public static function reveal_hint(array $state, \stdClass $instance, int $userid): array {
+    public static function reveal_hint(array $state, \stdClass $instance, int $cmid, int $userid): array {
         if (empty($state['themewordid']) || !empty($state['finished'])) {
             return [$state, get_string('roundfinished', 'mod_playercross'), 'warning', false];
         }
@@ -427,14 +457,31 @@ class round_service {
         $state['revealedslots'][] = $hiddenslots[0];
         $state['hintsused'] = (int)($state['hintsused'] ?? 0) + 1;
 
-        // Same safeguard as submit_final_guess(): if this was the clue's own last hidden
+        // Same safeguard as submit_final_guess(): if this was a clue's own last hidden
         // slot, revealing it can leave every one of that clue's tiles locked-and-revealed
         // with no editable box left — mark it resolved instead of leaving resolved stuck at
-        // false forever. Unlike submit_final_guess(), this never finishes the round on its
-        // own (reveal_hint() has no $cmid to call finish_round() with, by design — it is not
-        // a round-ending action) — if this happens to complete every clue, the round still
-        // needs a correct submit_final_guess() call to actually finish, same as always.
+        // false forever.
         $state = self::resolve_fully_revealed_clues($state, $instance);
+        // Same idea for the mystery phrase's own form: if this was its last hidden slot,
+        // finalguesscorrect would otherwise never get set — there is no typed guess left to
+        // submit through it either.
+        $state = self::confirm_fully_revealed_theme($state);
+
+        $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
+        $readytowin = !empty($state['finalguesscorrect'])
+            && ($wincondition === PLAYERCROSS_WINCONDITION_FINALONLY || $state['cluesresolved'] >= $state['cluestotal']);
+
+        if ($readytowin) {
+            $bonus = gameplay_service::calculate_final_guess_bonus(
+                $instance,
+                (int)$state['cluestotal'],
+                (int)$state['cluesresolved']
+            );
+            $state['scoreaccumulated'] += $bonus;
+            $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, true);
+
+            return [$state, get_string('roundwon', 'mod_playercross'), 'success', false];
+        }
 
         // A toast (auto-dismissing) rather than a persistent notification: this fires once per
         // hint use, potentially many times in a single round, and would otherwise pile up

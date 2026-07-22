@@ -36,7 +36,9 @@ use mod_playercross\local\round_service;
  * Reveals one still-hidden mystery-phrase slot, optionally consuming a PlayerHUD item
  * cost. A single round-wide action, not scoped to any clue: the revealed slot lights
  * up in the mystery phrase and in every pending clue that shares it, the same way
- * solving a clue would (see round_service::reveal_hint()).
+ * solving a clue would (see round_service::reveal_hint()). Can, in the edge case where
+ * this was the very last hidden slot in the whole round, finish the round on the spot —
+ * see round_service::resolve_fully_revealed_clues() and ::confirm_fully_revealed_theme().
  */
 class reveal_hint extends external_api {
     /**
@@ -72,13 +74,14 @@ class reveal_hint extends external_api {
         $state = round_service::load_state($cmid, $userid);
         $state = round_service::ensure_round_state($state, $instance, $cmid, $userid);
 
-        [$state, $notification, $notificationtype, $toast] = round_service::reveal_hint($state, $instance, $userid);
+        [$state, $notification, $notificationtype, $toast] = round_service::reveal_hint($state, $instance, $cmid, $userid);
         round_service::save_state($cmid, $userid, $state);
 
         return [
             'notification'     => $notification ?? '',
             'notificationtype' => $notificationtype ?? '',
             'toast'            => $toast,
+            'finished'         => !empty($state['finished']),
             'panel'            => round_presenter::build_round_panel_context($instance, $cm, $state, $userid),
         ];
     }
@@ -103,6 +106,7 @@ class reveal_hint extends external_api {
                 VALUE_DEFAULT,
                 false
             ),
+            'finished' => new external_value(PARAM_BOOL, 'Whether the round has ended', VALUE_DEFAULT, false),
             'panel' => submit_clue_guess::panel_structure(),
         ]);
     }

@@ -236,16 +236,17 @@ final class round_service_test extends \advanced_testcase {
             $this->user->id
         );
 
-        [$state] = round_service::reveal_hint($state, $instance, $this->user->id);
+        [$state] = round_service::reveal_hint($state, $instance, $cm->cmid, $this->user->id);
         $this->assertSame(1, $state['hintsused']);
 
-        [$state] = round_service::reveal_hint($state, $instance, $this->user->id);
+        [$state] = round_service::reveal_hint($state, $instance, $cm->cmid, $this->user->id);
         $this->assertSame(2, $state['hintsused']);
         $revealedslotsatlimit = $state['revealedslots'];
 
         [$state, $notification, $notificationtype, $toast] = round_service::reveal_hint(
             $state,
             $instance,
+            $cm->cmid,
             $this->user->id
         );
 
@@ -254,6 +255,53 @@ final class round_service_test extends \advanced_testcase {
         $this->assertSame(get_string('hintlimitreached', 'mod_playercross'), $notification);
         $this->assertSame('warning', $notificationtype);
         $this->assertFalse($toast);
+    }
+
+    /**
+     * Revealing every slot in the round via hints alone — never a single typed guess
+     * through either the phrase's own form or the sole clue's — still finishes and
+     * wins the round. A deterministic two-word pool (theme "escola", sole clue
+     * "livro", sharing "l" and "o" — see tests/external/reveal_hint_test.php's class
+     * docblock for the exact slot numbering this relies on) makes exactly 5 reveal_hint
+     * calls exhaust every hidden slot: the theme's own two shared slots first, so the
+     * phrase itself (confirm_fully_revealed_theme()) is already fully known by the 2nd
+     * call, then livro's three exclusive ones, resolving it
+     * (resolve_fully_revealed_clues()) and — since both PLAYERCROSS_WINCONDITION_BOTH
+     * conditions are then met — finishing the round on the 5th.
+     *
+     * @covers \mod_playercross\local\round_service::reveal_hint
+     * @return void
+     */
+    public function test_reveal_hint_alone_can_finish_and_win_the_round(): void {
+        $cm = $this->modgenerator->create_instance([
+            'course' => $this->course->id,
+            'num_clues' => 1,
+            'theme_min_length' => 6,
+            'min_length' => 3,
+            'max_length' => 15,
+        ]);
+        global $DB;
+        $instance = $DB->get_record('playercross', ['id' => $cm->id], '*', MUST_EXIST);
+        $this->modgenerator->create_word($instance->id, 'escola');
+        $this->modgenerator->create_word($instance->id, 'livro', 'dica');
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        $notification = null;
+        for ($i = 0; $i < 5; $i++) {
+            [$state, $notification] = round_service::reveal_hint($state, $instance, $cm->cmid, $this->user->id);
+        }
+
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['won']);
+        $this->assertTrue($state['finalguesscorrect']);
+        $this->assertTrue($state['clues'][0]['resolved']);
+        $this->assertSame(get_string('roundwon', 'mod_playercross'), $notification);
     }
 
     /**
@@ -1226,7 +1274,7 @@ final class round_service_test extends \advanced_testcase {
         );
         $revealedbefore = count($state['revealedslots']);
 
-        [$state, , $notificationtype, $toast] = round_service::reveal_hint($state, $instance, $this->user->id);
+        [$state, , $notificationtype, $toast] = round_service::reveal_hint($state, $instance, $cm->cmid, $this->user->id);
 
         $this->assertSame('success', $notificationtype);
         $this->assertTrue($toast);
