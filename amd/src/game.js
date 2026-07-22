@@ -453,6 +453,11 @@ const applyPanelSideEffects = (panelcontext, cmid, timertotal) => {
         forfeitButton.hidden = Boolean(panelcontext.roundfinished);
     }
 
+    const timerWrapper = document.getElementById('playercross-timer-wrapper');
+    if (timerWrapper) {
+        timerWrapper.hidden = !panelcontext.timerenabled || Boolean(panelcontext.roundfinished);
+    }
+
     if (panelcontext.roundfinished) {
         if (panelcontext.cooldownuntil > 0) {
             startCountdown(panelcontext.cooldownuntil, cmid);
@@ -506,6 +511,10 @@ const showLobby = async(lobbycontext) => {
     const forfeitButton = document.getElementById('playercross-forfeit-button');
     if (forfeitButton) {
         forfeitButton.hidden = true;
+    }
+    const timerWrapper = document.getElementById('playercross-timer-wrapper');
+    if (timerWrapper) {
+        timerWrapper.hidden = true;
     }
     document.getElementById('playercross-start-round-button')?.focus();
 };
