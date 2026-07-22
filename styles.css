@@ -479,6 +479,24 @@
 }
 
 @media (max-width: 576px) {
+    /*
+     * Single source of truth for the fixed keyboard's own rendered height at this breakpoint
+     * (3 key rows + row gaps + vertical padding, see .mod-playercross-keyboard below) plus the
+     * same safe-area inset it pads itself with. Shared by the reserved bottom padding and the
+     * drawer-toggle repositioning further down, so both always track the real keyboard height
+     * instead of two independently guessed numbers drifting apart.
+     *
+     * Gated on :has(#playercross-keyboard) rather than plain .path-mod-playercross: that body
+     * class is shared by every script under mod/playercross/ (attemptsreport.php,
+     * managewords.php, myattempts.php, ranking.php, index.php), none of which render the
+     * keyboard, and even view.php itself omits it during the lobby and the finished-round
+     * screens. Tying this to the keyboard's real presence keeps every rule below inert on all
+     * of those instead of relying on the directory-level path class alone.
+     */
+    .path-mod-playercross:has(#playercross-keyboard) {
+        --pc-keyboard-reserve: calc(12.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
     .path-mod-playercross .modal-dialog {
         margin-inline: 0.75rem;
         max-width: calc(100vw - 1.5rem);
@@ -486,10 +504,54 @@
 
     .path-mod-playercross .mod-playercross-game {
         padding: 1rem;
+        /*
+         * Reserves room below the last clue so the fixed keyboard never overlaps it. The 1rem
+         * fallback applies whenever --pc-keyboard-reserve is unset (no keyboard on this
+         * screen) — an unset custom property with no fallback would make the whole declaration
+         * invalid at computed-value time and reset padding-bottom to 0, not to the padding
+         * shorthand above; the explicit fallback here avoids relying on that cascade quirk.
+         */
+        padding-bottom: var(--pc-keyboard-reserve, 1rem);
+    }
+
+    /*
+     * position: sticky anchors bottom: 0 against the browser's layout viewport, which stays
+     * taller than what is actually visible while a mobile browser's address bar shows or hides
+     * during scroll — the keyboard drifts out of sync with the tiles above it. Desktop has no
+     * such dynamic browser chrome, so the base sticky rule keeps working fine there. Switching
+     * to fixed on phones anchors the keyboard to the real visible viewport instead.
+     */
+    .path-mod-playercross .mod-playercross-keyboard {
+        position: fixed;
+        left: 50%;
+        bottom: 0;
+        margin: 0;
+        transform: translateX(-50%);
+        z-index: 1;
+    }
+
+    /*
+     * Boost's own drawer-toggle buttons (#page.drawers .drawer-toggler) are position: fixed
+     * and, on mobile, anchored via a vh-based `top` that happens to land in the same screen
+     * band as our fixed keyboard — overlapping its outer Enviar/Backspace keys. Gated on
+     * :has(#playercross-keyboard), same reasoning as --pc-keyboard-reserve above, so Boost's
+     * drawer positioning is only ever touched on the exact screen where our keyboard is
+     * actually on top of them — never on this plugin's other pages, and never elsewhere on
+     * the site. Using --pc-keyboard-reserve keeps them sitting just above the keyboard
+     * regardless of breakpoint, rather than guessing a second fixed offset.
+     */
+    .path-mod-playercross:has(#playercross-keyboard) .drawer-toggles .drawer-toggler {
+        top: auto;
+        bottom: calc(var(--pc-keyboard-reserve) + 0.5rem);
     }
 }
 
 @media (max-width: 480px) {
+    .path-mod-playercross:has(#playercross-keyboard) {
+        /* Smaller keys at this breakpoint make a shorter keyboard than the 576px case. */
+        --pc-keyboard-reserve: calc(10.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
     .path-mod-playercross .mod-playercross-theme {
         gap: 0.25rem;
     }
