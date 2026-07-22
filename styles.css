@@ -36,17 +36,23 @@
 
 /*
  * clip: rect(0,0,0,0) alone hides the box's own paint, but a browser's text-selection
- * highlight still renders at the text's natural (unclipped) size when dragged over —
- * the 1x1px box is invisible, the selected announcement text underneath is not. Scoped
- * to this one element rather than added to .visually-hidden itself: the live region's
- * content changes on every action (round_service updates via game.js's announce()),
- * so it is the one visually-hidden element on this page a stray drag is likely to
- * actually land on and select. clip-path additionally constrains the selection
- * rendering the same way it constrains paint, closing that gap without touching the
- * shared .visually-hidden pattern this ecosystem's other plugins also rely on verbatim.
+ * highlight can still render at the text's natural (unclipped) size when dragged over
+ * on some mobile browsers — the 1x1px box is invisible, the selected announcement text
+ * underneath is not, confirmed on a real device even after clip-path: inset(50%) (kept
+ * below as a paint-level belt-and-braces; it did not fix the selection on its own).
+ * user-select: none is the direct fix: it stops the browser from including this
+ * element's text in a drag/long-press selection at all, regardless of what does or
+ * does not get painted, and has no effect on how screen readers read aria-live content
+ * — that relies on the accessibility tree and DOM mutations, never on selectability.
+ * Scoped to this one element rather than added to .visually-hidden itself: the live
+ * region's content changes on every action (round_service updates via game.js's
+ * announce()), so it is the one visually-hidden element on this page a stray drag is
+ * likely to actually land on. Keeping the shared .visually-hidden pattern itself
+ * untouched matches what this ecosystem's other plugins also rely on verbatim.
  */
 .path-mod-playercross #playercross-live-region {
     clip-path: inset(50%);
+    user-select: none;
 }
 
 .path-mod-playercross .mod-playercross-game {
