@@ -50,6 +50,14 @@ final class cross_instance_security_test extends \advanced_testcase {
      * word long enough to be the mystery phrase (the only theme candidate, so it is always
      * picked deterministically) and one shorter word that only ever qualifies as the clue.
      *
+     * reveal_uncovered_slots is disabled so a theme letter the clue itself never covers
+     * (e.g. "escola"'s e/s/c/a against clue "livro", which only shares l/o) is not simply
+     * given away for free at round start — otherwise resolving the sole clue would, via
+     * round_service::reconcile_after_reveal(), incidentally reveal the whole phrase and
+     * finish the round on its own, defeating test_attempts_are_scoped_to_their_own_activity()'s
+     * own point: it means to resolve the clue and submit the final guess as two separate
+     * actions, not have the first one silently finish things before the second ever runs.
+     *
      * @param \stdClass $course Course to create the instance in.
      * @param string $themeword Word to seed as the (only) theme candidate, at least 6 chars.
      * @param string $clueword Word to seed as the clue, under 6 chars.
@@ -58,11 +66,12 @@ final class cross_instance_security_test extends \advanced_testcase {
     private function make_instance(\stdClass $course, string $themeword, string $clueword): \stdClass {
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
         $instance = $modgenerator->create_instance([
-            'course'           => $course->id,
-            'num_clues'        => 1,
-            'theme_min_length' => 6,
-            'min_length'       => 3,
-            'max_length'       => 15,
+            'course'                 => $course->id,
+            'num_clues'              => 1,
+            'theme_min_length'       => 6,
+            'min_length'             => 3,
+            'max_length'             => 15,
+            'reveal_uncovered_slots' => 0,
         ]);
 
         $modgenerator->create_word($instance->id, $themeword);
