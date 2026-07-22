@@ -60,10 +60,11 @@ final class submit_clue_guess_test extends \advanced_testcase {
     /**
      * Creates a ready-to-play instance with a small, deterministic word pool.
      *
+     * @param array $overrides Instance field overrides.
      * @return array{0: \stdClass, 1: \stdClass} [instance record, course module]
      */
-    private function make_ready_instance(): array {
-        $cm = $this->modgenerator->create_instance([
+    private function make_ready_instance(array $overrides = []): array {
+        $cm = $this->modgenerator->create_instance($overrides + [
             'course' => $this->course->id,
             'num_clues' => 3,
             'theme_min_length' => 6,
@@ -141,12 +142,19 @@ final class submit_clue_guess_test extends \advanced_testcase {
      * the mystery phrase to be guessed too — and the theme word stays hidden until the
      * round actually finishes.
      *
+     * num_clues/reveal_uncovered_slots overridden from make_ready_instance()'s usual 3
+     * clues: with all three of casa/lobo/mel selected, their combined coverage always
+     * happens to reach every theme letter (a coincidence of this fixed word pool),
+     * which would make round_service::reconcile_after_reveal() confirm the phrase —
+     * and finish the round — as a side effect of the last clue, defeating the very
+     * thing this test means to check.
+     *
      * @covers \mod_playercross\external\submit_clue_guess::execute
      * @covers \mod_playercross\external\submit_final_guess::execute
      * @return void
      */
     public function test_resolving_every_clue_reveals_theme_word_only_at_the_end(): void {
-        [$instance, $cm] = $this->make_ready_instance();
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 2, 'reveal_uncovered_slots' => 0]);
         $this->setUser($this->student);
 
         $state = round_service::ensure_round_state(

@@ -394,6 +394,55 @@ class round_service {
     }
 
     /**
+     * Runs after every operation that adds to revealedslots — a clue resolved
+     * (submit_clue_guess()), a hint revealed (reveal_hint()), or the phrase itself
+     * confirmed (submit_final_guess()) — regardless of which of those three actually
+     * triggered it. Any one of them can, via shared slots, incidentally complete a
+     * different clue or the phrase itself: resolving three ordinary clues can reveal
+     * every mystery-phrase slot as a side effect just as easily as a hint or a direct
+     * final guess can. Centralizing the consequences here — auto-resolving whatever
+     * clue is now fully revealed, confirming the phrase if it is too, and finishing the
+     * round if that satisfies the win condition — means no entry point that touches
+     * revealedslots can be the one left without this safeguard; retrofitting it three
+     * separate times, once per call site, is exactly how it went missing from
+     * submit_clue_guess() the first time around.
+     *
+     * @param array $state Current state.
+     * @param \stdClass $instance Activity instance.
+     * @param int $cmid Course module id.
+     * @param int $userid User id.
+     * @return array{0: array, 1: ?string} Updated state, and the roundwon notification
+     *     if this call finished the round — null if it did not.
+     */
+    private static function reconcile_after_reveal(
+        array $state,
+        \stdClass $instance,
+        int $cmid,
+        int $userid
+    ): array {
+        $state = self::resolve_fully_revealed_clues($state, $instance);
+        $state = self::confirm_fully_revealed_theme($state);
+
+        $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
+        $readytowin = !empty($state['finalguesscorrect'])
+            && ($wincondition === PLAYERCROSS_WINCONDITION_FINALONLY || $state['cluesresolved'] >= $state['cluestotal']);
+
+        if (!$readytowin) {
+            return [$state, null];
+        }
+
+        $bonus = gameplay_service::calculate_final_guess_bonus(
+            $instance,
+            (int)$state['cluestotal'],
+            (int)$state['cluesresolved']
+        );
+        $state['scoreaccumulated'] += $bonus;
+        $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, true);
+
+        return [$state, get_string('roundwon', 'mod_playercross')];
+    }
+
+    /**
      * Reveals one still-hidden letter anywhere in the round, optionally consuming a
      * PlayerHUD item cost. A global action, not scoped to any single clue or to the
      * mystery phrase specifically: the revealed slot lights up in the mystery phrase
@@ -412,10 +461,9 @@ class round_service {
      * hinted away: with no clue and no phrase tile left unrevealed, neither the
      * phrase's own guess form nor the last clue's has any editable box left, so the
      * player could never submit a guess through them again to actually finish the
-     * round. resolve_fully_revealed_clues() and confirm_fully_revealed_theme() below
-     * cover exactly that, and — unlike a plain hint reveal — a call that completes the
-     * round this way finishes it immediately, the same as a correct submit_final_guess()
-     * would.
+     * round. reconcile_after_reveal() covers exactly that, and — unlike a plain hint
+     * reveal — a call that completes the round this way finishes it immediately, the
+     * same as a correct submit_final_guess() would.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
@@ -457,30 +505,12 @@ class round_service {
         $state['revealedslots'][] = $hiddenslots[0];
         $state['hintsused'] = (int)($state['hintsused'] ?? 0) + 1;
 
-        // Same safeguard as submit_final_guess(): if this was a clue's own last hidden
-        // slot, revealing it can leave every one of that clue's tiles locked-and-revealed
-        // with no editable box left — mark it resolved instead of leaving resolved stuck at
-        // false forever.
-        $state = self::resolve_fully_revealed_clues($state, $instance);
-        // Same idea for the mystery phrase's own form: if this was its last hidden slot,
-        // finalguesscorrect would otherwise never get set — there is no typed guess left to
-        // submit through it either.
-        $state = self::confirm_fully_revealed_theme($state);
-
-        $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
-        $readytowin = !empty($state['finalguesscorrect'])
-            && ($wincondition === PLAYERCROSS_WINCONDITION_FINALONLY || $state['cluesresolved'] >= $state['cluestotal']);
-
-        if ($readytowin) {
-            $bonus = gameplay_service::calculate_final_guess_bonus(
-                $instance,
-                (int)$state['cluestotal'],
-                (int)$state['cluesresolved']
-            );
-            $state['scoreaccumulated'] += $bonus;
-            $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, true);
-
-            return [$state, get_string('roundwon', 'mod_playercross'), 'success', false];
+        // See reconcile_after_reveal(): this hint can, via shared slots, leave a clue or
+        // the phrase itself fully revealed with no editable box left in its own form —
+        // and finish the round outright if that satisfies the win condition.
+        [$state, $wonmessage] = self::reconcile_after_reveal($state, $instance, $cmid, $userid);
+        if ($wonmessage !== null) {
+            return [$state, $wonmessage, 'success', false];
         }
 
         // A toast (auto-dismissing) rather than a persistent notification: this fires once per
@@ -498,10 +528,12 @@ class round_service {
      * those slots too, since revealedslots is a single set shared by the whole puzzle.
      *
      * Under PLAYERCROSS_WINCONDITION_BOTH (the default), resolving the last pending
-     * clue only finishes the round if the mystery phrase has already been guessed
-     * correctly (submit_final_guess() sets finalguesscorrect) — otherwise the round
-     * stays open. Under PLAYERCROSS_WINCONDITION_FINALONLY, resolving every clue never
-     * finishes the round by itself; only a direct guess of the mystery phrase does.
+     * clue only finishes the round if the mystery phrase is already known correct —
+     * either a direct guess through its own form (submit_final_guess()) or, via
+     * reconcile_after_reveal(), every one of its slots happening to be revealed
+     * already as a side effect of the clues resolved so far. Under
+     * PLAYERCROSS_WINCONDITION_FINALONLY, resolving every clue never finishes the round
+     * by itself unless that same side effect reveals the whole phrase too.
      *
      * A clue running out of attempts under PLAYERCROSS_WINCONDITION_BOTH makes winning
      * this round mathematically impossible from that moment on — cluesresolved can
@@ -573,13 +605,17 @@ class round_service {
         );
         $state['scoreaccumulated'] += $points;
 
-        if ($state['cluesresolved'] >= $state['cluestotal']) {
-            $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
-            if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH && !empty($state['finalguesscorrect'])) {
-                $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, true);
-                return [$state, true, get_string('roundwon', 'mod_playercross'), 'success', false];
-            }
+        // See reconcile_after_reveal(): this clue's own slots can, via shared letters,
+        // also complete a different still-open clue or the mystery phrase itself —
+        // resolving three ordinary clues can reveal the whole phrase as a side effect
+        // just as easily as a hint or a direct final guess can. Finishes the round
+        // outright if that satisfies the win condition.
+        [$state, $wonmessage] = self::reconcile_after_reveal($state, $instance, $cmid, $userid);
+        if ($wonmessage !== null) {
+            return [$state, true, $wonmessage, 'success', false];
+        }
 
+        if ($state['cluesresolved'] >= $state['cluestotal']) {
             return [$state, true, get_string('cluescompleteneedsfinal', 'mod_playercross'), 'success', false];
         }
 
@@ -647,23 +683,18 @@ class round_service {
         // never reveals a slot exclusive to a still-unsolved clue's own word — same distinction
         // reveal_hint() draws (see its docblock).
         $state['revealedslots'] = array_values(array_unique(array_merge($state['revealedslots'], $state['themeslots'])));
-        $state = self::resolve_fully_revealed_clues($state, $instance);
 
-        $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
-        if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH && $state['cluesresolved'] < $state['cluestotal']) {
-            return [$state, true, get_string('finalguesscorrectneedsclues', 'mod_playercross'), 'success'];
+        // See reconcile_after_reveal(): finalguesscorrect is already true above, so this
+        // resolves any clue left fully revealed as a side effect and finishes the round
+        // outright once the win condition is met (immediately under
+        // PLAYERCROSS_WINCONDITION_FINALONLY, or once every clue is resolved too under
+        // PLAYERCROSS_WINCONDITION_BOTH).
+        [$state, $wonmessage] = self::reconcile_after_reveal($state, $instance, $cmid, $userid);
+        if ($wonmessage !== null) {
+            return [$state, true, $wonmessage, 'success'];
         }
 
-        $bonus = gameplay_service::calculate_final_guess_bonus(
-            $instance,
-            (int)$state['cluestotal'],
-            (int)$state['cluesresolved']
-        );
-        $state['scoreaccumulated'] += $bonus;
-
-        $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, true);
-
-        return [$state, true, get_string('roundwon', 'mod_playercross'), 'success'];
+        return [$state, true, get_string('finalguesscorrectneedsclues', 'mod_playercross'), 'success'];
     }
 
     /**

@@ -381,11 +381,23 @@ final class round_service_test extends \advanced_testcase {
      * Resolving every clue alone does not finish the round while the mystery phrase has
      * not been guessed yet — winning always requires both conditions.
      *
+     * num_clues is 2 here, not the usual 3 (see make_ready_instance()): with all three
+     * of casa/lobo/mel selected, their combined coverage always happens to reach every
+     * theme letter (SCOPE.md-level coincidence of this fixed word pool), which would
+     * make reconcile_after_reveal() confirm the phrase — and finish the round — as a
+     * side effect of the last clue, defeating the very thing this test means to check.
+     * reveal_uncovered_slots is also disabled so the one theme letter neither of the
+     * two selected clues covers is not simply given away for free at round start.
+     *
      * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_resolving_all_clues_alone_does_not_finish_round(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 2,
+            'theme_min_length' => 6,
+            'reveal_uncovered_slots' => 0,
+        ]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -405,7 +417,7 @@ final class round_service_test extends \advanced_testcase {
             );
         }
 
-        $this->assertSame(3, $state['cluesresolved']);
+        $this->assertSame(2, $state['cluesresolved']);
         $this->assertFalse($state['finished']);
         // The last clue resolves them all, triggering cluescompleteneedsfinal instead of the
         // ordinary per-clue message — a milestone, deliberately not toast-worthy, unlike the
@@ -522,13 +534,23 @@ final class round_service_test extends \advanced_testcase {
      * Resolving every clue first, then guessing the mystery phrase, finishes and wins
      * the round and writes the attempts row.
      *
+     * num_clues/reveal_uncovered_slots overridden the same way and for the same reason
+     * as test_resolving_all_clues_alone_does_not_finish_round(): otherwise the clue
+     * loop below would already finish the round by itself (every theme letter
+     * incidentally covered), leaving nothing left for the submit_final_guess() call
+     * this test actually means to exercise.
+     *
      * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_clues_then_final_guess_finishes_and_wins_round(): void {
         global $DB;
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 2,
+            'theme_min_length' => 6,
+            'reveal_uncovered_slots' => 0,
+        ]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -562,7 +584,7 @@ final class round_service_test extends \advanced_testcase {
         $this->assertTrue($state['finalguessed']);
 
         $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
-        $this->assertSame(3, (int)$attempt->cluesresolved);
+        $this->assertSame(2, (int)$attempt->cluesresolved);
         $this->assertSame(1, (int)$attempt->completed);
     }
 
@@ -687,13 +709,20 @@ final class round_service_test extends \advanced_testcase {
      * PLAYERCROSS_WINCONDITION_FINALONLY: resolving every clue never finishes the
      * round on its own — only a direct guess of the mystery phrase does.
      *
+     * num_clues/reveal_uncovered_slots overridden the same way and for the same reason
+     * as test_resolving_all_clues_alone_does_not_finish_round(): otherwise resolving
+     * every clue would incidentally reveal the whole phrase too, and under
+     * PLAYERCROSS_WINCONDITION_FINALONLY that alone is enough to finish the round —
+     * exactly the outcome this test means to rule out.
+     *
      * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_finalonly_resolving_all_clues_does_not_finish_round(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_clues' => 2,
             'theme_min_length' => 6,
+            'reveal_uncovered_slots' => 0,
             'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
         ]);
         $state = round_service::ensure_round_state(
@@ -715,7 +744,7 @@ final class round_service_test extends \advanced_testcase {
             );
         }
 
-        $this->assertSame(3, $state['cluesresolved']);
+        $this->assertSame(2, $state['cluesresolved']);
         $this->assertFalse($state['finished']);
         // The last clue resolves them all, triggering cluescompleteneedsfinal instead of the
         // ordinary per-clue message — a milestone, deliberately not toast-worthy, unlike the
