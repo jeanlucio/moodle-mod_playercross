@@ -18,6 +18,8 @@
 * ⏱️ **Configurable Cooldown:** Minimum wait between rounds (minutes, hours, or days), always recomputed from the activity's current setting.
 * 🔢 **Round Limit:** Teachers can cap the total number of rounds per student (1–10 or unlimited).
 * 🔡 **Accent-Insensitive Matching:** Diacritics are always stripped before comparing a guess and its target.
+* ⌨️ **Accent Picker on the Virtual Keyboard:** Long-pressing a vowel key (A, E, I, O, U) on the on-screen keyboard opens a popup with its accented variants, mirroring a mobile keyboard's own long-press behaviour — sliding the finger picks a variant, releasing confirms it. Purely cosmetic: guess matching stays accent-insensitive throughout.
+* ✅ **True-Spelling Reveal:** When a clue is resolved or the round ends, the clue word and the mystery phrase are shown with their real, accented spelling from the word bank, even if the winning guess was typed without accents.
 * 🧮 **Per-Clue Scoring:** Points accumulate as each clue is resolved (full credit on the first two attempts, then scaled down as the attempt limit is approached), plus an optional bonus for guessing the mystery phrase directly — see [Grading & Ranking](grading.html).
 * 📊 **Grading Methods:** Highest grade, average grade, first attempt, last attempt, or average over all required rounds.
 * 📋 **Gradebook Integration:** Grades are written automatically on every round completion.

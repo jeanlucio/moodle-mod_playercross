@@ -18,6 +18,8 @@
 * ⏱️ **Intervalo configurável:** Espera mínima entre rodadas (minutos, horas ou dias), sempre recalculada a partir da configuração atual da atividade.
 * 🔢 **Limite de rodadas:** Professores podem limitar o total de rodadas por estudante (1–10 ou ilimitado).
 * 🔡 **Correspondência insensível a acentos:** Acentos são sempre removidos antes de comparar um palpite com seu alvo.
+* ⌨️ **Seleção de acento no teclado virtual:** Segurar uma tecla de vogal (A, E, I, O, U) no teclado virtual abre um popup com as variantes acentuadas, igual ao padrão de teclado de celular — arrastar o dedo escolhe a variante, soltar confirma. Puramente estético: a correspondência de palpites continua sempre insensível a acentos.
+* ✅ **Revelação com ortografia real:** Ao resolver uma pista ou terminar a rodada, a palavra da pista e a frase-mistério são exibidas com a acentuação verdadeira do banco de palavras, mesmo que o palpite vencedor tenha sido digitado sem acento.
 * 🧮 **Pontuação por pista:** Os pontos se acumulam conforme cada pista é resolvida (crédito total nas duas primeiras tentativas, depois decrescendo conforme o limite de tentativas se aproxima), mais um bônus opcional por acertar a frase-mistério diretamente — veja [Nota e Ranking](grading.html).
 * 📊 **Métodos de avaliação:** Maior nota, média das notas, primeira tentativa, última tentativa, ou média sobre todas as rodadas exigidas.
 * 📋 **Integração com o diário de notas:** As notas são lançadas automaticamente a cada conclusão de rodada.
