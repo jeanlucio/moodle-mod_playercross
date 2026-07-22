@@ -142,6 +142,22 @@
         {{/timerenabled}}
     </div>
 
+    {{!
+        Rendered above the game area, not below it: the on-screen keyboard inside
+        #playercross-stage is position: fixed to the viewport's bottom edge on mobile,
+        with no reserved space of its own for content that comes after it in the
+        document — anything placed below the stage risks sitting behind the keyboard,
+        mostly hidden, with only a sliver of descenders (e.g. "jogo"'s j/g) peeking out.
+    }}
+    {{#showwordsstatus}}
+        {{#hasinactivewords}}
+            {{> mod_playercross/inactive_words}}
+        {{/hasinactivewords}}
+        {{^hasinactivewords}}
+            <p class="mod-playercross-words-status text-muted small mb-2">{{activewordscount}}</p>
+        {{/hasinactivewords}}
+    {{/showwordsstatus}}
+
     {{^hastheme}}
         <div class="alert alert-warning">{{nogamewords}}</div>
     {{/hastheme}}
@@ -156,15 +172,6 @@
             {{/showlobby}}
         </div>
     {{/hastheme}}
-
-    {{#showwordsstatus}}
-        {{#hasinactivewords}}
-            {{> mod_playercross/inactive_words}}
-        {{/hasinactivewords}}
-        {{^hasinactivewords}}
-            <p class="mod-playercross-words-status text-muted small mb-2">{{activewordscount}}</p>
-        {{/hasinactivewords}}
-    {{/showwordsstatus}}
 
     <div id="playercross-live-region"
          class="visually-hidden"

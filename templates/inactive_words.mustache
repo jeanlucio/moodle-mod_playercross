@@ -19,8 +19,11 @@
 
     Teacher-only warning listing approved pool words that will never actually be
     drawn into a round (outside the current length range, or containing a character
-    the game cannot use), shown on view.php below the game area. Never rendered for
-    a student — gated by canmanage in view_page_service.php.
+    the game cannot use), shown on view.php above the game area — not below, so it
+    can never end up hidden behind the mobile virtual keyboard, which is
+    position: fixed to the viewport's bottom edge and therefore has no reserved
+    space of its own for content that would otherwise render after it. Never
+    rendered for a student — gated by canmanage in view_page_service.php.
 
     Example context (json):
     {
