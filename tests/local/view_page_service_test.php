@@ -241,6 +241,75 @@ final class view_page_service_test extends \advanced_testcase {
     }
 
     /**
+     * A student — who cannot manage the activity — never sees the inactive-words
+     * warning, even when the pool genuinely has an inactive word.
+     *
+     * @covers \mod_playercross\local\view_page_service::build_page_data
+     * @return void
+     */
+    public function test_build_page_data_hides_inactive_words_for_non_manager(): void {
+        [$instance, $cm, $context] = $this->make_instance();
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        // Two letters: below both the clue range (min_length 3) and theme_min_length (6).
+        $modgenerator->create_word($instance->id, 'oi');
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+
+        $this->assertFalse($pagedata['templatecontext']['showwordsstatus']);
+        $this->assertFalse($pagedata['templatecontext']['hasinactivewords']);
+    }
+
+    /**
+     * Whoever can manage the activity sees the inactive-words warning, naming the
+     * word and its exclusion reason, alongside the active-word count.
+     *
+     * @covers \mod_playercross\local\view_page_service::build_page_data
+     * @return void
+     */
+    public function test_build_page_data_shows_inactive_words_for_manager(): void {
+        [$instance, $cm, $context] = $this->make_instance();
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $modgenerator->create_word($instance->id, 'oi');
+
+        $teacher = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($teacher->id, $this->course->id, 'editingteacher');
+        $this->setUser($teacher);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $teacher->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showwordsstatus']);
+        // Only "escola" and "livro" (make_instance()'s own default pool) count as active.
+        $this->assertStringContainsString('2', $ctx['activewordscount']);
+        $this->assertTrue($ctx['hasinactivewords']);
+        $this->assertTrue($ctx['haslengthissues']);
+        $this->assertStringContainsString('oi', $ctx['lengthissuestext']);
+        $this->assertFalse($ctx['hascharsetissues']);
+    }
+
+    /**
+     * The active-word count is shown to a manager even when the pool has no
+     * inactive words at all — it is a standing reassurance, not tied to a warning.
+     *
+     * @covers \mod_playercross\local\view_page_service::build_page_data
+     * @return void
+     */
+    public function test_build_page_data_shows_active_count_without_any_inactive_words(): void {
+        [$instance, $cm, $context] = $this->make_instance();
+
+        $teacher = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($teacher->id, $this->course->id, 'editingteacher');
+        $this->setUser($teacher);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $teacher->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showwordsstatus']);
+        $this->assertStringContainsString('2', $ctx['activewordscount']);
+        $this->assertFalse($ctx['hasinactivewords']);
+    }
+
+    /**
      * The ranking toolbar link reflects the activity's show_ranking setting.
      *
      * @covers \mod_playercross\local\view_page_service::build_page_data

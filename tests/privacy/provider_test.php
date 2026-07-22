@@ -243,6 +243,38 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Tests that delete_data_for_user removes only that user's attempts and
+     * anonymises their words, for a single context.
+     *
+     * @covers \mod_playercross\privacy\provider::delete_data_for_user
+     * @return void
+     */
+    public function test_delete_data_for_user(): void {
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course();
+        $cm = $this->make_cm($course);
+        $user = $this->getDataGenerator()->create_user();
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+
+        $theme = $modgenerator->create_word($cm->id, 'escola');
+        $DB->set_field('playercross_words', 'addedby', $user->id, ['id' => $theme->id]);
+        $modgenerator->create_attempt($cm->id, $user->id, $theme->id);
+
+        $context = \context_module::instance($cm->cmid);
+        $contextlist = new approved_contextlist($user, 'mod_playercross', [$context->id]);
+
+        provider::delete_data_for_user($contextlist);
+
+        $attempts = $DB->count_records('playercross_attempts', [
+            'userid'        => $user->id,
+            'playercrossid' => (int)$cm->id,
+        ]);
+        $this->assertSame(0, $attempts);
+        $this->assertSame('0', (string)$DB->get_field('playercross_words', 'addedby', ['id' => $theme->id]));
+    }
+
+    /**
+     * Tests that delete_data_for_user removes only that user's attempts and
      * anonymises their words, across every context in the approved list.
      *
      * @covers \mod_playercross\privacy\provider::delete_data_for_user

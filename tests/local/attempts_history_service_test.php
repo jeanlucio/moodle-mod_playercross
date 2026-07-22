@@ -82,6 +82,110 @@ final class attempts_history_service_test extends \advanced_testcase {
     }
 
     /**
+     * An activity with no attempts at all yields an empty history and no grade.
+     *
+     * @covers \mod_playercross\local\attempts_history_service::get_history
+     * @return void
+     */
+    public function test_get_history_is_empty_without_any_attempts(): void {
+        $cm = $this->modgenerator->create_instance(['course' => $this->course->id, 'grade' => 100]);
+        global $DB;
+        $instance = $DB->get_record('playercross', ['id' => $cm->id], '*', MUST_EXIST);
+        $user = $this->getDataGenerator()->create_user();
+
+        $history = attempts_history_service::get_history($instance, $user->id);
+
+        $this->assertTrue($history['isempty']);
+        $this->assertSame([], $history['rows']);
+        $this->assertFalse($history['showgrade']);
+    }
+
+    /**
+     * The current grade matches playercross_calculate_user_grade() for the
+     * instance's configured grading method — the whole point of this service is to
+     * never duplicate that aggregation logic.
+     *
+     * @covers \mod_playercross\local\attempts_history_service::get_history
+     * @return void
+     */
+    public function test_get_history_grade_matches_calculate_user_grade(): void {
+        $cm = $this->modgenerator->create_instance([
+            'course' => $this->course->id,
+            'grade' => 100,
+            'grademethod' => PLAYERCROSS_GRADE_HIGHEST,
+        ]);
+        global $DB;
+        $instance = $DB->get_record('playercross', ['id' => $cm->id], '*', MUST_EXIST);
+        $theme = $this->modgenerator->create_word($instance->id, 'escola');
+        $user = $this->getDataGenerator()->create_user();
+        $this->modgenerator->create_attempt($instance->id, $user->id, $theme->id, [
+            'score' => 40.0,
+            'timecreated' => time() - 20,
+        ]);
+        $this->modgenerator->create_attempt($instance->id, $user->id, $theme->id, [
+            'score' => 90.0,
+            'timecreated' => time() - 10,
+        ]);
+
+        $history = attempts_history_service::get_history($instance, $user->id);
+
+        $this->assertTrue($history['showgrade']);
+        $this->assertSame('90.00', $history['grade']);
+        $this->assertSame('100.00', $history['maxgrade']);
+    }
+
+    /**
+     * The theme-word column falls back to the joined word's raw text when no
+     * concept was recorded for it (e.g. a manually added word inserted outside the
+     * generator's own concept-always-set convention).
+     *
+     * @covers \mod_playercross\local\attempts_history_service::get_history
+     * @return void
+     */
+    public function test_get_history_row_falls_back_to_word_when_no_concept(): void {
+        global $DB;
+        $cm = $this->modgenerator->create_instance(['course' => $this->course->id, 'grade' => 100]);
+        $instance = $DB->get_record('playercross', ['id' => $cm->id], '*', MUST_EXIST);
+        $wordid = $DB->insert_record('playercross_words', (object)[
+            'playercrossid' => $instance->id,
+            'word'          => 'floresta',
+            'concept'       => null,
+            'hint'          => 'floresta',
+            'source'        => 'manual',
+            'glossaryid'    => 0,
+            'approved'      => 1,
+            'timecreated'   => time(),
+            'timemodified'  => time(),
+            'addedby'       => 0,
+        ]);
+        $user = $this->getDataGenerator()->create_user();
+        $this->modgenerator->create_attempt($instance->id, $user->id, $wordid);
+
+        $history = attempts_history_service::get_history($instance, $user->id);
+
+        $this->assertSame('floresta', $history['rows'][0]['themeword']);
+    }
+
+    /**
+     * Time used is formatted as m:ss for display.
+     *
+     * @covers \mod_playercross\local\attempts_history_service::get_history
+     * @return void
+     */
+    public function test_get_history_row_formats_time_used(): void {
+        $cm = $this->modgenerator->create_instance(['course' => $this->course->id, 'grade' => 100]);
+        global $DB;
+        $instance = $DB->get_record('playercross', ['id' => $cm->id], '*', MUST_EXIST);
+        $theme = $this->modgenerator->create_word($instance->id, 'escola');
+        $user = $this->getDataGenerator()->create_user();
+        $this->modgenerator->create_attempt($instance->id, $user->id, $theme->id, ['time_used' => 65]);
+
+        $history = attempts_history_service::get_history($instance, $user->id);
+
+        $this->assertSame('1:05', $history['rows'][0]['timeused']);
+    }
+
+    /**
      * get_history() reports no grade summary when the activity has no numeric grade.
      *
      * @covers \mod_playercross\local\attempts_history_service::get_history
@@ -155,6 +259,59 @@ final class attempts_history_service_test extends \advanced_testcase {
         $filtered = attempts_history_service::get_all_history($instance, $context, 0, 30, 'date', 'DESC', $usera->id);
 
         $this->assertSame(1, $filtered['total']);
+    }
+
+    /**
+     * Sorting by score ascending puts the lowest-scoring row first — SORTABLE_COLUMNS
+     * actually reorders the query, not just accepts the key without effect.
+     *
+     * @covers \mod_playercross\local\attempts_history_service::get_all_history
+     * @return void
+     */
+    public function test_get_all_history_sorts_by_score_ascending(): void {
+        $cm = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        global $DB;
+        $instance = $DB->get_record('playercross', ['id' => $cm->id], '*', MUST_EXIST);
+        $context = \context_module::instance($cm->cmid);
+        $theme = $this->modgenerator->create_word($instance->id, 'escola');
+        $user = $this->getDataGenerator()->create_user();
+        $this->modgenerator->create_attempt($instance->id, $user->id, $theme->id, [
+            'score' => 70.0,
+            'timecreated' => time() - 20,
+        ]);
+        $this->modgenerator->create_attempt($instance->id, $user->id, $theme->id, [
+            'score' => 30.0,
+            'timecreated' => time() - 10,
+        ]);
+
+        $ascending = attempts_history_service::get_all_history($instance, $context, 0, 30, 'score', 'ASC', 0);
+
+        $this->assertSame('30.00', $ascending['rows'][0]['score']);
+    }
+
+    /**
+     * get_all_history() returns every student's finished attempts, most recent
+     * first by default, with each student's own full name attached to their row.
+     *
+     * @covers \mod_playercross\local\attempts_history_service::get_all_history
+     * @return void
+     */
+    public function test_get_all_history_includes_every_student_most_recent_first(): void {
+        $cm = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        global $DB;
+        $instance = $DB->get_record('playercross', ['id' => $cm->id], '*', MUST_EXIST);
+        $context = \context_module::instance($cm->cmid);
+        $theme = $this->modgenerator->create_word($instance->id, 'escola');
+        $usera = $this->getDataGenerator()->create_user();
+        $userb = $this->getDataGenerator()->create_user();
+        $this->modgenerator->create_attempt($instance->id, $usera->id, $theme->id, ['timecreated' => time() - 20]);
+        $this->modgenerator->create_attempt($instance->id, $userb->id, $theme->id, ['timecreated' => time() - 10]);
+
+        $history = attempts_history_service::get_all_history($instance, $context, 0, 30, 'date', 'DESC', 0);
+
+        $this->assertSame(2, $history['total']);
+        $this->assertSame(fullname($userb), $history['rows'][0]['student']);
+        $this->assertSame(fullname($usera), $history['rows'][1]['student']);
     }
 
     /**

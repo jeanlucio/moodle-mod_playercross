@@ -750,6 +750,111 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * The hint button shows the PlayerHUD balance/cost line, and canaffordhint is
+     * false, while the user's balance is short of the required quantity.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_hint_button_shows_hud_cost(): void {
+        $itemid = $this->make_hud_item('Lupa');
+        $instance = $this->make_instance(['hud_hint_cost_item' => $itemid, 'hud_hint_cost_qty' => 1]);
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $this->make_state(), $user->id);
+
+        $this->assertTrue($context['hudhintcost']);
+        $this->assertStringContainsString('Lupa', $context['hudhintcostlabel']);
+        $this->assertFalse($context['canaffordhint']);
+    }
+
+    /**
+     * canaffordhint becomes true once the user's balance meets the required quantity.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_canaffordhint_true_with_enough_balance(): void {
+        global $DB;
+        $itemid = $this->make_hud_item('Lupa');
+        $instance = $this->make_instance(['hud_hint_cost_item' => $itemid, 'hud_hint_cost_qty' => 1]);
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        $DB->insert_record('block_playerhud_inventory', (object)[
+            'userid'      => $user->id,
+            'itemid'      => $itemid,
+            'dropid'      => 0,
+            'source'      => 'manual',
+            'timecreated' => time(),
+        ]);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $this->make_state(), $user->id);
+
+        $this->assertTrue($context['canaffordhint']);
+    }
+
+    /**
+     * The round panel omits the PlayerHUD cost line once every slot in the round is
+     * already revealed — the hint button itself disappears at that point (see
+     * test_build_round_panel_context_global_hint_availability()), so the cost line
+     * has nothing left to attach to.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_hint_button_omits_cost_once_exhausted(): void {
+        $itemid = $this->make_hud_item('Lupa');
+        $instance = $this->make_instance(['hud_hint_cost_item' => $itemid]);
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+
+        $context = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['revealedslots' => range(1, 9)]),
+            $user->id
+        );
+
+        $this->assertFalse($context['hudhintcost']);
+        $this->assertSame('', $context['hudhintcostlabel']);
+    }
+
+    /**
+     * The keyboard's Ç key only shows up when the activity's own word pool actually
+     * needs it — many languages never use the letter.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_showcedilla_reflects_word_pool(): void {
+        global $DB;
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        $state = $this->make_state();
+
+        $without = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+        $this->assertFalse($without['showcedilla']);
+
+        $DB->insert_record('playercross_words', (object)[
+            'playercrossid' => $instance->id,
+            'word'          => 'cabeça',
+            'concept'       => 'cabeça',
+            'hint'          => 'cabeça',
+            'source'        => 'manual',
+            'glossaryid'    => 0,
+            'approved'      => 1,
+            'timecreated'   => time(),
+            'timemodified'  => time(),
+            'addedby'       => $user->id,
+        ]);
+
+        $with = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+        $this->assertTrue($with['showcedilla']);
+    }
+
+    /**
      * Tests that the round result announces the PlayerHUD item granted for the win,
      * once configured and the round was actually won.
      *

@@ -809,4 +809,396 @@ final class round_service_test extends \advanced_testcase {
         $this->assertSame(3, $events[0]->other['cluesresolved']);
         $this->assertSame(3, $events[0]->other['cluestotal']);
     }
+
+    /**
+     * Tests that the round-count restriction is enforced once max_rounds is reached.
+     *
+     * @covers \mod_playercross\local\round_service::get_round_restriction_notice
+     * @return void
+     */
+    public function test_restriction_notice_max_rounds_reached(): void {
+        [$instance] = $this->make_ready_instance(['max_rounds' => 1, 'cooldown_amount' => 0]);
+        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+
+        $this->assertNotNull(round_service::get_round_restriction_notice($instance, $this->user->id));
+    }
+
+    /**
+     * Tests that a still-active cooldown is also reported via the same restriction
+     * notice, not just the max_rounds branch.
+     *
+     * @covers \mod_playercross\local\round_service::get_round_restriction_notice
+     * @return void
+     */
+    public function test_restriction_notice_cooldown_active(): void {
+        [$instance] = $this->make_ready_instance(['max_rounds' => 0, 'cooldown_amount' => 1, 'cooldown_unit' => 'days']);
+        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+
+        $this->assertNotNull(round_service::get_round_restriction_notice($instance, $this->user->id));
+    }
+
+    /**
+     * Tests that no restriction applies when limits are disabled and no attempts exist.
+     *
+     * @covers \mod_playercross\local\round_service::get_round_restriction_notice
+     * @return void
+     */
+    public function test_restriction_notice_none_when_unrestricted(): void {
+        [$instance] = $this->make_ready_instance(['max_rounds' => 0, 'cooldown_amount' => 0]);
+
+        $this->assertNull(round_service::get_round_restriction_notice($instance, $this->user->id));
+    }
+
+    /**
+     * Tests that no cooldown applies when the setting is disabled, even with a recent
+     * attempt.
+     *
+     * @covers \mod_playercross\local\round_service::compute_cooldown_until
+     * @return void
+     */
+    public function test_compute_cooldown_until_disabled(): void {
+        [$instance] = $this->make_ready_instance(['cooldown_amount' => 0]);
+        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+
+        $this->assertSame(0, round_service::compute_cooldown_until($instance, $this->user->id));
+    }
+
+    /**
+     * Tests that a cooldown already expired by elapsed time returns 0.
+     *
+     * @covers \mod_playercross\local\round_service::compute_cooldown_until
+     * @return void
+     */
+    public function test_compute_cooldown_until_expired_by_time(): void {
+        [$instance] = $this->make_ready_instance(['cooldown_amount' => 1, 'cooldown_unit' => 'minutes']);
+        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0, [
+            'timecreated' => time() - 120,
+        ]);
+
+        $this->assertSame(0, round_service::compute_cooldown_until($instance, $this->user->id));
+    }
+
+    /**
+     * Tests that changing cooldown_seconds after an attempt already happened takes
+     * effect immediately on the next call — never cached from the moment the round
+     * finished, the same way mod_quiz's inter-attempt delay always uses its current
+     * setting.
+     *
+     * @covers \mod_playercross\local\round_service::compute_cooldown_until
+     * @return void
+     */
+    public function test_compute_cooldown_until_reflects_a_later_settings_change(): void {
+        global $DB;
+        [$instance] = $this->make_ready_instance(['cooldown_amount' => 1, 'cooldown_unit' => 'days']);
+        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+
+        $this->assertGreaterThan(time() + 3600, round_service::compute_cooldown_until($instance, $this->user->id));
+
+        // The teacher disables the cooldown entirely.
+        $DB->set_field('playercross', 'cooldown_seconds', 0, ['id' => $instance->id]);
+        $instance = $DB->get_record('playercross', ['id' => $instance->id], '*', MUST_EXIST);
+
+        $this->assertSame(0, round_service::compute_cooldown_until($instance, $this->user->id));
+    }
+
+    /**
+     * Skips the current test when block_playerhud is not installed.
+     *
+     * @return void
+     */
+    private function skip_if_no_playerhud(): void {
+        global $DB;
+        if (!$DB->get_manager()->table_exists('block_playerhud_items')) {
+            $this->markTestSkipped('block_playerhud not installed.');
+        }
+    }
+
+    /**
+     * Inserts a block_instances record for block_playerhud in the given course context.
+     *
+     * @param \stdClass $course Course object.
+     * @return int Block instance id.
+     */
+    private function make_block_instance(\stdClass $course): int {
+        global $DB;
+        $ctx = \context_course::instance($course->id);
+        return $DB->insert_record('block_instances', (object)[
+            'blockname'         => 'playerhud',
+            'parentcontextid'   => $ctx->id,
+            'showinsubcontexts' => 0,
+            'pagetypepattern'   => 'course-view-*',
+            'subpagepattern'    => null,
+            'defaultregion'     => 'side-pre',
+            'defaultweight'     => 0,
+            'configdata'        => base64_encode(serialize(new \stdClass())),
+            'timecreated'       => time(),
+            'timemodified'      => time(),
+        ]);
+    }
+
+    /**
+     * Inserts a block_playerhud_items record for the given block instance.
+     *
+     * @param int $blockinstanceid Block instance id.
+     * @param int $xp XP awarded per unit collected, 0 for none.
+     * @return int Item id.
+     */
+    private function make_item(int $blockinstanceid, int $xp = 0): int {
+        global $DB;
+        return $DB->insert_record('block_playerhud_items', (object)[
+            'blockinstanceid' => $blockinstanceid,
+            'name'            => 'Gold Key',
+            'xp'              => $xp,
+            'image'           => '',
+            'description'     => '',
+            'enabled'         => 1,
+            'secret'          => 0,
+            'timecreated'     => time(),
+            'timemodified'    => time(),
+        ]);
+    }
+
+    /**
+     * Winning a round with a bounded max_rounds grants the configured PlayerHUD item
+     * together with its XP — a finite round limit is the same "bounded source" case
+     * block_playerhud itself allows XP for on its own drops.
+     *
+     * @covers \mod_playercross\local\round_service::finish_round
+     * @return void
+     */
+    public function test_win_grants_item_with_xp_when_bounded(): void {
+        global $DB;
+        $this->skip_if_no_playerhud();
+
+        $biid = $this->make_block_instance($this->course);
+        $itemid = $this->make_item($biid, 30);
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'max_rounds' => 5,
+            'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
+            'hud_win_reward_item' => $itemid,
+            'hud_win_reward_qty' => 2,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        round_service::submit_final_guess($state, $instance, $cm->cmid, $this->user->id, implode(' ', $state['themewords']));
+
+        $this->assertSame(2, $DB->count_records('block_playerhud_inventory', [
+            'userid' => $this->user->id,
+            'itemid' => $itemid,
+        ]));
+        $currentxp = $DB->get_field('block_playerhud_user', 'currentxp', [
+            'blockinstanceid' => $biid,
+            'userid'          => $this->user->id,
+        ]);
+        $this->assertSame(60, (int)$currentxp);
+    }
+
+    /**
+     * Winning a round on an activity with Unlimited rounds still grants the item, but
+     * withholds its XP — the anti-farming safeguard needed to match PlayerHUD's own
+     * "infinite drop gives no XP" rule.
+     *
+     * @covers \mod_playercross\local\round_service::finish_round
+     * @return void
+     */
+    public function test_win_grants_item_without_xp_when_unlimited(): void {
+        global $DB;
+        $this->skip_if_no_playerhud();
+
+        $biid = $this->make_block_instance($this->course);
+        $itemid = $this->make_item($biid, 30);
+        // The max_rounds override is omitted — make_ready_instance() defaults it to 0 (unlimited).
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
+            'hud_win_reward_item' => $itemid,
+            'hud_win_reward_qty' => 2,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        round_service::submit_final_guess($state, $instance, $cm->cmid, $this->user->id, implode(' ', $state['themewords']));
+
+        $this->assertSame(2, $DB->count_records('block_playerhud_inventory', [
+            'userid' => $this->user->id,
+            'itemid' => $itemid,
+        ]));
+        $currentxp = $DB->get_field('block_playerhud_user', 'currentxp', [
+            'blockinstanceid' => $biid,
+            'userid'          => $this->user->id,
+        ]);
+        $this->assertSame(0, (int)$currentxp);
+    }
+
+    /**
+     * Tests that forfeiting a round never grants the win item, regardless of
+     * configuration — the reward is exclusive to a genuine win.
+     *
+     * @covers \mod_playercross\local\round_service::finish_round
+     * @return void
+     */
+    public function test_forfeit_does_not_grant_item(): void {
+        global $DB;
+        $this->skip_if_no_playerhud();
+
+        $biid = $this->make_block_instance($this->course);
+        $itemid = $this->make_item($biid, 30);
+        [$instance, $cm] = $this->make_ready_instance([
+            'hud_win_reward_item' => $itemid,
+            'hud_win_reward_qty' => 2,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
+
+        $this->assertSame(0, $DB->count_records('block_playerhud_inventory', ['userid' => $this->user->id]));
+    }
+
+    /**
+     * A round cost pointing at a PlayerHUD item that no longer exists is waived
+     * instead of blocking the student forever — a deleted item can never be
+     * restocked, so charging for it would be a permanent lockout. Mirrors
+     * round_presenter::build_hud_cost_info(), which already hides the cost badge in
+     * this same case.
+     *
+     * @covers \mod_playercross\local\round_service::start_round
+     * @return void
+     */
+    public function test_start_round_waives_cost_when_item_deleted(): void {
+        $this->skip_if_no_playerhud();
+
+        [$instance, $cm] = $this->make_ready_instance([
+            'hud_round_cost_item' => 999999,
+            'hud_round_cost_qty' => 1,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        [$state, $notification] = round_service::start_round($state, $instance, $this->user->id);
+
+        $this->assertNull($notification);
+        $this->assertTrue($state['roundstarted']);
+    }
+
+    /**
+     * A round cost pointing at a PlayerHUD item belonging to a different course's
+     * block instance is waived, the same as a deleted item — the cross-course leak
+     * this scoping rule exists to prevent (block_playerhud_items.id is a single
+     * site-wide sequence, so a stale or misconfigured id could otherwise silently
+     * charge against another course's economy). This course has its own PlayerHUD
+     * block instance too, proving the rejection is about this specific item's
+     * ownership, not merely "no PlayerHUD available in this course".
+     *
+     * @covers \mod_playercross\local\round_service::start_round
+     * @return void
+     */
+    public function test_start_round_waives_cost_when_item_belongs_to_other_course(): void {
+        $this->skip_if_no_playerhud();
+
+        $this->make_block_instance($this->course);
+        $othercourse = $this->getDataGenerator()->create_course();
+        $otherbiid = $this->make_block_instance($othercourse);
+        $itemid = $this->make_item($otherbiid);
+
+        [$instance, $cm] = $this->make_ready_instance([
+            'hud_round_cost_item' => $itemid,
+            'hud_round_cost_qty' => 1,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        [$state, $notification] = round_service::start_round($state, $instance, $this->user->id);
+
+        $this->assertNull($notification);
+        $this->assertTrue($state['roundstarted']);
+    }
+
+    /**
+     * A hint cost pointing at a PlayerHUD item that no longer exists is waived, same
+     * rationale as test_start_round_waives_cost_when_item_deleted().
+     *
+     * @covers \mod_playercross\local\round_service::reveal_hint
+     * @return void
+     */
+    public function test_reveal_hint_waives_cost_when_item_deleted(): void {
+        $this->skip_if_no_playerhud();
+
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'hud_hint_cost_item' => 999999,
+            'hud_hint_cost_qty' => 1,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        $revealedbefore = count($state['revealedslots']);
+
+        [$state, , $notificationtype] = round_service::reveal_hint($state, $instance, $this->user->id);
+
+        $this->assertSame('success', $notificationtype);
+        $this->assertGreaterThan($revealedbefore, count($state['revealedslots']));
+    }
+
+    /**
+     * A round cost pointing at a disabled (not deleted) item still blocks the
+     * student when their balance is short. Disabling is reversible, so the cost is
+     * deliberately not waived here — only a deleted item (permanently unobtainable)
+     * gets that treatment.
+     *
+     * @covers \mod_playercross\local\round_service::start_round
+     * @return void
+     */
+    public function test_start_round_still_blocks_when_item_disabled_and_insufficient(): void {
+        global $DB;
+        $this->skip_if_no_playerhud();
+
+        $biid = $this->make_block_instance($this->course);
+        $itemid = $this->make_item($biid);
+        $DB->set_field('block_playerhud_items', 'enabled', 0, ['id' => $itemid]);
+
+        [$instance, $cm] = $this->make_ready_instance([
+            'hud_round_cost_item' => $itemid,
+            'hud_round_cost_qty' => 1,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        [$state, $notification] = round_service::start_round($state, $instance, $this->user->id);
+
+        $this->assertNotNull($notification);
+        $this->assertFalse($state['roundstarted']);
+    }
 }
