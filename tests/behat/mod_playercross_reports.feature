@@ -103,7 +103,7 @@ Feature: PlayerCross attempt history and ranking
     And I click on "a.pc-toolbar-btn[title=\"Report\"]" "css_element"
     And I should see "70.00"
     And I should see "45.00"
-    When I select "Student One" from "playercross-filter-student"
+    When I set the field "playercross-filter-student" to "Student One"
     And I click on "Filter" "button"
     Then I should see "70.00"
     And I should not see "45.00"
