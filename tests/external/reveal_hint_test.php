@@ -261,7 +261,7 @@ final class reveal_hint_test extends \advanced_testcase {
         $this->assertFalse($response['error']);
         $this->assertTrue($response['data']['finished']);
         $this->assertSame('success', $response['data']['notificationtype']);
-        $this->assertFalse($response['data']['toast']);
+        $this->assertTrue($response['data']['toast']);
         $this->assertSame([], $this->hidden_slotnums($panel));
         $this->assertTrue($panel['clues'][0]['resolved']);
         $this->assertSame(1, $panel['cluesresolved']);
@@ -332,7 +332,7 @@ final class reveal_hint_test extends \advanced_testcase {
         $this->assertFalse($result['error']);
         $this->assertSame('warning', $result['data']['notificationtype']);
         $this->assertNotEmpty($result['data']['notification']);
-        $this->assertFalse($result['data']['toast']);
+        $this->assertTrue($result['data']['toast']);
         $this->assertSame(4, $this->count_revealed_tiles($result['data']['panel']));
     }
 

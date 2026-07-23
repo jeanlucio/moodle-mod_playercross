@@ -296,7 +296,7 @@ class round_service {
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
      * @param int $userid User id.
-     * @return array [$state, $notification, $notificationtype]
+     * @return array [$state, $notification, $notificationtype, $toast]
      */
     public static function start_round(array $state, \stdClass $instance, int $userid): array {
         $roundcostitem = (int)($instance->hud_round_cost_item ?? 0);
@@ -310,14 +310,14 @@ class round_service {
             );
             if (!$consumed) {
                 $itemname = hud_service::get_item_name($blockinstanceid, $roundcostitem);
-                return [$state, get_string('hud_insufficient_round', 'mod_playercross', $itemname), 'warning'];
+                return [$state, get_string('hud_insufficient_round', 'mod_playercross', $itemname), 'warning', true];
             }
         }
 
         $state['starttime'] = time();
         $state['roundstarted'] = true;
 
-        return [$state, null, null];
+        return [$state, null, null, true];
     }
 
     /**
@@ -473,17 +473,17 @@ class round_service {
      */
     public static function reveal_hint(array $state, \stdClass $instance, int $cmid, int $userid): array {
         if (empty($state['themewordid']) || !empty($state['finished'])) {
-            return [$state, get_string('roundfinished', 'mod_playercross'), 'warning', false];
+            return [$state, get_string('roundfinished', 'mod_playercross'), 'warning', true];
         }
 
         $hiddenslots = array_values(array_diff(range(1, (int)$state['slotcount']), $state['revealedslots']));
         if (empty($hiddenslots)) {
-            return [$state, get_string('hintnotavailable', 'mod_playercross'), 'warning', false];
+            return [$state, get_string('hintnotavailable', 'mod_playercross'), 'warning', true];
         }
 
         $maxhints = (int)($instance->max_hints_per_round ?? 0);
         if ($maxhints > 0 && (int)($state['hintsused'] ?? 0) >= $maxhints) {
-            return [$state, get_string('hintlimitreached', 'mod_playercross'), 'warning', false];
+            return [$state, get_string('hintlimitreached', 'mod_playercross'), 'warning', true];
         }
 
         $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
@@ -497,7 +497,7 @@ class round_service {
             );
             if (!$consumed) {
                 $itemname = hud_service::get_item_name($blockinstanceid, $hintcostitem);
-                return [$state, get_string('hud_insufficient_hint', 'mod_playercross', $itemname), 'warning', false];
+                return [$state, get_string('hud_insufficient_hint', 'mod_playercross', $itemname), 'warning', true];
             }
         }
 
@@ -510,13 +510,15 @@ class round_service {
         // and finish the round outright if that satisfies the win condition.
         [$state, $wonmessage] = self::reconcile_after_reveal($state, $instance, $cmid, $userid);
         if ($wonmessage !== null) {
-            return [$state, $wonmessage, 'success', false];
+            return [$state, $wonmessage, 'success', true];
         }
 
-        // A toast (auto-dismissing) rather than a persistent notification: this fires once per
-        // hint use, potentially many times in a single round, and would otherwise pile up
-        // requiring the player to manually close each one — unlike the warnings above, which
-        // are rarer and worth leaving up until acknowledged.
+        // Every round-flow message is an auto-dismissing toast, milestones included:
+        // a persistent notification (Notification::addNotification()) requires the
+        // player to close it by hand, and since it never auto-clears, several of them
+        // pile up across one round (e.g. a wrong guess still on screen next to the
+        // round-won message), reading as contradictory feedback. Toasts fade on their
+        // own and never accumulate that way, so every message here uses that channel.
         return [$state, get_string('hintrevealed', 'mod_playercross'), 'success', true];
     }
 
@@ -557,22 +559,22 @@ class round_service {
         string $guess
     ): array {
         if (!empty($state['finished'])) {
-            return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning', false];
+            return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning', true];
         }
 
         $index = self::find_clue_index($state, $clueid);
         if ($index === null) {
-            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning', false];
+            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning', true];
         }
 
         $clue = $state['clues'][$index];
         if ($clue['resolved'] || $clue['exhausted']) {
-            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning', false];
+            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning', true];
         }
 
         $normalizedguess = word_normalizer::normalize($guess);
         if (!word_normalizer::is_valid_charset($normalizedguess)) {
-            return [$state, false, get_string('error_invalidchars', 'mod_playercross'), 'warning', false];
+            return [$state, false, get_string('error_invalidchars', 'mod_playercross'), 'warning', true];
         }
 
         $state['attemptsused']++;
@@ -586,12 +588,12 @@ class round_service {
                 $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
                 if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH) {
                     $state = self::finish_round($state, $instance, $cmid, $userid, false, false, false, false, true);
-                    return [$state, false, get_string('feedback_cluesexhausted', 'mod_playercross'), 'warning', false];
+                    return [$state, false, get_string('feedback_cluesexhausted', 'mod_playercross'), 'warning', true];
                 }
 
-                return [$state, false, get_string('clueexhausted', 'mod_playercross'), 'warning', false];
+                return [$state, false, get_string('clueexhausted', 'mod_playercross'), 'warning', true];
             }
-            return [$state, false, get_string('clueguesswrong', 'mod_playercross'), 'warning', false];
+            return [$state, false, get_string('clueguesswrong', 'mod_playercross'), 'warning', true];
         }
 
         $state['clues'][$index]['resolved'] = true;
@@ -612,18 +614,17 @@ class round_service {
         // outright if that satisfies the win condition.
         [$state, $wonmessage] = self::reconcile_after_reveal($state, $instance, $cmid, $userid);
         if ($wonmessage !== null) {
-            return [$state, true, $wonmessage, 'success', false];
+            return [$state, true, $wonmessage, 'success', true];
         }
 
         if ($state['cluesresolved'] >= $state['cluestotal']) {
-            return [$state, true, get_string('cluescompleteneedsfinal', 'mod_playercross'), 'success', false];
+            return [$state, true, get_string('cluescompleteneedsfinal', 'mod_playercross'), 'success', true];
         }
 
-        // A toast (auto-dismissing) rather than a persistent notification: this fires on every
-        // ordinary mid-round clue, potentially several per round, and would otherwise pile up
-        // requiring the player to manually close each one. The two milestone messages above
-        // (round won, all clues done pending the final guess) stay as persistent notifications
-        // since they are rarer and worth leaving up until acknowledged.
+        // Every round-flow message is an auto-dismissing toast, milestones included — see
+        // the matching note in reveal_hint(): a persistent notification never clears on its
+        // own, so a wrong guess and a later "round won" message would otherwise sit stacked
+        // on screen together. Toasts fade out and never accumulate that way.
         return [$state, true, get_string('clueresolved', 'mod_playercross'), 'success', true];
     }
 
@@ -649,7 +650,7 @@ class round_service {
      * @param int $cmid Course module id.
      * @param int $userid User id.
      * @param string $guess Raw guess text.
-     * @return array [$state, $correct, $notification, $notificationtype]
+     * @return array [$state, $correct, $notification, $notificationtype, $toast]
      */
     public static function submit_final_guess(
         array $state,
@@ -659,18 +660,18 @@ class round_service {
         string $guess
     ): array {
         if (!empty($state['finished'])) {
-            return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning'];
+            return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning', true];
         }
 
         $guesswords = word_normalizer::normalize_phrase($guess);
         if ($guesswords === []) {
-            return [$state, false, get_string('error_invalidchars', 'mod_playercross'), 'warning'];
+            return [$state, false, get_string('error_invalidchars', 'mod_playercross'), 'warning', true];
         }
 
         $state['attemptsused']++;
 
         if ($guesswords !== $state['themewords']) {
-            return [$state, false, get_string('finalguesswrong', 'mod_playercross'), 'warning'];
+            return [$state, false, get_string('finalguesswrong', 'mod_playercross'), 'warning', true];
         }
 
         $state['finalguesscorrect'] = true;
@@ -691,10 +692,10 @@ class round_service {
         // PLAYERCROSS_WINCONDITION_BOTH).
         [$state, $wonmessage] = self::reconcile_after_reveal($state, $instance, $cmid, $userid);
         if ($wonmessage !== null) {
-            return [$state, true, $wonmessage, 'success'];
+            return [$state, true, $wonmessage, 'success', true];
         }
 
-        return [$state, true, get_string('finalguesscorrectneedsclues', 'mod_playercross'), 'success'];
+        return [$state, true, get_string('finalguesscorrectneedsclues', 'mod_playercross'), 'success', true];
     }
 
     /**
@@ -704,16 +705,16 @@ class round_service {
      * @param \stdClass $instance Activity instance.
      * @param int $cmid Course module id.
      * @param int $userid User id.
-     * @return array [$state, $notification, $notificationtype]
+     * @return array [$state, $notification, $notificationtype, $toast]
      */
     public static function forfeit(array $state, \stdClass $instance, int $cmid, int $userid): array {
         if (empty($state['themewordid']) || !empty($state['finished'])) {
-            return [$state, get_string('roundfinished', 'mod_playercross'), 'warning'];
+            return [$state, get_string('roundfinished', 'mod_playercross'), 'warning', true];
         }
 
         $state = self::finish_round($state, $instance, $cmid, $userid, false, true, false, false);
 
-        return [$state, get_string('roundforfeited', 'mod_playercross'), 'warning'];
+        return [$state, get_string('roundforfeited', 'mod_playercross'), 'warning', true];
     }
 
     /**
@@ -723,11 +724,11 @@ class round_service {
      * @param \stdClass $instance Activity instance.
      * @param int $cmid Course module id.
      * @param int $userid User id.
-     * @return array [$state, $notification, $notificationtype]
+     * @return array [$state, $notification, $notificationtype, $toast]
      */
     public static function timeout(array $state, \stdClass $instance, int $cmid, int $userid): array {
         if (empty($state['themewordid']) || !empty($state['finished'])) {
-            return [$state, get_string('roundfinished', 'mod_playercross'), 'warning'];
+            return [$state, get_string('roundfinished', 'mod_playercross'), 'warning', true];
         }
 
         // The client fires this the moment its own countdown reaches zero — never trust
@@ -736,12 +737,12 @@ class round_service {
         // end a round before its configured time has actually run out.
         $deadline = (int)$state['starttime'] + (int)$instance->timer_seconds;
         if ((int)$instance->timer_seconds <= 0 || time() < $deadline - self::TIMEOUT_TOLERANCE_SECONDS) {
-            return [$state, get_string('roundnottimedout', 'mod_playercross'), 'warning'];
+            return [$state, get_string('roundnottimedout', 'mod_playercross'), 'warning', true];
         }
 
         $state = self::finish_round($state, $instance, $cmid, $userid, false, false, true, false);
 
-        return [$state, get_string('roundtimeout', 'mod_playercross'), 'warning'];
+        return [$state, get_string('roundtimeout', 'mod_playercross'), 'warning', true];
     }
 
     /**

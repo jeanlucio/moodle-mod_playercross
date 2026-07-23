@@ -254,7 +254,7 @@ final class round_service_test extends \advanced_testcase {
         $this->assertSame($revealedslotsatlimit, $state['revealedslots']);
         $this->assertSame(get_string('hintlimitreached', 'mod_playercross'), $notification);
         $this->assertSame('warning', $notificationtype);
-        $this->assertFalse($toast);
+        $this->assertTrue($toast);
     }
 
     /**
@@ -368,8 +368,7 @@ final class round_service_test extends \advanced_testcase {
         $this->assertTrue($state['clues'][0]['resolved']);
         $this->assertSame(1, $state['cluesresolved']);
         $this->assertSame('success', $notificationtype);
-        // A mid-round clue (2 of 3 still pending) is toast-worthy; the round-completing
-        // milestones (cluescompleteneedsfinal, roundwon) deliberately are not — see
+        // Every round-flow message is toast-worthy, this mid-round clue included — see
         // round_service::submit_clue_guess().
         $this->assertTrue($toast);
         foreach ($clue['slots'] as $slot) {
@@ -420,9 +419,9 @@ final class round_service_test extends \advanced_testcase {
         $this->assertSame(2, $state['cluesresolved']);
         $this->assertFalse($state['finished']);
         // The last clue resolves them all, triggering cluescompleteneedsfinal instead of the
-        // ordinary per-clue message — a milestone, deliberately not toast-worthy, unlike the
-        // earlier clues in this same loop (see test_submit_clue_guess_correct_resolves_and_reveals_slots).
-        $this->assertFalse($lasttoast);
+        // ordinary per-clue message — still toast-worthy like every other round-flow message
+        // (see test_submit_clue_guess_correct_resolves_and_reveals_slots).
+        $this->assertTrue($lasttoast);
     }
 
     /**
@@ -747,9 +746,9 @@ final class round_service_test extends \advanced_testcase {
         $this->assertSame(2, $state['cluesresolved']);
         $this->assertFalse($state['finished']);
         // The last clue resolves them all, triggering cluescompleteneedsfinal instead of the
-        // ordinary per-clue message — a milestone, deliberately not toast-worthy, unlike the
-        // earlier clues in this same loop (see test_submit_clue_guess_correct_resolves_and_reveals_slots).
-        $this->assertFalse($lasttoast);
+        // ordinary per-clue message — still toast-worthy like every other round-flow message
+        // (see test_submit_clue_guess_correct_resolves_and_reveals_slots).
+        $this->assertTrue($lasttoast);
     }
 
     /**
