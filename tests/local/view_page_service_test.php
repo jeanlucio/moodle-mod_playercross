@@ -341,6 +341,80 @@ final class view_page_service_test extends \advanced_testcase {
     }
 
     /**
+     * The help modal explains the "both required" win condition by default, matching
+     * the activity's own default setting.
+     *
+     * @covers \mod_playercross\local\view_page_service::build_page_data
+     * @return void
+     */
+    public function test_build_page_data_wincondition_help_defaults_to_both(): void {
+        [$instance, $cm, $context] = $this->make_instance();
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertSame(get_string('help_wincondition_both', 'mod_playercross'), $ctx['winconditiontext']);
+    }
+
+    /**
+     * The help modal switches to the "mystery-phrase only" explanation when the
+     * activity is configured with that win condition.
+     *
+     * @covers \mod_playercross\local\view_page_service::build_page_data
+     * @return void
+     */
+    public function test_build_page_data_wincondition_help_reflects_finalonly_setting(): void {
+        [$instance, $cm, $context] = $this->make_instance(['win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertSame(get_string('help_wincondition_finalonly', 'mod_playercross'), $ctx['winconditiontext']);
+        $this->assertFalse($ctx['showclueloss']);
+    }
+
+    /**
+     * The help modal warns about the automatic-loss risk only when it can actually
+     * happen: "both required" win condition combined with a limited number of
+     * attempts per clue.
+     *
+     * @covers \mod_playercross\local\view_page_service::build_page_data
+     * @return void
+     */
+    public function test_build_page_data_shows_clue_loss_warning_when_relevant(): void {
+        [$instance, $cm, $context] = $this->make_instance([
+            'win_condition' => PLAYERCROSS_WINCONDITION_BOTH,
+            'max_attempts_per_clue' => 3,
+        ]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showclueloss']);
+        $this->assertNotEmpty($ctx['cluelosstext']);
+    }
+
+    /**
+     * The help modal hides the automatic-loss warning when clue attempts are
+     * unlimited, since a clue can then never run out of attempts.
+     *
+     * @covers \mod_playercross\local\view_page_service::build_page_data
+     * @return void
+     */
+    public function test_build_page_data_hides_clue_loss_warning_when_attempts_unlimited(): void {
+        [$instance, $cm, $context] = $this->make_instance([
+            'win_condition' => PLAYERCROSS_WINCONDITION_BOTH,
+            'max_attempts_per_clue' => 0,
+        ]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['showclueloss']);
+        $this->assertSame('', $ctx['cluelosstext']);
+    }
+
+    /**
      * When the round limit is reached before a puzzle is even built, the
      * restriction notice is surfaced instead of a fresh theme.
      *

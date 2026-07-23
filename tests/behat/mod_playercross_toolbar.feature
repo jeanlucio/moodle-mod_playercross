@@ -80,14 +80,15 @@ Feature: PlayerCross toolbar and modals
 
   Scenario: The help modal shows the optional paragraphs when they are all relevant
     Given the following "activities" exist:
-      | activity    | course | name            | num_clues | theme_min_length | min_length | max_length | grade | hud_round_cost_item |
-      | playercross | C1     | Cross HelpFull  | 1         | 6                | 3          | 15         | 100   | 1                    |
+      | activity    | course | name            | num_clues | theme_min_length | min_length | max_length | grade | hud_round_cost_item | max_attempts_per_clue |
+      | playercross | C1     | Cross HelpFull  | 1         | 6                | 3          | 15         | 100   | 1                    | 3                     |
     And I log in as "student1"
     And I am on the "Cross HelpFull" "playercross activity" page
     When I click on "#playercross-help-button" "css_element"
     Then I should see "How to play"
     And I should see "This activity may require PlayerHUD items"
     And I should see "Grading method:"
+    And I should see "Each clue has a limited number of attempts"
 
   Scenario: The help modal hides the optional paragraphs when none of them are relevant
     Given the following "activities" exist:
@@ -98,6 +99,7 @@ Feature: PlayerCross toolbar and modals
     When I click on "#playercross-help-button" "css_element"
     Then I should see "How to play"
     And I should not see "This activity may require PlayerHUD items"
+    And I should not see "Each clue has a limited number of attempts"
     And I should not see "Grading method:"
 
   Scenario: The how-to-play modal opens automatically on a player's very first visit, once ever

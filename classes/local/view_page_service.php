@@ -197,6 +197,17 @@ class view_page_service {
             || ((int)($instance->hud_hint_cost_item ?? 0) > 0)
             || ((int)($instance->hud_win_reward_item ?? 0) > 0);
 
+        $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
+        $winconditionstring = $wincondition === PLAYERCROSS_WINCONDITION_FINALONLY
+            ? 'help_wincondition_finalonly'
+            : 'help_wincondition_both';
+
+        // The automatic-loss risk only exists under "both required" and only when a clue
+        // can actually run out of attempts — under "mystery-phrase only", an exhausted clue
+        // never ends the round (see round_service::reconcile_after_reveal()).
+        $showclueloss = $wincondition === PLAYERCROSS_WINCONDITION_BOTH
+            && (int)($instance->max_attempts_per_clue ?? 0) > 0;
+
         return [
             'helptitle' => get_string('help_title', 'mod_playercross'),
             'introtext' => get_string('help_intro', 'mod_playercross'),
@@ -205,6 +216,9 @@ class view_page_service {
             'cluestext' => get_string('help_clues', 'mod_playercross'),
             'hinttext' => get_string('help_hint', 'mod_playercross'),
             'finalguesstext' => get_string('help_finalguess', 'mod_playercross'),
+            'winconditiontext' => get_string($winconditionstring, 'mod_playercross'),
+            'showclueloss' => $showclueloss,
+            'cluelosstext' => $showclueloss ? get_string('help_clueexhausted', 'mod_playercross') : '',
             'timertext' => get_string('help_timer', 'mod_playercross'),
             'showhud' => $showhud,
             'hudtext' => $showhud ? get_string('help_hud', 'mod_playercross') : '',
