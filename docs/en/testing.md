@@ -1,8 +1,9 @@
 # 🧪 Automated Tests
 
 PlayerCross ships with a PHPUnit test suite covering business logic, repository queries, web
-services, and Privacy API compliance. Every CI push runs against the full matrix (Moodle 4.5 →
-5.x, PostgreSQL & MariaDB).
+services, and Privacy API compliance, plus a Behat suite covering the puzzle's gameplay, HUD
+integration, and reports end-to-end in a real browser. Every CI push runs against the full
+matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 
 ### PHPUnit — Core Tests
 
@@ -13,26 +14,26 @@ services, and Privacy API compliance. Every CI push runs against the full matrix
 | `lib_grant_potential_test.php` | 6 | The `playerhud_grant_potential` callback discovered by PlayerHUD's own "Total XP in the game" ceiling estimate: empty for an unrecognised block instance, for an activity with no win-grant item configured, and for an unlimited activity (mirrors the anti-farming rule on the real grant); a bounded activity returns one row shaped like PlayerHUD's own breakdown entries; a win-grant item belonging to a different course's block instance contributes nothing; two bounded activities in the same course each contribute their own row |
 | `lib_reset_userdata_test.php` | 4 | Course reset deletes attempts and resets grades only when the checkbox is enabled, only for the target course, and the form default enables it |
 | `completion/custom_completion_test.php` | 6 | Custom completion rule ("require completed rounds"): incomplete below threshold, complete at threshold, rule not reported as available when disabled, defined rule names, rule description includes the required count, display sort order |
-| `privacy/provider_test.php` | 13 | Metadata declaration (including the site-wide "seen intro" user preference); contexts by attempts; contexts by words added; list users in context (and no-op for a non-module context); export user data (and no-op for an empty contextlist); delete data for a single user across multiple contexts; delete data for multiple users; delete all users' data in a context (and no-op for a non-module context) |
-| **Subtotal** | **40** | |
+| `privacy/provider_test.php` | 14 | Metadata declaration; export of the site-wide "seen intro" user preference, both absent and set; contexts by attempts; contexts by words added; list users in context (and no-op for a non-module context); export user data (and no-op for an empty contextlist); delete data for a single user across multiple contexts; delete data for multiple users; delete all users' data in a context (and no-op for a non-module context) |
+| **Subtotal** | **41** | |
 
 ### Local Business-Logic Tests (`tests/local/`)
 
 | Test file | Cases | What is covered |
 |-----------|------:|----------------|
 | `ai_word_generator_test.php` | 12 | AI response parsing (`words`/legacy `concepts` wrappers, bare list, markdown code fence stripped, malformed/non-array JSON, hint falls back to `definition`, non-array entries skipped) and untrusted-input term validation (single alphabetic word accepted; empty, multi-word, and non-alphabetic terms rejected) — all via reflection, no real AI call |
-| `attempts_history_service_test.php` | 5 | Own attempt history scoped to the given user; grade summary hidden for an ungraded activity; all-students report paginates and falls back to a safe sort column on an unknown key; the student filter restricts to one student's own rows; a user who can manage the activity is excluded from the report |
+| `attempts_history_service_test.php` | 11 | Own attempt history scoped to the given user, most recent first, and empty without any attempts; the reported grade matches `playercross_calculate_user_grade()` for the configured grading method; a row falls back to the raw word when no concept was recorded; time used is formatted as m:ss; grade summary hidden for an ungraded activity; all-students report paginates and falls back to a safe sort column on an unknown key, filters to one student, sorts by score ascending, and lists every student most recent first; a user who can manage the activity is excluded from both the report and the student-filter dropdown |
 | `gameplay_service_test.php` | 8 | Per-clue point ceiling splits the grade evenly across `num_clues` (and is zero with zero clues); clue points are always full credit with unlimited attempts; full credit within the first two attempts, then decreasing linearly afterwards; the final-guess bonus equals the full grade when nothing is resolved yet and shrinks as more clues are resolved; the session key builder |
 | `hud_service_test.php` | 22 | Delegates to block_playerhud's own item API for every operation, validating ownership against the caller's own block instance: block lookup across courses; whether block_playerhud is installed; course availability (with/without a block instance, ignoring another course's); item name resolution; item list retrieval; consume items (insufficient funds, success, FIFO order, zero-quantity short-circuit, waived for a foreign-instance item); grant items (inventory plus XP awarded, XP withheld when flagged unbounded, zero-XP items award nothing, invalid/foreign-instance/zero-quantity items are no-ops) |
 | `intro_service_test.php` | 5 | The site-wide "seen intro" user preference: false by default; flips true and stays true (idempotent); isolated per user; the preference name is prefixed with the plugin's Frankenstyle component |
-| `puzzle_builder_test.php` | 8 | Full slot coverage across theme and clues; a letter exclusive to the clues still shares its slot correctly; graceful degradation for an uncoverable mystery-phrase letter, and that degradation can be disabled; the mystery phrase text comes from the theme word's own hint, never its concept; a hard failure when the word pool is insufficient; shared word-mode determinism; the greedy clue-selection tie-break is deterministic |
+| `puzzle_builder_test.php` | 9 | Full slot coverage across theme and clues; a letter exclusive to the clues still shares its slot correctly; graceful degradation for an uncoverable mystery-phrase letter, and that degradation can be disabled; the mystery phrase text comes from the theme word's own hint, never its concept; original accented spelling survives alongside the normalized clue word and theme hint; a hard failure when the word pool is insufficient; shared word-mode determinism; the greedy clue-selection tie-break is deterministic |
 | `ranking_service_test.php` | 5 | Empty ranking; score-descending ordering; top-5 truncation with an outsider row for a lower-ranked current user; `SEPARATEGROUPS` filters to the student's own group; a user who can manage the activity never appears in the ranking, even with attempts of their own |
-| `round_presenter_test.php` | 30 | Mystery-phrase tile rendering (respects revealed slots, hidden tiles carry their slot number, all tiles revealed once finished, grouped by word); clue-row rendering (unresolved word hidden, revealed once the round finishes, revealed once resolved, exhausted-attempts label shown only when actually exhausted, the mystery phrase is always shown, a cross-revealed shared letter is reflected); cooldown text (inactive/active, reflects a later settings change); feedback message varies by outcome; grading-method relevance info; grade-so-far summary (absent with no grade item, shown once finished); lobby context (PlayerHUD cost/balance, can-start with enough balance, timer info only when enabled, clues-this-round count); round-panel context (timeleft zero before start, hides reveal while active, global-hint availability); round-result context (blank until finished, reveals on finish, PlayerHUD win-grant label shown only on an actual win) |
-| `round_service_test.php` | 20 | Round state defaults and discarding structurally stale state; building the puzzle on demand; clue-guess submission (wrong increments attempts, correct resolves and reveals shared slots); resolving every clue alone does not finish the round; a correct final guess alone does not finish the round; a wrong final guess keeps the round open; clues-then-final-guess and final-guess-then-clues both finish and win the round; clue exhaustion ends the round as a loss under "both required", but not under "mystery-phrase only"; under "mystery-phrase only", resolving every clue alone still does not finish the round, while the final guess alone wins immediately; forfeit ends the round as a loss; timeout rejected before the deadline; a new round resets state; rounds-played count and cooldown; the `round_started` and `round_completed` events both fire at the right moment |
-| `view_page_service_test.php` | 15 | Page-assembly branches: fresh lobby, a picked puzzle persists across calls, a finished round computes a real cooldown, restriction notice when the round limit is reached; forfeit action shown only during an active round; toolbar URLs always present, manager-only toolbar hidden from students; ranking link hidden when ranking is disabled; PlayerHUD help shown when a win reward is configured; auto-show intro flagged once on the lobby and does not repeat across a different activity, and is also flagged correctly on the finished-round and restriction-notice branches; the help context always carries the review-hint pointer |
+| `round_presenter_test.php` | 36 | Mystery-phrase tile rendering (respects revealed slots, hidden tiles carry their slot number, all tiles revealed once finished, grouped by word); clue-row rendering (unresolved word hidden, revealed once the round finishes, revealed once resolved, exhausted-attempts label shown only when actually exhausted, the mystery phrase is always shown, a cross-revealed shared letter is reflected); cooldown text (inactive/active, reflects a later settings change); feedback message varies by outcome; grading-method relevance info; grade-so-far summary (absent with no grade item, shown once finished); lobby context (PlayerHUD cost/balance, can-start with enough balance, timer info only when enabled, clues-this-round count); round-panel context (timeleft zero before start, hides reveal while active, global-hint availability, remaining-hints count shown, the hint button hides once the configured reveal limit is reached, hint button shows/omits its PlayerHUD cost, can-afford-hint with enough balance, cedilla availability reflects the word pool); round-result context (blank until finished, reveals on finish, PlayerHUD win-grant label shown only on an actual win, and omitted on a loss) |
+| `round_service_test.php` | 37 | Round state defaults and discarding structurally stale state, including state missing the reveal-spelling fields from an older session; building the puzzle on demand; a hint reveal stops once the configured per-round limit is reached, and hints alone can finish and win the round; clue-guess submission (wrong increments attempts, correct resolves and reveals shared slots); resolving every clue alone does not finish the round; a correct final guess alone does not finish the round, and auto-resolves any clue left made entirely of already-shared letters; a wrong final guess keeps the round open; clues-then-final-guess and final-guess-then-clues both finish and win the round; clue exhaustion ends the round as a loss under "both required", but not under "mystery-phrase only"; under "mystery-phrase only", resolving every clue alone still does not finish the round, while the final guess alone wins immediately; forfeit ends the round as a loss and never grants the win item; timeout rejected before the deadline; a new round resets state; rounds-played count and cooldown; restriction-notice variants (round limit reached, cooldown active, unrestricted); cooldown computation (disabled, expired by time, reflects a later settings change); the `round_started` and `round_completed` events both fire at the right moment; winning grants the configured PlayerHUD item with XP when bounded and without XP when unlimited; starting a round or revealing a hint waives its PlayerHUD cost when the configured item was deleted or belongs to another course, but still blocks when the item is merely disabled and the balance is insufficient |
+| `view_page_service_test.php` | 22 | Page-assembly branches: fresh lobby, a picked puzzle persists across calls, a finished round computes a real cooldown, restriction notice when the round limit is reached; forfeit action shown only during an active round; toolbar URLs always present, manager-only toolbar hidden from students and shown for teachers; inactive words hidden from students, shown to a manager, and the active count shown alone when nothing is inactive; ranking link hidden when ranking is disabled; PlayerHUD help shown when a win reward is configured; win-condition help text defaults to "both required" and reflects the "mystery-phrase only" setting; the clue-loss warning is shown when attempts per clue are limited and hidden when unlimited; auto-show intro flagged once on the lobby and does not repeat across a different activity, and is also flagged correctly on the finished-round and restriction-notice branches; the help context always carries the review-hint pointer |
 | `word_normalizer_test.php` | 21 | Accent-insensitive normalisation across 8 diacritic/case combinations; `is_valid_charset` accepts letters only (including accented ones) and rejects digits, spaces, a hyphen, an apostrophe, and an empty string, across 8 cases; `chars()` splits a normalized word into individual characters across 4 cases without tearing multi-byte sequences — the reason `puzzle_builder::cipher_slots()` relies on this method instead of a plain byte split |
-| `words_repository_test.php` | 8 | Theme-word candidates respect the mystery phrase's own minimum length with no upper bound by default, and respect a real maximum length once one is configured; clue candidates are bounded by their own independent length range; shared word-mode theme selection is deterministic across calls for the same round number; random mode avoids an excluded theme id while an alternative exists; the last-played theme word id returns the most recent one, and zero when there are no attempts yet; word existence checks are case-insensitive and scoped to their own activity instance |
-| **Subtotal** | **159** | |
+| `words_repository_test.php` | 51 | Theme-word and clue candidates respect their own independent length ranges; shared and random theme-word selection, and the last-played theme word id; word existence checks (case-insensitive, scoped, ignoring an excluded id, regardless of source); cedilla-word detection (present, absent, ignores unapproved, scoped to its own instance); manual and AI word insertion, lookup, update, and delete (all scoped to the owning instance); bulk delete and bulk approve; recent-words listing, including the glossary name; Glossary sync (disabled without the source bit, single- and multi-word concepts, configured stopwords, hint resync, orphan removal, scope to one or all course glossaries, skipping a word owned by another source); fragmented-concept reporting (split multi-word concepts, single-word concepts excluded, non-Glossary sources ignored, scoped to its own instance); inactive-word detection (length mismatch, invalid charset, a word valid for the theme role only is not reported, unapproved words ignored); theme draw counts (absent, summed regardless of outcome, scoped to its own instance); Glossary candidate counting (within range, across all course glossaries, deduplicated tokens, scoped to its own course, zero when no glossaries exist) |
+| **Subtotal** | **239** | |
 
 ### Web Services Tests (`tests/external/`)
 
@@ -43,13 +44,13 @@ services, and Privacy API compliance. Every CI push runs against the full matrix
 | `count_glossary_candidates_test.php` | 4 | Counts candidate words for a specific glossary within the requested length range; excludes words outside the range; a stopword passed straight from the settings form drops the matching token before counting; requires the `mod/playercross:addinstance` capability |
 | `end_round_test.php` | 4 | Forfeit finishes the round; timeout finishes the round; an invalid `reason` value is rejected; the `mod/playercross:view` capability is required |
 | `new_round_test.php` | 3 | A new round picks a fresh puzzle; blocked when the round limit was already reached; the `mod/playercross:view` capability is required |
-| `reveal_hint_test.php` | 5 | Reveals one more tile; rejected once every slot is already revealed; the `mod/playercross:view` capability is required; an insufficient PlayerHUD item balance blocks the reveal; a cost pointing at a deleted item is waived instead |
+| `reveal_hint_test.php` | 6 | Reveals one more tile; rejected once every slot is already revealed; rejected once the configured per-round hint limit is reached; the `mod/playercross:view` capability is required; an insufficient PlayerHUD item balance blocks the reveal; a cost pointing at a deleted item is waived instead |
 | `start_round_test.php` | 5 | Round starts; rejected when already started; the `mod/playercross:view` capability is required; an insufficient PlayerHUD item balance blocks starting; a cost pointing at a deleted item is waived instead |
-| `submit_clue_guess_test.php` | 3 | A wrong clue guess never leaks the clue word; resolving every clue only reveals the theme word once the round actually finishes; an outsider (no enrolment/capability) cannot submit a guess |
+| `submit_clue_guess_test.php` | 4 | A wrong clue guess never leaks the clue word; an ordinary resolved clue is flagged for a toast notification rather than the round-ending banner; resolving every clue only reveals the theme word once the round actually finishes; an outsider (no enrolment/capability) cannot submit a guess |
 | `submit_final_guess_test.php` | 3 | A wrong final guess never leaks the theme word; a correct final guess alone does not win the round or reveal the theme word (under "both required"); resolving all clues and then guessing the final phrase wins the round and reveals the theme word |
-| **Subtotal** | **37** | |
+| **Subtotal** | **39** | |
 
-| **Grand Total** | **236** | |
+| **Grand Total** | **319** | |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross
@@ -63,26 +64,46 @@ vendor/bin/phpunit --testsuite mod_playercross
 | `external\count_eligible_theme_words` | 70% |
 | `external\count_eligible_words` | 70% |
 | `external\count_glossary_candidates` | 55% |
-| `external\end_round` | 73% |
+| `external\end_round` | 64% |
 | `external\new_round` | 49% |
-| `external\reveal_hint` | 57% |
-| `external\start_round` | 74% |
-| `external\submit_clue_guess` | 22% |
-| `external\submit_final_guess` | 66% |
+| `external\reveal_hint` | 49% |
+| `external\start_round` | 64% |
+| `external\submit_clue_guess` | 21% |
+| `external\submit_final_guess` | 59% |
 | `local\ai_word_generator` | 25% |
 | `local\attempts_history_service` | 75% |
 | `local\gameplay_service` | 94% |
 | `local\hud_service` | 91% |
 | `local\intro_service` | 100% |
-| `local\puzzle_builder` | 43% |
+| `local\puzzle_builder` | 42% |
 | `local\ranking_service` | 78% |
-| `local\round_presenter` | 69% |
-| `local\round_service` | 44% |
-| `local\view_page_service` | 25% |
+| `local\round_presenter` | 66% |
+| `local\round_service` | 71% |
+| `local\view_page_service` | 23% |
 | `local\word_normalizer` | 30% |
-| `local\words_repository` | 28% |
+| `local\words_repository` | 93% |
 | `privacy\provider` | 86% |
-| **Overall** | **48%** |
+| **Overall** | **60%** |
 
 The `event/*.php` classes aren't listed — Moodle only loads them lazily when the
 corresponding event actually fires, so the instrumentation never sees them.
+
+### Behat — End-to-End Tests
+
+PlayerCross also ships a Behat suite that drives the puzzle in a real browser session,
+covering gameplay, PlayerHUD integration, teacher-facing reports, and the toolbar/modals —
+areas a PHPUnit unit test cannot exercise (JavaScript-driven UI, real page navigation).
+
+| Feature file | Scenarios | What is covered |
+|--------------|----------:|----------------|
+| `mod_playercross_smoke.feature` | 1 | The lobby loads and a round can be started — the baseline sanity check the rest of the suite builds on |
+| `mod_playercross_gameplay.feature` | 6 | Winning a round by guessing the mystery phrase directly hides the timer badge; resolving a clue cross-reveals its shared letters in the mystery phrase; forfeiting an active round asks for confirmation; a round ends automatically once its timer runs out; reaching the round limit hides the new-round action instead of a dead end; a configured cooldown shows a countdown instead of the new-round button |
+| `mod_playercross_playerhud.feature` | 4 | The lobby blocks starting a round until the student can afford the configured item cost; revealing a hint asks for confirmation and enough balance; a round starts and the hint reveals for free once the configured item no longer exists; winning a round grants the configured PlayerHUD item |
+| `mod_playercross_reports.feature` | 5 | A student sees only their own attempt history, never another student's; the teacher's all-students report paginates past 30 rows, sorts by clicking a column header, and filters to a single student; the ranking page shows the top 5 plus the current user's own row when they fall outside it |
+| `mod_playercross_settings.feature` | 4 | Clue count and grading method freeze once a real grade exists; adding a manual word already in the pool, or containing a character the game cannot use, is rejected; a PlayerHUD item that no longer exists stays selected in the settings form instead of silently resetting |
+| `mod_playercross_toolbar.feature` | 8 | The manage-words icon and the inactive-words warning only appear for whoever can manage the activity; the ranking icon only appears when ranking is enabled; the forfeit icon only appears while a round is active; the help modal shows its optional paragraphs only when relevant, and hides them otherwise; the how-to-play modal opens automatically on a player's very first visit, once ever; cancelling the forfeit confirmation leaves the round untouched |
+| **Subtotal** | **28** | |
+
+```bash
+vendor/bin/behat --config public/behat.yml --profile=chrome --tags @mod_playercross
+```

@@ -9,17 +9,18 @@
 * 🚧 **Configurable Stopwords:** A per-activity, comma-separated list of words (e.g. "the, of, and") to ignore when splitting a multi-word glossary concept into candidates.
 * 🤖 **AI Word Generation (Optional):** Generate candidate words and hints for a given topic via `local_aihub` (BYOK) or Moodle's `core_ai` fallback. Generated words are treated as untrusted input — only single-token, purely alphabetic terms within the configured length bounds are saved, and they enter the pool pending teacher approval.
 * ✍️ **Manual Word Pool:** Teachers can add, edit, approve, and delete words directly from the management page.
+* 🔍 **Inactive Word Detection:** Pool words that can no longer be drawn (wrong length for their role, invalid characters, still pending approval) are flagged automatically; an active/inactive word count is shown above the game area for whoever can manage the activity.
 * 🔀 **Word Modes:** Random mystery phrase per round (default) or shared sequence mode, where every student receives the same puzzle in the same order.
 * 📏 **Independent Length Ranges:** The mystery phrase's minimum (and optional maximum) letter-count is configured separately from the clue words' own length range, so a long, descriptive hint can still produce a manageable puzzle.
 * 🔢 **Configurable Clue Count:** 3 to 10 clues per round (default 5), balancing puzzle difficulty against pool size.
 * ⏳ **Configurable Attempts Per Clue:** Cap the number of guesses allowed per individual clue (0 = unlimited), independently from the mystery-phrase guess itself.
-* 💡 **Per-Clue Hint System:** Each clue's own hint (its concept definition) is hidden by default and revealed independently — not one shared hint per round — optionally at an item cost via PlayerHUD.
+* 💡 **Per-Clue Hint System:** Each clue's own hint (its concept definition) is hidden by default and revealed independently — not one shared hint per round — optionally at an item cost via PlayerHUD. Teachers can cap the total number of hint reveals per round (0 = unlimited, mirroring the round limit); revealing enough hints to uncover every letter finishes and wins the round on its own, without needing every clue resolved.
 * 🏳️ **Give Up:** Students can forfeit the current round at any time — the correct mystery phrase and every clue word are revealed immediately.
 * ⏱️ **Configurable Cooldown:** Minimum wait between rounds (minutes, hours, or days), always recomputed from the activity's current setting.
 * 🔢 **Round Limit:** Teachers can cap the total number of rounds per student (1–10 or unlimited).
 * 🔡 **Accent-Insensitive Matching:** Diacritics are always stripped before comparing a guess and its target.
 * ⌨️ **Accent Picker on the Virtual Keyboard:** Long-pressing a vowel key (A, E, I, O, U) on the on-screen keyboard opens a popup with its accented variants, mirroring a mobile keyboard's own long-press behaviour — sliding the finger picks a variant, releasing confirms it. Purely cosmetic: guess matching stays accent-insensitive throughout.
-* ✅ **True-Spelling Reveal:** When a clue is resolved or the round ends, the clue word and the mystery phrase are shown with their real, accented spelling from the word bank, even if the winning guess was typed without accents.
+* ✅ **True-Spelling Reveal:** When a clue is resolved, the mystery phrase is guessed correctly, or the round ends, the clue word and the mystery phrase are shown with their real, accented spelling from the word bank, even if the winning guess was typed without accents. A clue left entirely spelled out by already-shared letters auto-resolves the moment the mystery phrase is guessed correctly, instead of staying marked unresolved.
 * 🧮 **Per-Clue Scoring:** Points accumulate as each clue is resolved (full credit on the first two attempts, then scaled down as the attempt limit is approached), plus an optional bonus for guessing the mystery phrase directly — see [Grading & Ranking](grading.html).
 * 📊 **Grading Methods:** Highest grade, average grade, first attempt, last attempt, or average over all required rounds.
 * 📋 **Gradebook Integration:** Grades are written automatically on every round completion.
@@ -27,10 +28,11 @@
 * 🔄 **Course Reset Support:** "Reset course" clears student attempts and resets grades for the activity, scoped to the target course only.
 * 🏆 **Top 5 Ranking:** Leaderboard scoped to the activity, capped to the top 5, with an outsider row so a lower-ranked student still sees their own real position. Respects `SEPARATEGROUPS`.
 * 📋 **Attempt History:** Students review every finished round of their own — mystery phrase, clues resolved, attempts used, time, and score — via the toolbar. Whoever can manage the activity sees every student's history instead, in one paginated report.
-* ❓ **In-Game Help:** A dedicated help page explains the puzzle mechanic, attempts, hints, timer, and the activity's win condition and grading method.
+* ❓ **In-Game Help:** A dedicated help page explains the puzzle mechanic, attempts, hints, timer, the activity's win condition and grading method, and — when attempts per clue are limited — the risk of losing the round if a clue's attempts run out.
 * 👋 **First-Visit Onboarding:** The how-to-play modal opens automatically the very first time a user visits any PlayerCross activity on the site — once, ever, site-wide — and never repeats after that; the toolbar help icon always reopens it on demand.
 * ♿ **Accessibility:** WCAG AA contrast on every puzzle tile; non-colour state indicators; `aria-label` on every input; per-letter-box focus behaviour mirrors a verification-code input for predictable keyboard and click navigation.
 * ⚡ **AJAX-Powered:** Every round transition (clue guess, final guess, hint, forfeit, timeout, start, new round) happens without a page reload.
+* 🔔 **Toast Feedback:** Round-flow outcomes (a clue resolved, a wrong guess, a hint revealed) surface as brief, auto-dismissing toast notifications instead of blocking dialogs, keeping the student in the puzzle.
 * 🎮 **PlayerHUD Integration (Optional):** Require inventory items to start a round or to reveal a clue's hint, with atomic FIFO consumption. Can also **grant** an item for each round won; matching PlayerHUD's own anti-farming rule, no XP is awarded from that item while the activity allows unlimited rounds.
 * 🛡️ **Safe Cross-Course Integration:** Every PlayerHUD item reference is validated against the course's own block instance, never a stale or another course's item — even after backup/restore or course duplication.
 * 📦 **Backup & Restore:** Full Moodle 2 backup/restore support, including the "Duplicate activity" action, word pool, attempts, and safe PlayerHUD item remapping.
