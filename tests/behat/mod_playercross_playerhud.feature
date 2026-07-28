@@ -24,7 +24,7 @@ Feature: PlayerCross PlayerHUD integration
     And I log out
 
   Scenario: The lobby blocks starting a round until the student can afford the item cost
-    Given a PlayerHUD item "Gold Key" exists in course "C1"
+    Given a PlayerCross PlayerHUD item "Gold Key" exists in course "C1"
     And the following "activities" exist:
       | activity    | course | name           | num_clues | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross HudLobby | 1         | 6                | 3          | 15         |
@@ -36,15 +36,15 @@ Feature: PlayerCross PlayerHUD integration
     And I log in as "student1"
     And I am on the "Cross HudLobby" "playercross activity" page
     Then I should see "You have 0× Gold Key. Costs 2×."
-    And the "#playercross-start-round-button" element should be disabled
-    When "student1" has 2 PlayerHUD item "Gold Key" in course "C1"
+    And the "#playercross-start-round-button" element should be disabled in PlayerCross
+    When "student1" has 2 PlayerCross PlayerHUD item "Gold Key" in course "C1"
     And I reload the page
     Then I should see "You have 2× Gold Key. Costs 2×."
     And I click on "Start round" "button"
     And "#playercross-round-play" "css_element" should exist
 
   Scenario: Revealing a hint requires confirmation and enough balance
-    Given a PlayerHUD item "Magnifying Glass" exists in course "C1"
+    Given a PlayerCross PlayerHUD item "Magnifying Glass" exists in course "C1"
     And the following "activities" exist:
       | activity    | course | name          | num_clues | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross HudHint | 1         | 6                | 3          | 15         |
@@ -58,9 +58,9 @@ Feature: PlayerCross PlayerHUD integration
     And I click on "Start round" "button"
     When I click on "#playercross-global-hint-button" "css_element"
     Then I should see "You have 0× Magnifying Glass. Costs 1×."
-    And the "[data-action=save]" element should be disabled
+    And the "[data-action=save]" element should be disabled in PlayerCross
     When I click on "[data-action=\"cancel\"]" "css_element"
-    And "student1" has 1 PlayerHUD item "Magnifying Glass" in course "C1"
+    And "student1" has 1 PlayerCross PlayerHUD item "Magnifying Glass" in course "C1"
     And I reload the page
     And I click on "#playercross-global-hint-button" "css_element"
     And I click on "[data-action=\"save\"]" "css_element"
@@ -83,7 +83,7 @@ Feature: PlayerCross PlayerHUD integration
     Then I should see "A letter was revealed!"
 
   Scenario: Winning a round grants the configured PlayerHUD item
-    Given a PlayerHUD item "Trophy" exists in course "C1"
+    Given a PlayerCross PlayerHUD item "Trophy" exists in course "C1"
     And the following "activities" exist:
       | activity    | course | name         | num_clues | theme_min_length | min_length | max_length | win_condition |
       | playercross | C1     | Cross HudWin | 1         | 6                | 3          | 15         | 2             |

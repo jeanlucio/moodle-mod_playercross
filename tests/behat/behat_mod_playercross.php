@@ -197,13 +197,15 @@ class behat_mod_playercross extends behat_base {
     /**
      * Asserts that the given CSS element has the disabled attribute.
      *
-     * Custom rather than relying on core's own "should be disabled" step: that step
-     * is not defined on every Moodle version this plugin supports (confirmed
-     * missing on 4.5/5.0/5.2 for block_playerhud, same ecosystem) — matches the
-     * pattern already established there.
+     * Named and phrased with the plugin identifier per Moodle's own Behat guidance
+     * ("When defining new Step definitions in your plugin, try to make sure the
+     * step name identifies it as belonging to your plugin") rather than relying on
+     * core's own "the :element :selector should be disabled" step: mod_playerwords
+     * defines an identically-phrased custom step of its own, and Behat refuses to
+     * load any feature site-wide when two contexts register the same phrase.
      *
      * @param string $selector CSS selector.
-     * @Then the :selector element should be disabled
+     * @Then the :selector element should be disabled in PlayerCross
      */
     public function element_is_disabled(string $selector): void {
         $node = $this->find('css', $selector);
@@ -291,11 +293,13 @@ class behat_mod_playercross extends behat_base {
      * Direct $DB insert rather than going through the block's own management UI,
      * matching the pattern already established in behat_block_playerhud.php for
      * the same reason: the item's existence is a precondition for the scenario,
-     * not the thing under test.
+     * not the thing under test. Phrase carries the plugin identifier per Moodle's
+     * Behat naming guidance — mod_playerwords defines the same step verbatim, and
+     * an unprefixed phrase collides with it site-wide.
      *
      * @param string $itemname Display name for the item.
      * @param string $shortname Course shortname. The PlayerHUD block must already be added.
-     * @Given a PlayerHUD item :itemname exists in course :shortname
+     * @Given a PlayerCross PlayerHUD item :itemname exists in course :shortname
      */
     public function a_playerhud_item_exists_in_course(string $itemname, string $shortname): void {
         global $DB;
@@ -353,13 +357,16 @@ class behat_mod_playercross extends behat_base {
      * Grants a user a starting balance of a PlayerHUD item, bypassing
      * external_items::grant() (and therefore any XP side effect) since the
      * scenario only cares about the balance itself, not how it was acquired —
-     * mirrors block_playerhud's own inventory-seeding step.
+     * mirrors block_playerhud's own inventory-seeding step. Phrase carries the
+     * plugin identifier per Moodle's Behat naming guidance — mod_playerwords
+     * defines the same step verbatim, and an unprefixed phrase collides with it
+     * site-wide.
      *
      * @param string $username Moodle username.
      * @param int $qty Quantity to grant.
      * @param string $itemname PlayerHUD item name.
      * @param string $shortname Course shortname.
-     * @Given :username has :qty PlayerHUD item :itemname in course :shortname
+     * @Given :username has :qty PlayerCross PlayerHUD item :itemname in course :shortname
      */
     public function user_has_playerhud_item(string $username, int $qty, string $itemname, string $shortname): void {
         global $DB;
