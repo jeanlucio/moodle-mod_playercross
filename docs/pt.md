@@ -8,7 +8,7 @@ lang: pt
 ![Moodle](https://img.shields.io/badge/Moodle-4.5%2B-orange?style=flat-square&logo=moodle&logoColor=white)
 ![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Alfa%20%2F%20Pré--lançamento-yellow?style=flat-square)
-[![PlayerGames Ecosystem](https://img.shields.io/badge/PlayerGames-Ecosystem-6f42c1?style=flat-square&logo=gamepad&logoColor=white)](https://moodle.org/plugins/browse.php?list=contributor&id=3970322)
+[![PlayerGames Ecosystem](https://img.shields.io/badge/PlayerGames-Ecosystem-6f42c1?style=flat-square&logo=gamepad&logoColor=white)](https://jeanlucio.github.io/playergames/)
 ![Game Activity](https://img.shields.io/badge/Role-Game_Activity-198754?style=flat-square)
 
 O **PlayerCross** é uma atividade de palavras cruzadas por dedução para o Moodle. Cada rodada
