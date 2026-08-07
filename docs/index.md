@@ -4,12 +4,17 @@ title: PlayerCross Documentation
 lang: en
 ---
 
+![Moodle](https://img.shields.io/badge/Moodle-4.5%2B-orange?style=flat&logo=moodle&logoColor=white)
+![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat)
+![Status](https://img.shields.io/badge/Status-Alpha-red?style=flat)
+[![Latest Release](https://img.shields.io/github/v/release/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/releases)
+[![PlayerGames Ecosystem](https://img.shields.io/badge/PlayerGames-Ecosystem-6f42c1?style=flat&logo=gamepad&logoColor=white)](https://jeanlucio.github.io/playergames/)
+![Game Activity](https://img.shields.io/badge/Role-Game_Activity-198754?style=flat)
+[![Author](https://img.shields.io/badge/by-Jean_Lucio-6f42c1?style=flat)](https://marketplace.moodle.com/user/984)
+
 [![Moodle Plugin CI](https://github.com/jeanlucio/moodle-mod_playercross/actions/workflows/ci.yml/badge.svg)](https://github.com/jeanlucio/moodle-mod_playercross/actions/workflows/ci.yml)
-![Moodle](https://img.shields.io/badge/Moodle-4.5%2B-orange?style=flat-square&logo=moodle&logoColor=white)
-![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)
-![Status](https://img.shields.io/badge/Status-Alpha%20%2F%20Pre--release-yellow?style=flat-square)
-[![PlayerGames Ecosystem](https://img.shields.io/badge/PlayerGames-Ecosystem-6f42c1?style=flat-square&logo=gamepad&logoColor=white)](https://jeanlucio.github.io/playergames/)
-![Game Activity](https://img.shields.io/badge/Role-Game_Activity-198754?style=flat-square)
+[![Last Commit](https://img.shields.io/github/last-commit/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/commits)
+[![Open Issues](https://img.shields.io/github/issues/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/issues)
 
 **PlayerCross** is a deduction crossword-style vocabulary activity for Moodle. Each round draws a
 **mystery phrase** and a set of **clues** built from related course concepts; resolving a clue
