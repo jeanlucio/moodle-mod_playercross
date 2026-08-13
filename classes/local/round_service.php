@@ -301,6 +301,14 @@ class round_service {
     /**
      * Starts the round timer, optionally consuming a PlayerHUD item cost.
      *
+     * Revalidates get_round_restriction_notice() again here, not just at the point
+     * ensure_round_state() picked the puzzle: a puzzle can sit armed in session state
+     * for a while (the student never reaching "Iniciar rodada"), and a second
+     * concurrent session for the same user can reach that same armed state — e.g. two
+     * open tabs, or the round limit being hit in one session while another already
+     * loaded the lobby. Without this check, the second session could still commit the
+     * reservation and PlayerHUD cost after the limit/cooldown became active.
+     *
      * The guest account is exempt from the PlayerHUD cost: a course's guest-access
      * visitors all share the single guest user record, so nothing charged here could be
      * safely attributed to one specific person. See finish_round() for the matching
@@ -313,8 +321,17 @@ class round_service {
      * @return array [$state, $notification, $notificationtype, $toast]
      */
     public static function start_round(array $state, \stdClass $instance, int $userid): array {
+        $isguest = isguestuser();
+
+        if (!$isguest) {
+            $restrictionnotice = self::get_round_restriction_notice($instance, $userid);
+            if ($restrictionnotice !== null) {
+                return [$state, $restrictionnotice, 'warning', true];
+            }
+        }
+
         $roundcostitem = (int)($instance->hud_round_cost_item ?? 0);
-        if (!isguestuser() && $roundcostitem > 0) {
+        if (!$isguest && $roundcostitem > 0) {
             $blockinstanceid = hud_service::resolve_block_instance_id($instance);
             $consumed = hud_service::consume_items(
                 $blockinstanceid,

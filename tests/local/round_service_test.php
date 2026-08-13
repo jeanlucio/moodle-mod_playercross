@@ -1137,6 +1137,40 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test for the parallel-session bypass: a puzzle can sit armed in a
+     * session's state (ensure_round_state() already picked it) for a while before the
+     * student ever clicks "Iniciar rodada". If, in the meantime, a second session for
+     * the same user reaches max_rounds — e.g. two open tabs, one finishing rounds
+     * while the other's lobby still holds a stale armed puzzle — start_round() must
+     * refuse to commit for the first session too, instead of trusting that
+     * ensure_round_state() already checked the restriction (it only checks when a NEW
+     * puzzle is picked, not when an already-armed one is reused).
+     *
+     * @covers \mod_playercross\local\round_service::start_round
+     * @return void
+     */
+    public function test_start_round_revalidates_restriction_for_a_puzzle_armed_before_the_limit_hit(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6, 'max_rounds' => 1]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        $this->assertGreaterThan(0, $state['themewordid'], 'puzzle must be armed before the limit is reached');
+
+        // Simulates a second, concurrent session for the same user finishing a round
+        // in the meantime, reaching max_rounds — without going through the first
+        // session's own (stale) $state at all.
+        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+
+        [$state, $notification] = round_service::start_round($state, $instance, $this->user->id);
+
+        $this->assertNotNull($notification);
+        $this->assertFalse($state['roundstarted']);
+    }
+
+    /**
      * Tests that no cooldown applies when the setting is disabled, even with a recent
      * attempt.
      *
