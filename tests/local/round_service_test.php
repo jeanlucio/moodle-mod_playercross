@@ -1171,6 +1171,85 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test for the race between start_round()'s revalidation and
+     * finish_round()'s own insert: start_round() can pass its own check and a
+     * concurrent session can still finish first, reaching max_rounds before this
+     * session's own finish_round() call runs. finish_round() must re-check the
+     * restriction inside its lock immediately before inserting, and skip the attempt
+     * row entirely when it is now restricted — not just skip it in start_round().
+     *
+     * @covers \mod_playercross\local\round_service::forfeit
+     * @return void
+     */
+    public function test_finish_round_revalidates_restriction_inside_lock_before_inserting(): void {
+        global $DB;
+
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6, 'max_rounds' => 1]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        // Simulates a second, concurrent session for the same user finishing its own
+        // round in the meantime, reaching max_rounds — strictly between this
+        // session's own start_round() call above and the forfeit() call below.
+        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+
+        [$state] = round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
+
+        $this->assertTrue($state['finished']);
+        // Still just the one row the concurrent session inserted — this session's own
+        // forfeit must not add a second one past max_rounds.
+        $this->assertSame(1, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
+    }
+
+    /**
+     * Same race as test_finish_round_revalidates_restriction_inside_lock_before_inserting(),
+     * but on a genuine win with a PlayerHUD win-reward item configured: the lock must
+     * also stop the second session from granting an item it never earned a counted
+     * round for.
+     *
+     * @covers \mod_playercross\local\round_service::submit_final_guess
+     * @return void
+     */
+    public function test_finish_round_revalidates_restriction_inside_lock_before_granting_item(): void {
+        global $DB;
+        $this->skip_if_no_playerhud();
+
+        $biid = $this->make_block_instance($this->course);
+        $itemid = $this->make_item($biid, 30);
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues'           => 3,
+            'theme_min_length'    => 6,
+            'max_rounds'          => 1,
+            'win_condition'       => PLAYERCROSS_WINCONDITION_FINALONLY,
+            'hud_win_reward_item' => $itemid,
+            'hud_win_reward_qty'  => 2,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        // Simulates the same concurrent-session race as the forfeit test above.
+        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+
+        round_service::submit_final_guess($state, $instance, $cm->cmid, $this->user->id, implode(' ', $state['themewords']));
+
+        $this->assertSame(1, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
+        $this->assertSame(0, $DB->count_records('block_playerhud_inventory', [
+            'userid' => $this->user->id,
+            'itemid' => $itemid,
+        ]));
+    }
+
+    /**
      * Tests that no cooldown applies when the setting is disabled, even with a recent
      * attempt.
      *

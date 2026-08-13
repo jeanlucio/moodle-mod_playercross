@@ -824,6 +824,17 @@ class round_service {
      * $state still gets 'finished'/'won'/etc. set above the cut so the UI can show the
      * round's outcome — see start_round() for why guests are exempt in the first place.
      *
+     * The persistence block is serialised per (playercrossid, userid) with
+     * \core\lock\lock_config and re-checks get_round_restriction_notice() immediately
+     * before the insert. start_round() already revalidates the same restriction, but
+     * that check and this insert are not otherwise atomic: two concurrent sessions of
+     * the same user (two open tabs) can both pass start_round()'s check — neither has
+     * inserted an attempt yet — and then both reach this insert, each ending up past
+     * max_rounds/cooldown and each granting its own PlayerHUD item. The lock closes
+     * that window; a session that loses the race ends its round without persisting an
+     * attempt or a grant, the same outcome get_round_restriction_notice() already
+     * produces elsewhere when the limit is genuinely reached.
+     *
      * @return array Updated state.
      */
     private static function finish_round(
@@ -852,67 +863,88 @@ class round_service {
             return $state;
         }
 
-        $timeused = max(0, time() - (int)$state['starttime']);
-        $score = round((float)$state['scoreaccumulated'], 5);
-
-        $attemptid = $DB->insert_record('playercross_attempts', (object)[
-            'playercrossid' => $instance->id,
-            'userid'        => $userid,
-            'themewordid'   => (int)$state['themewordid'],
-            'cluestotal'    => (int)$state['cluestotal'],
-            'cluesresolved' => (int)$state['cluesresolved'],
-            'finalguessed'  => $finalguessed ? 1 : 0,
-            'attempts_used' => (int)$state['attemptsused'],
-            'time_used'     => $timeused,
-            'completed'     => $won ? 1 : 0,
-            'score'         => $score,
-            'timecreated'   => time(),
-        ]);
-
-        $event = \mod_playercross\event\round_completed::create([
-            'objectid' => $attemptid,
-            'context'  => \context_module::instance($cmid),
-            'other'    => [
-                'completed'     => $won,
-                'finalguessed'  => $finalguessed,
-                'score'         => $score,
-                'cluesresolved' => (int)$state['cluesresolved'],
-                'cluestotal'    => (int)$state['cluestotal'],
-                'attemptsused'  => (int)$state['attemptsused'],
-                'timeused'      => $timeused,
-                'themewordid'   => (int)$state['themewordid'],
-            ],
-        ]);
-        $event->trigger();
-
-        playercross_update_grades($instance, $userid);
-
-        // Grants only on a genuine win, never on forfeit/timeout. Items are still granted
-        // on an unlimited-rounds activity, but their XP is withheld — the same
-        // anti-farming rule block_playerhud itself applies to its own infinite drops,
-        // replicated here since this grant never goes through a real drop.
-        if ($won) {
-            $grantitem = (int)($instance->hud_win_reward_item ?? 0);
-            if ($grantitem > 0) {
-                hud_service::grant_items(
-                    hud_service::resolve_block_instance_id($instance),
-                    $userid,
-                    $grantitem,
-                    max(1, (int)($instance->hud_win_reward_qty ?? 1)),
-                    (int)$instance->max_rounds === 0
-                );
-            }
+        $lockfactory = \core\lock\lock_config::get_lock_factory('mod_playercross');
+        $lock = $lockfactory->get_lock('finish_round_' . $instance->id . '_' . $userid, 5);
+        if (!$lock) {
+            // Could not serialise against a concurrent session within the timeout —
+            // degrade the same way a genuinely reached restriction does below, rather
+            // than risk two sessions inserting past the limit anyway.
+            return $state;
         }
 
-        // Automatic completion (e.g. the "require completed rounds" custom rule) is only
-        // recomputed and persisted when something explicitly asks for it — Moodle has no
-        // cron sweep for this, unlike grading. Trigger it here so the activity page's
-        // completion badge reflects a finished round immediately.
-        $cm = get_coursemodule_from_id('playercross', $cmid, 0, false, MUST_EXIST);
-        $course = get_course($instance->course);
-        $completioninfo = new completion_info($course);
-        if ($completioninfo->is_enabled($cm)) {
-            $completioninfo->update_state($cm, COMPLETION_COMPLETE, $userid);
+        try {
+            if (self::get_round_restriction_notice($instance, $userid) !== null) {
+                // A concurrent session already consumed the last available round or
+                // cooldown slot between this round's start_round() check and this
+                // insert. The round still shows its outcome to this player (flags set
+                // above), it just is not counted a second time.
+                return $state;
+            }
+
+            $timeused = max(0, time() - (int)$state['starttime']);
+            $score = round((float)$state['scoreaccumulated'], 5);
+
+            $attemptid = $DB->insert_record('playercross_attempts', (object)[
+                'playercrossid' => $instance->id,
+                'userid'        => $userid,
+                'themewordid'   => (int)$state['themewordid'],
+                'cluestotal'    => (int)$state['cluestotal'],
+                'cluesresolved' => (int)$state['cluesresolved'],
+                'finalguessed'  => $finalguessed ? 1 : 0,
+                'attempts_used' => (int)$state['attemptsused'],
+                'time_used'     => $timeused,
+                'completed'     => $won ? 1 : 0,
+                'score'         => $score,
+                'timecreated'   => time(),
+            ]);
+
+            $event = \mod_playercross\event\round_completed::create([
+                'objectid' => $attemptid,
+                'context'  => \context_module::instance($cmid),
+                'other'    => [
+                    'completed'     => $won,
+                    'finalguessed'  => $finalguessed,
+                    'score'         => $score,
+                    'cluesresolved' => (int)$state['cluesresolved'],
+                    'cluestotal'    => (int)$state['cluestotal'],
+                    'attemptsused'  => (int)$state['attemptsused'],
+                    'timeused'      => $timeused,
+                    'themewordid'   => (int)$state['themewordid'],
+                ],
+            ]);
+            $event->trigger();
+
+            playercross_update_grades($instance, $userid);
+
+            // Grants only on a genuine win, never on forfeit/timeout. Items are still
+            // granted on an unlimited-rounds activity, but their XP is withheld — the
+            // same anti-farming rule block_playerhud itself applies to its own infinite
+            // drops, replicated here since this grant never goes through a real drop.
+            if ($won) {
+                $grantitem = (int)($instance->hud_win_reward_item ?? 0);
+                if ($grantitem > 0) {
+                    hud_service::grant_items(
+                        hud_service::resolve_block_instance_id($instance),
+                        $userid,
+                        $grantitem,
+                        max(1, (int)($instance->hud_win_reward_qty ?? 1)),
+                        (int)$instance->max_rounds === 0
+                    );
+                }
+            }
+
+            // Automatic completion (e.g. the "require completed rounds" custom rule)
+            // is only recomputed and persisted when something explicitly asks for it —
+            // Moodle has no cron sweep for this, unlike grading. Trigger it here so the
+            // activity page's completion badge reflects a finished round immediately.
+            $cm = get_coursemodule_from_id('playercross', $cmid, 0, false, MUST_EXIST);
+            $course = get_course($instance->course);
+            $completioninfo = new completion_info($course);
+            if ($completioninfo->is_enabled($cm)) {
+                $completioninfo->update_state($cm, COMPLETION_COMPLETE, $userid);
+            }
+        } finally {
+            $lock->release();
         }
 
         return $state;
