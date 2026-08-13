@@ -380,4 +380,34 @@ final class reveal_hint_test extends \advanced_testcase {
         $this->assertTrue($result['data']['toast']);
         $this->assertSame(5, $this->count_revealed_tiles($result['data']['panel']));
     }
+
+    /**
+     * Regression test for the round-cost bypass: a student who skips the "Iniciar
+     * rodada" button and calls mod_playercross_reveal_hint directly through the real
+     * web service dispatch path must be rejected, even though a hint is its own
+     * separately-costed action with no dependency on the round's own cost. The reveal
+     * must not happen: no tile beyond the pool's always-revealed baseline is exposed.
+     *
+     * @covers \mod_playercross\external\reveal_hint::execute
+     * @return void
+     */
+    public function test_rejects_hint_when_round_not_started_bypassing_hud_cost(): void {
+        $this->skip_if_no_playerhud();
+        $itemid = $this->make_hud_item();
+        $instance = $this->make_instance_with_pool([
+            'hud_hint_cost_item' => $itemid, 'hud_hint_cost_qty' => 1,
+        ]);
+        $this->setUser($this->student);
+
+        // A fresh session has never called start_round — the exact shape of the
+        // exploit in the security report's PoC. reveal_hint::execute() itself builds
+        // the puzzle server-side (ensure_round_state) on this very first call, the
+        // same way view.php's GET would, so no separate setup step is needed here.
+        $result = $this->call_reveal_hint($instance->cmid);
+
+        $this->assertFalse($result['error']);
+        $this->assertSame('warning', $result['data']['notificationtype']);
+        $this->assertNotEmpty($result['data']['notification']);
+        $this->assertSame(4, $this->count_revealed_tiles($result['data']['panel']));
+    }
 }

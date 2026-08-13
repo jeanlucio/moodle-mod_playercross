@@ -81,6 +81,51 @@ final class submit_clue_guess_test extends \advanced_testcase {
     }
 
     /**
+     * Skips the current test when block_playerhud is not installed.
+     *
+     * @return void
+     */
+    private function skip_if_no_playerhud(): void {
+        global $DB;
+        if (!$DB->get_manager()->table_exists('block_playerhud_items')) {
+            $this->markTestSkipped('block_playerhud not installed.');
+        }
+    }
+
+    /**
+     * Inserts a genuine block_playerhud_items record (with its own block instance).
+     *
+     * @return int Item id.
+     */
+    private function make_hud_item(): int {
+        global $DB;
+        $ctx = \context_course::instance($this->course->id);
+        $biid = $DB->insert_record('block_instances', (object)[
+            'blockname'         => 'playerhud',
+            'parentcontextid'   => $ctx->id,
+            'showinsubcontexts' => 0,
+            'pagetypepattern'   => 'course-view-*',
+            'subpagepattern'    => null,
+            'defaultregion'     => 'side-pre',
+            'defaultweight'     => 0,
+            'configdata'        => base64_encode(serialize(new \stdClass())),
+            'timecreated'       => time(),
+            'timemodified'      => time(),
+        ]);
+        return $DB->insert_record('block_playerhud_items', (object)[
+            'blockinstanceid' => $biid,
+            'name'            => 'Gold Key',
+            'xp'              => 0,
+            'image'           => '',
+            'description'     => '',
+            'enabled'         => 1,
+            'secret'          => 0,
+            'timecreated'     => time(),
+            'timemodified'    => time(),
+        ]);
+    }
+
+    /**
      * An unresolved clue's word is never present in the panel response.
      *
      * @covers \mod_playercross\external\submit_clue_guess::execute
@@ -194,5 +239,40 @@ final class submit_clue_guess_test extends \advanced_testcase {
 
         $this->expectException(\require_login_exception::class);
         submit_clue_guess::execute($cm->cmid, 1, 'palpite');
+    }
+
+    /**
+     * Regression test for the round-cost bypass: a student who skips the "Iniciar
+     * rodada" button — the only place a configured PlayerHUD round cost is actually
+     * charged — and calls mod_playercross_submit_clue_guess directly through the real
+     * web service dispatch path must be rejected, even with a correct guess for a clue
+     * already sitting in session (view.php's GET-time ensure_round_state() call puts it
+     * there before the student ever clicks anything). The round must not finish and no
+     * clue may resolve.
+     *
+     * @covers \mod_playercross\external\submit_clue_guess::execute
+     * @return void
+     */
+    public function test_rejects_clue_guess_when_round_not_started_bypassing_hud_cost(): void {
+        $this->skip_if_no_playerhud();
+        $itemid = $this->make_hud_item();
+        [$instance, $cm] = $this->make_ready_instance([
+            'hud_round_cost_item' => $itemid,
+            'hud_round_cost_qty'  => 1,
+        ]);
+        $this->setUser($this->student);
+
+        // Load the puzzle into session (what view.php's GET does), but never call
+        // start_round — the exact shape of the exploit in the security report's PoC.
+        $state = round_service::load_state($cm->cmid, $this->student->id);
+        $state = round_service::ensure_round_state($state, $instance, $cm->cmid, $this->student->id);
+        round_service::save_state($cm->cmid, $this->student->id, $state);
+        $clue = $state['clues'][0];
+
+        $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
+
+        $this->assertFalse($result['resolved']);
+        $this->assertFalse($result['finished']);
+        $this->assertNotEmpty($result['notification']);
     }
 }

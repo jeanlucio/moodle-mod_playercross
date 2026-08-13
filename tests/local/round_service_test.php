@@ -216,6 +216,111 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test for the round-cost bypass: a client that calls
+     * submit_clue_guess() before start_round() — skipping the "Iniciar rodada" button,
+     * the only place a configured PlayerHUD round cost is actually charged — must be
+     * rejected, even with a correct guess for a clue already sitting in session. The
+     * round stays unfinished and no attempt is counted, so a repeat with start_round()
+     * first still works normally.
+     *
+     * @covers \mod_playercross\local\round_service::submit_clue_guess
+     * @return void
+     */
+    public function test_submit_clue_guess_rejected_when_round_not_started(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        $this->assertFalse($state['roundstarted']);
+        $clue = $state['clues'][0];
+
+        [$state, $resolved, $notification, $notificationtype] = round_service::submit_clue_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            (int)$clue['wordid'],
+            $clue['word']
+        );
+
+        $this->assertFalse($resolved);
+        $this->assertNotEmpty($notification);
+        $this->assertSame('warning', $notificationtype);
+        $this->assertFalse($state['finished']);
+        $this->assertFalse($state['clues'][0]['resolved']);
+        $this->assertSame(0, $state['attemptsused']);
+    }
+
+    /**
+     * Regression test for the round-cost bypass: same as
+     * test_submit_clue_guess_rejected_when_round_not_started(), for a direct guess of
+     * the mystery phrase.
+     *
+     * @covers \mod_playercross\local\round_service::submit_final_guess
+     * @return void
+     */
+    public function test_submit_final_guess_rejected_when_round_not_started(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        $this->assertFalse($state['roundstarted']);
+
+        [$state, $correct, $notification, $notificationtype] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+
+        $this->assertFalse($correct);
+        $this->assertNotEmpty($notification);
+        $this->assertSame('warning', $notificationtype);
+        $this->assertFalse($state['finished']);
+        $this->assertFalse($state['finalguesscorrect']);
+    }
+
+    /**
+     * Regression test for the round-cost bypass: same as
+     * test_submit_clue_guess_rejected_when_round_not_started(), for revealing a hint —
+     * which has its own configurable PlayerHUD cost, equally skippable before
+     * start_round() without this guard.
+     *
+     * @covers \mod_playercross\local\round_service::reveal_hint
+     * @return void
+     */
+    public function test_reveal_hint_rejected_when_round_not_started(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        $this->assertFalse($state['roundstarted']);
+        $revealedbefore = $state['revealedslots'];
+
+        [$state, $notification, $notificationtype] = round_service::reveal_hint(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        $this->assertNotEmpty($notification);
+        $this->assertSame('warning', $notificationtype);
+        $this->assertSame($revealedbefore, $state['revealedslots']);
+        $this->assertSame(0, $state['hintsused']);
+    }
+
+    /**
      * reveal_hint() counts each successful reveal in hintsused, and once
      * max_hints_per_round is reached, further calls are rejected with a warning
      * instead of revealing another letter or incrementing the counter further.
