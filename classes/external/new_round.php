@@ -66,8 +66,10 @@ class new_round extends external_api {
         $instance = $DB->get_record('playercross', ['id' => $cm->instance], '*', MUST_EXIST);
         $userid = (int)$USER->id;
 
-        round_service::new_round($cmid, $userid);
-
+        // Checked before touching the session: round_service::new_round() clears the
+        // puzzle state, and ensure_round_state() refuses to pick one while restricted
+        // anyway, but leaving the session pre-armed in that reset shape for no reason is
+        // state the next request has no use for.
         $restrictionnotice = round_service::get_round_restriction_notice($instance, $userid);
         if ($restrictionnotice !== null) {
             return [
@@ -81,6 +83,8 @@ class new_round extends external_api {
                 ),
             ];
         }
+
+        round_service::new_round($cmid, $userid);
 
         $state = round_service::load_state($cmid, $userid);
         $state = round_service::ensure_round_state($state, $instance, $cmid, $userid);

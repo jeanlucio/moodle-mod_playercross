@@ -36,7 +36,7 @@ $instance = $DB->get_record('playercross', ['id' => $cm->instance], '*', MUST_EX
 $context = context_module::instance($cm->id);
 
 require_login($course, true, $cm);
-require_capability('mod/playercross:addinstance', $context);
+require_capability('mod/playercross:managewords', $context);
 
 $sort = optional_param('sort', 'id', PARAM_ALPHA);
 $dir  = optional_param('dir', 'DESC', PARAM_ALPHA);

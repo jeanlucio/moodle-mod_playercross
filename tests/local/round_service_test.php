@@ -235,6 +235,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         [$state] = round_service::reveal_hint($state, $instance, $cm->cmid, $this->user->id);
         $this->assertSame(1, $state['hintsused']);
@@ -291,6 +292,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         $notification = null;
         for ($i = 0; $i < 5; $i++) {
@@ -319,6 +321,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
         $clueid = (int)$state['clues'][0]['wordid'];
         $revealedbefore = $state['revealedslots'];
 
@@ -353,6 +356,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
         $clue = $state['clues'][0];
 
         [$state, $resolved, , $notificationtype, $toast] = round_service::submit_clue_guess(
@@ -403,6 +407,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         $lasttoast = null;
         foreach ($state['clues'] as $clue) {
@@ -443,6 +448,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         [$state, $correct] = round_service::submit_final_guess(
             $state,
@@ -481,6 +487,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         $casaindex = null;
         foreach ($state['clues'] as $index => $clue) {
@@ -516,6 +523,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         [$state, $correct] = round_service::submit_final_guess(
             $state,
@@ -556,6 +564,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         foreach ($state['clues'] as $clue) {
             [$state] = round_service::submit_clue_guess(
@@ -603,6 +612,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         [$state, $correct] = round_service::submit_final_guess(
             $state,
@@ -650,6 +660,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
         $clueid = (int)$state['clues'][0]['wordid'];
 
         [$state] = round_service::submit_clue_guess($state, $instance, $cm->cmid, $this->user->id, $clueid, 'erradoum');
@@ -694,6 +705,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
         $clueid = (int)$state['clues'][0]['wordid'];
 
         [$state] = round_service::submit_clue_guess($state, $instance, $cm->cmid, $this->user->id, $clueid, 'erradoum');
@@ -730,6 +742,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         $lasttoast = null;
         foreach ($state['clues'] as $clue) {
@@ -770,6 +783,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         [$state, $correct] = round_service::submit_final_guess(
             $state,
@@ -922,6 +936,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         $sink = $this->redirectEvents();
         foreach ($state['clues'] as $clue) {
@@ -987,6 +1002,33 @@ final class round_service_test extends \advanced_testcase {
         [$instance] = $this->make_ready_instance(['max_rounds' => 0, 'cooldown_amount' => 0]);
 
         $this->assertNull(round_service::get_round_restriction_notice($instance, $this->user->id));
+    }
+
+    /**
+     * Regression test for the max_rounds/cooldown bypass: ensure_round_state() must
+     * refuse to build a fresh puzzle once get_round_restriction_notice() reports a
+     * restriction, even when the session state already looks like a fresh lobby
+     * (themewordid=0, finished=false) — the exact shape a brand-new session, or a
+     * blocked new_round() call, leaves behind. Before this guard, a direct call to
+     * start_round, submit_clue_guess, submit_final_guess or reveal_hint from that state
+     * would build a puzzle and (once finished) insert an attempt row past max_rounds,
+     * ignoring the cooldown entirely.
+     *
+     * @covers \mod_playercross\local\round_service::ensure_round_state
+     * @return void
+     */
+    public function test_ensure_round_state_refuses_new_puzzle_when_restricted(): void {
+        [$instance, $cm] = $this->make_ready_instance(['max_rounds' => 1, 'cooldown_amount' => 0]);
+        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+
+        // Simulates the state a fresh session, or a blocked new_round(), leaves behind.
+        $state = round_service::load_state($cm->cmid, $this->user->id);
+
+        $state = round_service::ensure_round_state($state, $instance, $cm->cmid, $this->user->id);
+
+        $this->assertSame(0, $state['themewordid']);
+        $this->assertSame([], $state['clues']);
+        $this->assertSame(1, round_service::count_rounds_played($instance, $this->user->id));
     }
 
     /**
@@ -1126,6 +1168,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         round_service::submit_final_guess($state, $instance, $cm->cmid, $this->user->id, implode(' ', $state['themewords']));
 
@@ -1168,6 +1211,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         round_service::submit_final_guess($state, $instance, $cm->cmid, $this->user->id, implode(' ', $state['themewords']));
 
@@ -1300,6 +1344,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
         $revealedbefore = count($state['revealedslots']);
 
         [$state, , $notificationtype, $toast] = round_service::reveal_hint($state, $instance, $cm->cmid, $this->user->id);
@@ -1341,5 +1386,119 @@ final class round_service_test extends \advanced_testcase {
 
         $this->assertNotNull($notification);
         $this->assertFalse($state['roundstarted']);
+    }
+
+    /**
+     * The guest account plays a free demo: start_round() must skip the PlayerHUD cost
+     * even when a real cost item is configured and the guest's balance (it has none)
+     * would otherwise block it — test_start_round_still_blocks_when_item_disabled_and_
+     * insufficient() above proves a regular student is still blocked by the same kind of
+     * configuration, so this is a guest-specific waiver, not a general bypass.
+     *
+     * @covers \mod_playercross\local\round_service::start_round
+     * @return void
+     */
+    public function test_start_round_guest_never_charges(): void {
+        $this->skip_if_no_playerhud();
+
+        $biid = $this->make_block_instance($this->course);
+        $itemid = $this->make_item($biid);
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues'           => 3,
+            'theme_min_length'    => 6,
+            'hud_round_cost_item' => $itemid,
+            'hud_round_cost_qty'  => 1,
+        ]);
+        $this->setGuestUser();
+        $guestid = (int)guest_user()->id;
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $guestid),
+            $instance,
+            $cm->cmid,
+            $guestid
+        );
+        [$state, $notification] = round_service::start_round($state, $instance, $guestid);
+
+        $this->assertNull($notification);
+        $this->assertTrue($state['roundstarted']);
+    }
+
+    /**
+     * The guest account plays a free demo: reveal_hint() must skip the PlayerHUD cost
+     * even when a real cost item is configured and the guest's balance would otherwise
+     * block it.
+     *
+     * @covers \mod_playercross\local\round_service::reveal_hint
+     * @return void
+     */
+    public function test_reveal_hint_guest_never_charges(): void {
+        $this->skip_if_no_playerhud();
+
+        $biid = $this->make_block_instance($this->course);
+        $itemid = $this->make_item($biid);
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues'          => 3,
+            'theme_min_length'   => 6,
+            'hud_hint_cost_item' => $itemid,
+            'hud_hint_cost_qty'  => 1,
+        ]);
+        $this->setGuestUser();
+        $guestid = (int)guest_user()->id;
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $guestid),
+            $instance,
+            $cm->cmid,
+            $guestid
+        );
+        [$state] = round_service::start_round($state, $instance, $guestid);
+        $revealedbefore = count($state['revealedslots']);
+
+        [$state, , $notificationtype] = round_service::reveal_hint($state, $instance, $cm->cmid, $guestid);
+
+        $this->assertSame('success', $notificationtype);
+        $this->assertGreaterThan($revealedbefore, count($state['revealedslots']));
+    }
+
+    /**
+     * The guest account plays a free demo: winning a round must leave no
+     * {playercross_attempts} row, grant no PlayerHUD item and never touch the
+     * gradebook — every guest visitor to a course shares the same account, so none of
+     * this could be safely attributed to one specific person.
+     *
+     * @covers \mod_playercross\local\round_service::finish_round
+     * @return void
+     */
+    public function test_finish_round_guest_never_persists(): void {
+        global $DB;
+        $this->skip_if_no_playerhud();
+
+        $biid = $this->make_block_instance($this->course);
+        $itemid = $this->make_item($biid, 30);
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues'           => 3,
+            'theme_min_length'    => 6,
+            'win_condition'       => PLAYERCROSS_WINCONDITION_FINALONLY,
+            'hud_win_reward_item' => $itemid,
+            'hud_win_reward_qty'  => 2,
+        ]);
+        $this->setGuestUser();
+        $guestid = (int)guest_user()->id;
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $guestid),
+            $instance,
+            $cm->cmid,
+            $guestid
+        );
+        [$state] = round_service::start_round($state, $instance, $guestid);
+
+        [$state] = round_service::submit_final_guess($state, $instance, $cm->cmid, $guestid, implode(' ', $state['themewords']));
+
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['won']);
+        $this->assertSame(0, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
+        $this->assertSame(0, $DB->count_records('block_playerhud_inventory', ['userid' => $guestid]));
     }
 }

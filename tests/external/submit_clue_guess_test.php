@@ -96,6 +96,7 @@ final class submit_clue_guess_test extends \advanced_testcase {
             $cm->cmid,
             $this->student->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
         $clueid = (int)$state['clues'][0]['wordid'];
 
@@ -127,6 +128,7 @@ final class submit_clue_guess_test extends \advanced_testcase {
             $cm->cmid,
             $this->student->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
         $clue = $state['clues'][0];
 
@@ -163,6 +165,7 @@ final class submit_clue_guess_test extends \advanced_testcase {
             $cm->cmid,
             $this->student->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
 
         foreach ($state['clues'] as $clue) {

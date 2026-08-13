@@ -77,7 +77,7 @@ class count_eligible_theme_words extends external_api {
         $cm = get_coursemodule_from_id('playercross', $cmid, 0, false, MUST_EXIST);
         $context = context_module::instance($cm->id);
         self::validate_context($context);
-        require_capability('mod/playercross:addinstance', $context);
+        require_capability('mod/playercross:managewords', $context);
 
         $candidates = words_repository::get_theme_candidate_words((object)[
             'id'               => $cm->instance,

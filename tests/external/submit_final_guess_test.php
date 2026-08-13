@@ -57,6 +57,21 @@ final class submit_final_guess_test extends \advanced_testcase {
     }
 
     /**
+     * Enables the course's guest-access enrolment method — precondition for the
+     * guest-demo-mode regression test: mod/playercross:view (the sole gate on this
+     * write service) is granted to the guest archetype, but only reachable at all once
+     * a course opts into guest access.
+     *
+     * @return void
+     */
+    private function enable_guest_access(): void {
+        global $DB;
+        $guestplugin = enrol_get_plugin('guest');
+        $instance = $DB->get_record('enrol', ['courseid' => $this->course->id, 'enrol' => 'guest'], '*', MUST_EXIST);
+        $guestplugin->update_status($instance, ENROL_INSTANCE_ENABLED);
+    }
+
+    /**
      * Creates a ready-to-play instance with a small, deterministic word pool.
      *
      * @return array{0: \stdClass, 1: \stdClass} [instance record, course module]
@@ -94,6 +109,7 @@ final class submit_final_guess_test extends \advanced_testcase {
             $cm->cmid,
             $this->student->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
 
         $result = submit_final_guess::execute($cm->cmid, 'totalmenteerrado');
@@ -127,6 +143,7 @@ final class submit_final_guess_test extends \advanced_testcase {
             $cm->cmid,
             $this->student->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
 
         $themephrase = implode(' ', $state['themewords']);
@@ -161,6 +178,7 @@ final class submit_final_guess_test extends \advanced_testcase {
             $cm->cmid,
             $this->student->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
 
         $themephrase = implode(' ', $state['themewords']);
@@ -173,5 +191,82 @@ final class submit_final_guess_test extends \advanced_testcase {
 
         $this->assertTrue($result['finished']);
         $this->assertSame(core_text::strtoupper($themephrase), $result['panel']['revealthemeword']);
+    }
+
+    /**
+     * The guest account is allowed to play a free demo through the real web service
+     * dispatch path, all the way to winning a round: the call succeeds and the response
+     * reveals the mystery phrase as usual, but round_service::finish_round() must leave
+     * no {playercross_attempts} row behind and grant no PlayerHUD item — every guest
+     * visitor to a course shares the same account, so nothing here could be safely
+     * attributed to one specific person.
+     *
+     * @covers \mod_playercross\external\submit_final_guess::execute
+     * @covers \mod_playercross\external\submit_clue_guess::execute
+     * @return void
+     */
+    public function test_guest_can_win_demo_without_persisting(): void {
+        global $DB;
+        if (!$DB->get_manager()->table_exists('block_playerhud_items')) {
+            $this->markTestSkipped('block_playerhud not installed.');
+        }
+
+        $ctx = \context_course::instance($this->course->id);
+        $biid = $DB->insert_record('block_instances', (object)[
+            'blockname'         => 'playerhud',
+            'parentcontextid'   => $ctx->id,
+            'showinsubcontexts' => 0,
+            'pagetypepattern'   => 'course-view-*',
+            'subpagepattern'    => null,
+            'defaultregion'     => 'side-pre',
+            'defaultweight'     => 0,
+            'configdata'        => base64_encode(serialize(new \stdClass())),
+            'timecreated'       => time(),
+            'timemodified'      => time(),
+        ]);
+        $itemid = $DB->insert_record('block_playerhud_items', (object)[
+            'blockinstanceid' => $biid,
+            'name'            => 'Gold Key',
+            'xp'              => 0,
+            'image'           => '',
+            'description'     => '',
+            'enabled'         => 1,
+            'secret'          => 0,
+            'timecreated'     => time(),
+            'timemodified'    => time(),
+        ]);
+
+        $cm = $this->modgenerator->create_instance([
+            'course'              => $this->course->id,
+            'num_clues'           => 1,
+            'theme_min_length'    => 6,
+            'win_condition'       => PLAYERCROSS_WINCONDITION_FINALONLY,
+            'hud_win_reward_item' => $itemid,
+            'hud_win_reward_qty'  => 2,
+        ]);
+        $instance = $DB->get_record('playercross', ['id' => $cm->id], '*', MUST_EXIST);
+        $this->modgenerator->create_word($instance->id, 'escola');
+        $this->modgenerator->create_word($instance->id, 'livro');
+
+        $this->enable_guest_access();
+        $this->setGuestUser();
+        $guestid = (int)guest_user()->id;
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $guestid),
+            $instance,
+            $cm->cmid,
+            $guestid
+        );
+        [$state] = round_service::start_round($state, $instance, $guestid);
+        round_service::save_state($cm->cmid, $guestid, $state);
+
+        $themephrase = implode(' ', $state['themewords']);
+        $result = submit_final_guess::execute($cm->cmid, $themephrase);
+
+        $this->assertTrue($result['correct']);
+        $this->assertTrue($result['finished']);
+        $this->assertSame(0, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
+        $this->assertSame(0, $DB->count_records('block_playerhud_inventory', ['userid' => $guestid]));
     }
 }

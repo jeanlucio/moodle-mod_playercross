@@ -236,8 +236,33 @@ final class view_page_service_test extends \advanced_testcase {
         $ctx = $pagedata['templatecontext'];
 
         $this->assertTrue($ctx['canmanage']);
+        $this->assertTrue($ctx['canviewreports']);
         $this->assertStringContainsString('managewords.php', $ctx['managewordsurl']);
         $this->assertStringContainsString('attemptsreport.php', $ctx['attemptsreporturl']);
+    }
+
+    /**
+     * Regression test for the addinstance/managewords/viewreports capability split: a
+     * non-editing teacher (mod/playercross:viewreports, but not mod/playercross:
+     * managewords in the default archetype set) sees the report toolbar link but not
+     * the manage-words one — the two are independently grantable per-activity
+     * capabilities now, not a single course-wide "can add this activity" right.
+     *
+     * @covers \mod_playercross\local\view_page_service::build_page_data
+     * @return void
+     */
+    public function test_build_page_data_shows_report_but_not_managewords_for_noneditingteacher(): void {
+        [$instance, $cm, $context] = $this->make_instance();
+
+        $teacher = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($teacher->id, $this->course->id, 'teacher');
+        $this->setUser($teacher);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $teacher->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['canmanage']);
+        $this->assertTrue($ctx['canviewreports']);
     }
 
     /**

@@ -510,6 +510,27 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * The guest account plays a free demo: round_service::start_round() never actually
+     * charges it, so the lobby must not show a cost it won't apply, nor block starting
+     * on a PlayerHUD balance the guest doesn't have (it has none at all).
+     *
+     * @covers \mod_playercross\local\round_presenter::build_lobby_context
+     * @return void
+     */
+    public function test_build_lobby_context_no_hud_cost_for_guest(): void {
+        $itemid = $this->make_hud_item('Chave de Ouro');
+        $instance = $this->make_instance(['hud_round_cost_item' => $itemid, 'hud_round_cost_qty' => 2]);
+        $state = $this->make_state();
+        $this->setGuestUser();
+
+        $context = round_presenter::build_lobby_context($instance, $state, (int)guest_user()->id);
+
+        $this->assertFalse($context['hudstartcost']);
+        $this->assertSame('', $context['hudstartcostlabel']);
+        $this->assertTrue($context['canstart']);
+    }
+
+    /**
      * The lobby allows starting once the user's balance meets the required quantity.
      *
      * @covers \mod_playercross\local\round_presenter::build_lobby_context
@@ -821,6 +842,27 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * The guest account plays a free demo: round_service::reveal_hint() never actually
+     * charges it, so the round panel must not show a hint cost it won't apply, nor
+     * block revealing the hint on a PlayerHUD balance the guest doesn't have.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
+     * @return void
+     */
+    public function test_build_round_panel_context_no_hint_cost_for_guest(): void {
+        $itemid = $this->make_hud_item('Lupa');
+        $instance = $this->make_instance(['hud_hint_cost_item' => $itemid, 'hud_hint_cost_qty' => 1]);
+        $cm = (object)['id' => 5];
+        $this->setGuestUser();
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $this->make_state(), (int)guest_user()->id);
+
+        $this->assertFalse($context['hudhintcost']);
+        $this->assertSame('', $context['hudhintcostlabel']);
+        $this->assertTrue($context['canaffordhint']);
+    }
+
+    /**
      * canaffordhint becomes true once the user's balance meets the required quantity.
      *
      * @covers \mod_playercross\local\round_presenter::build_round_panel_context
@@ -921,6 +963,27 @@ final class round_presenter_test extends \advanced_testcase {
         $context = round_presenter::build_round_result_context($instance, $cm, $state, 1, true);
 
         $this->assertStringContainsString('Gold Key', $context['huditemrewardedlabel']);
+    }
+
+    /**
+     * The guest account plays a free demo: round_service::finish_round() never actually
+     * grants a PlayerHUD item to it, so the round result must not announce one even when
+     * the state says the round was won and a win-reward item is configured — announcing
+     * it would claim something that did not happen.
+     *
+     * @covers \mod_playercross\local\round_presenter::build_round_result_context
+     * @return void
+     */
+    public function test_build_round_result_context_no_hud_grant_label_for_guest(): void {
+        $itemid = $this->make_hud_item('Gold Key');
+        $instance = $this->make_instance(['hud_win_reward_item' => $itemid, 'hud_win_reward_qty' => 2]);
+        $cm = (object)['id' => 5];
+        $state = $this->make_state(['finished' => true, 'won' => true]);
+        $this->setGuestUser();
+
+        $context = round_presenter::build_round_result_context($instance, $cm, $state, (int)guest_user()->id, true);
+
+        $this->assertSame('', $context['huditemrewardedlabel']);
     }
 
     /**

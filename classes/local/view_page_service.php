@@ -106,7 +106,8 @@ class view_page_service {
             ? round_presenter::build_lobby_context($instance, $state, $userid)
             : round_presenter::build_round_panel_context($instance, $cm, $state, $userid);
 
-        $canmanage = has_capability('mod/playercross:addinstance', $context);
+        $canmanage = has_capability('mod/playercross:managewords', $context);
+        $canviewreports = has_capability('mod/playercross:viewreports', $context);
 
         return [
             'hastheme' => $hastheme,
@@ -119,6 +120,7 @@ class view_page_service {
             'toolbarmyattempts' => get_string('toolbarmyattempts', 'mod_playercross'),
             'myattemptsurl' => (new \moodle_url('/mod/playercross/myattempts.php', ['id' => $cm->id]))->out(false),
             'canmanage' => $canmanage,
+            'canviewreports' => $canviewreports,
             'toolbarreport' => get_string('toolbarreport', 'mod_playercross'),
             'attemptsreporturl' => (new \moodle_url(
                 '/mod/playercross/attemptsreport.php',

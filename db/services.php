@@ -78,7 +78,7 @@ $functions = [
         'description'   => 'Count approved pool words within a given length range for the settings form.',
         'type'          => 'read',
         'ajax'          => true,
-        'capabilities'  => 'mod/playercross:addinstance',
+        'capabilities'  => 'mod/playercross:managewords',
         'loginrequired' => true,
     ],
     'mod_playercross_count_eligible_theme_words' => [
@@ -86,7 +86,7 @@ $functions = [
         'description'   => 'Count approved pool hints eligible as the mystery phrase within a given length range.',
         'type'          => 'read',
         'ajax'          => true,
-        'capabilities'  => 'mod/playercross:addinstance',
+        'capabilities'  => 'mod/playercross:managewords',
         'loginrequired' => true,
     ],
     'mod_playercross_count_glossary_candidates' => [

@@ -233,7 +233,11 @@ class round_service {
     /**
      * Ensures a puzzle is loaded in state, building a fresh one via puzzle_builder when
      * needed. Never rebuilds while the current round is finished — that transition
-     * belongs exclusively to new_round().
+     * belongs exclusively to new_round(). Also never picks a new puzzle while
+     * get_round_restriction_notice() reports max_rounds or cooldown as active — this is
+     * the single point every caller (page render, and the start_round/submit_clue_guess/
+     * submit_final_guess/reveal_hint/new_round externals) goes through to pick a puzzle,
+     * so the restriction is enforced once here instead of at each call site.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
@@ -243,6 +247,10 @@ class round_service {
      */
     public static function ensure_round_state(array $state, \stdClass $instance, int $cmid, int $userid): array {
         if (!empty($state['finished']) || (int)$state['themewordid'] > 0) {
+            return $state;
+        }
+
+        if (self::get_round_restriction_notice($instance, $userid) !== null) {
             return $state;
         }
 
@@ -293,6 +301,12 @@ class round_service {
     /**
      * Starts the round timer, optionally consuming a PlayerHUD item cost.
      *
+     * The guest account is exempt from the PlayerHUD cost: a course's guest-access
+     * visitors all share the single guest user record, so nothing charged here could be
+     * safely attributed to one specific person. See finish_round() for the matching
+     * exemption on the persistence side, which is what actually keeps a guest from
+     * leaving any trace in {playercross_attempts}.
+     *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
      * @param int $userid User id.
@@ -300,7 +314,7 @@ class round_service {
      */
     public static function start_round(array $state, \stdClass $instance, int $userid): array {
         $roundcostitem = (int)($instance->hud_round_cost_item ?? 0);
-        if ($roundcostitem > 0) {
+        if (!isguestuser() && $roundcostitem > 0) {
             $blockinstanceid = hud_service::resolve_block_instance_id($instance);
             $consumed = hud_service::consume_items(
                 $blockinstanceid,
@@ -472,8 +486,18 @@ class round_service {
      * @return array [$state, $notification, $notificationtype, $toast]
      */
     public static function reveal_hint(array $state, \stdClass $instance, int $cmid, int $userid): array {
+        // The guest account is exempt from the PlayerHUD hint cost — see start_round()
+        // for why.
         if (empty($state['themewordid']) || !empty($state['finished'])) {
             return [$state, get_string('roundfinished', 'mod_playercross'), 'warning', true];
+        }
+
+        // Requires roundstarted: see submit_clue_guess() for why — the hint itself also
+        // has its own configurable PlayerHUD cost, but start_round() is where the player
+        // commits to the round, and a hint pulled before that point would still be a way
+        // to play part of the round for free.
+        if (empty($state['roundstarted'])) {
+            return [$state, get_string('roundnotstarted', 'mod_playercross'), 'warning', true];
         }
 
         $hiddenslots = array_values(array_diff(range(1, (int)$state['slotcount']), $state['revealedslots']));
@@ -487,7 +511,7 @@ class round_service {
         }
 
         $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
-        if ($hintcostitem > 0) {
+        if (!isguestuser() && $hintcostitem > 0) {
             $blockinstanceid = hud_service::resolve_block_instance_id($instance);
             $consumed = hud_service::consume_items(
                 $blockinstanceid,
@@ -560,6 +584,14 @@ class round_service {
     ): array {
         if (!empty($state['finished'])) {
             return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning', true];
+        }
+
+        // Requires roundstarted: a client that calls this before start_round() —
+        // skipping the "Iniciar rodada" button, which is the only place a configured
+        // PlayerHUD round cost is actually charged — must not be able to play the round
+        // for free.
+        if (empty($state['roundstarted'])) {
+            return [$state, false, get_string('roundnotstarted', 'mod_playercross'), 'warning', true];
         }
 
         $index = self::find_clue_index($state, $clueid);
@@ -663,6 +695,11 @@ class round_service {
             return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning', true];
         }
 
+        // Requires roundstarted: see submit_clue_guess() for why.
+        if (empty($state['roundstarted'])) {
+            return [$state, false, get_string('roundnotstarted', 'mod_playercross'), 'warning', true];
+        }
+
         $guesswords = word_normalizer::normalize_phrase($guess);
         if ($guesswords === []) {
             return [$state, false, get_string('error_invalidchars', 'mod_playercross'), 'warning', true];
@@ -764,6 +801,12 @@ class round_service {
      *     attempts under PLAYERCROSS_WINCONDITION_BOTH, making a win impossible. Only
      *     ever used to pick the right feedback message — not persisted to the attempts
      *     table, which already records the loss via $won.
+     *
+     * The guest account never reaches the persistence block below: no attempt row, no
+     * round_completed event, no grade update, no PlayerHUD grant, no completion update.
+     * $state still gets 'finished'/'won'/etc. set above the cut so the UI can show the
+     * round's outcome — see start_round() for why guests are exempt in the first place.
+     *
      * @return array Updated state.
      */
     private static function finish_round(
@@ -787,6 +830,10 @@ class round_service {
         $state['cluesexhausted'] = $cluesexhausted;
         $state['timedout']     = $timedout;
         $state['finalguessed'] = $finalguessed;
+
+        if (isguestuser()) {
+            return $state;
+        }
 
         $timeused = max(0, time() - (int)$state['starttime']);
         $score = round((float)$state['scoreaccumulated'], 5);

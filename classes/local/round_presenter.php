@@ -260,7 +260,8 @@ class round_presenter {
     /**
      * Builds the "you received X× item" text shown after a won round, when the
      * activity has a win-reward item configured. Blank when there is nothing to
-     * announce.
+     * announce — and always blank for the guest account, which finish_round() never
+     * actually grants anything to.
      *
      * @param \stdClass $instance Activity instance record.
      * @param array $state Session state.
@@ -268,7 +269,7 @@ class round_presenter {
      */
     private static function build_hud_reward_label(\stdClass $instance, array $state): string {
         $rewarditem = (int)($instance->hud_win_reward_item ?? 0);
-        if ($rewarditem <= 0 || empty($state['won'])) {
+        if ($rewarditem <= 0 || empty($state['won']) || isguestuser()) {
             return '';
         }
 
@@ -341,6 +342,10 @@ class round_presenter {
     /**
      * Builds the pre-round lobby context.
      *
+     * The guest account never sees a PlayerHUD start cost — round_service::start_round()
+     * waives it entirely for guests, so showing one here (and possibly blocking canstart
+     * on a balance the guest doesn't have) would misrepresent what actually happens.
+     *
      * @param \stdClass $instance Activity instance record.
      * @param array $state Session state.
      * @param int $userid Current user id.
@@ -351,7 +356,7 @@ class round_presenter {
         $hudstartcostlabel = '';
         $canstart = true;
         $roundcostitem = (int)($instance->hud_round_cost_item ?? 0);
-        if ($roundcostitem > 0) {
+        if ($roundcostitem > 0 && !isguestuser()) {
             $info = self::build_hud_cost_info(
                 hud_service::resolve_block_instance_id($instance),
                 $roundcostitem,
@@ -447,6 +452,10 @@ class round_presenter {
      * the action stays available even once the whole mystery phrase is revealed, as
      * long as some clue still has a hidden letter of its own (SCOPE.md §20.2 v1.8).
      *
+     * The guest account never sees a PlayerHUD hint cost, for the same reason
+     * build_lobby_context() hides the round-start cost — round_service::reveal_hint()
+     * waives it entirely for guests.
+     *
      * @param \stdClass $instance Activity instance record.
      * @param array $state Session state.
      * @param int $userid Current user id.
@@ -491,7 +500,7 @@ class round_presenter {
         $blank['hintsremaininglabel'] = get_string('hintsremaining', 'mod_playercross', $hintsremainingvalue);
 
         $hintcostitem = (int)($instance->hud_hint_cost_item ?? 0);
-        if ($hintcostitem > 0) {
+        if ($hintcostitem > 0 && !isguestuser()) {
             $info = self::build_hud_cost_info(
                 hud_service::resolve_block_instance_id($instance),
                 $hintcostitem,

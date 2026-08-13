@@ -26,6 +26,7 @@
 namespace mod_playercross\external;
 
 use core_external\external_api;
+use mod_playercross\local\round_service;
 
 /**
  * Tests for the mod_playercross_reveal_hint web service.
@@ -140,6 +141,23 @@ final class reveal_hint_test extends \advanced_testcase {
     }
 
     /**
+     * Builds the round and starts it for the current student, so reveal_hint's own
+     * roundstarted guard does not block the action under test.
+     *
+     * Must run after $this->setUser() — setUser() empties the session, so any session
+     * state written before it is silently lost.
+     *
+     * @param \stdClass $instance Activity instance.
+     * @return void
+     */
+    private function start_round_for_student(\stdClass $instance): void {
+        $state = round_service::load_state($instance->cmid, $this->student->id);
+        $state = round_service::ensure_round_state($state, $instance, $instance->cmid, $this->student->id);
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
+        round_service::save_state($instance->cmid, $this->student->id, $state);
+    }
+
+    /**
      * Calls the mod_playercross_reveal_hint web service through the real dispatch path.
      *
      * @param int $cmid Course module id.
@@ -215,10 +233,11 @@ final class reveal_hint_test extends \advanced_testcase {
     public function test_reveals_one_more_tile(): void {
         $instance = $this->make_instance_with_pool();
         $this->setUser($this->student);
+        $this->start_round_for_student($instance);
 
         $before = $this->call_reveal_hint($instance->cmid);
-        // The very first call both builds the round (ensure_round_state) and reveals a
-        // hint, so compare against a fresh panel fetch instead of a pre-round baseline.
+        // The first call already reveals a hint (the round was already started above),
+        // so compare against this fresh panel fetch instead of a pre-hint baseline.
         $revealedbefore = $this->count_revealed_tiles($before['data']['panel']);
 
         $after = $this->call_reveal_hint($instance->cmid);
@@ -251,6 +270,7 @@ final class reveal_hint_test extends \advanced_testcase {
     public function test_rejects_once_every_slot_is_revealed(): void {
         $instance = $this->make_instance_with_pool();
         $this->setUser($this->student);
+        $this->start_round_for_student($instance);
 
         $response = null;
         for ($i = 0; $i < 5; $i++) {
@@ -285,6 +305,7 @@ final class reveal_hint_test extends \advanced_testcase {
     public function test_rejects_once_hint_limit_is_reached(): void {
         $instance = $this->make_instance_with_pool(['max_hints_per_round' => 2]);
         $this->setUser($this->student);
+        $this->start_round_for_student($instance);
 
         $this->call_reveal_hint($instance->cmid);
         $second = $this->call_reveal_hint($instance->cmid);
@@ -326,6 +347,7 @@ final class reveal_hint_test extends \advanced_testcase {
             'hud_hint_cost_item' => $itemid, 'hud_hint_cost_qty' => 1,
         ]);
         $this->setUser($this->student);
+        $this->start_round_for_student($instance);
 
         $result = $this->call_reveal_hint($instance->cmid);
 
@@ -349,6 +371,7 @@ final class reveal_hint_test extends \advanced_testcase {
             'hud_hint_cost_item' => 999999, 'hud_hint_cost_qty' => 1,
         ]);
         $this->setUser($this->student);
+        $this->start_round_for_student($instance);
 
         $result = $this->call_reveal_hint($instance->cmid);
 

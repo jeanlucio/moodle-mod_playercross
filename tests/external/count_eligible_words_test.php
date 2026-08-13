@@ -34,10 +34,10 @@ final class count_eligible_words_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
     private \stdClass $course;
 
-    /** @var \stdClass Teacher with mod/playercross:addinstance. */
+    /** @var \stdClass Teacher with mod/playercross:managewords. */
     private \stdClass $teacher;
 
-    /** @var \stdClass Student without mod/playercross:addinstance. */
+    /** @var \stdClass Student without mod/playercross:managewords. */
     private \stdClass $student;
 
     #[\Override]
@@ -181,12 +181,12 @@ final class count_eligible_words_test extends \advanced_testcase {
     }
 
     /**
-     * A user without mod/playercross:addinstance (e.g. a student) is rejected.
+     * A user without mod/playercross:managewords (e.g. a student) is rejected.
      *
      * @covers \mod_playercross\external\count_eligible_words::execute
      * @return void
      */
-    public function test_requires_addinstance_capability(): void {
+    public function test_requires_managewords_capability(): void {
         $instance = $this->make_instance();
 
         $this->setUser($this->student);

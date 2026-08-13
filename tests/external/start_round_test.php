@@ -50,6 +50,21 @@ final class start_round_test extends \advanced_testcase {
     }
 
     /**
+     * Enables the course's guest-access enrolment method — precondition for the
+     * guest-demo-mode regression test: mod/playercross:view (the sole gate on this
+     * write service) is granted to the guest archetype, but only reachable at all once
+     * a course opts into guest access.
+     *
+     * @return void
+     */
+    private function enable_guest_access(): void {
+        global $DB;
+        $guestplugin = enrol_get_plugin('guest');
+        $instance = $DB->get_record('enrol', ['courseid' => $this->course->id, 'enrol' => 'guest'], '*', MUST_EXIST);
+        $guestplugin->update_status($instance, ENROL_INSTANCE_ENABLED);
+    }
+
+    /**
      * Creates a playercross instance with a deterministic two-word pool (one theme
      * candidate, one clue), timer enabled.
      *
@@ -216,6 +231,29 @@ final class start_round_test extends \advanced_testcase {
     }
 
     /**
+     * The guest account is allowed to play a free demo through the real web service
+     * dispatch path: the call succeeds (mod/playercross:view is granted to the guest
+     * archetype on purpose) even with a round cost configured that just blocked a
+     * regular student above, since round_service::start_round() waives the PlayerHUD
+     * cost entirely for guests.
+     *
+     * @covers \mod_playercross\external\start_round::execute
+     * @return void
+     */
+    public function test_guest_can_play_demo_without_charge(): void {
+        $this->skip_if_no_playerhud();
+        $itemid = $this->make_hud_item();
+        $instance = $this->make_instance(['hud_round_cost_item' => $itemid, 'hud_round_cost_qty' => 1]);
+        $this->enable_guest_access();
+        $this->setGuestUser();
+
+        $result = $this->call_start_round($instance->cmid);
+
+        $this->assertFalse($result['error']);
+        $this->assertTrue($result['data']['success']);
+    }
+
+    /**
      * Tests that a round cost pointing at a PlayerHUD item that does not exist (e.g. it was
      * deleted after the activity was configured) is waived rather than blocking the round
      * forever with a broken notification.
@@ -234,5 +272,36 @@ final class start_round_test extends \advanced_testcase {
 
         $state = round_service::load_state($instance->cmid, $this->student->id);
         $this->assertTrue($state['roundstarted']);
+    }
+
+    /**
+     * Regression test for the max_rounds bypass: once the round limit is reached, a
+     * student who calls mod_playercross_start_round directly — skipping the UI, which
+     * hides the "start" control and never lets this request happen from a real page —
+     * must not be able to build a fresh puzzle or insert another attempt row. A
+     * brand-new session (never having called new_round at all) has the exact same
+     * default state (themewordid=0, finished=false) as one left behind by a blocked
+     * new_round() call, so this reproduces the report's PoC without needing to go
+     * through new_round first.
+     *
+     * @covers \mod_playercross\external\start_round::execute
+     * @return void
+     */
+    public function test_blocked_when_round_limit_already_reached(): void {
+        global $DB;
+
+        $instance = $this->make_instance(['max_rounds' => 1, 'cooldown_amount' => 0]);
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $modgenerator->create_attempt($instance->id, $this->student->id, 0);
+        $this->setUser($this->student);
+
+        $result = $this->call_start_round($instance->cmid);
+
+        $this->assertFalse($result['error']);
+        $this->assertFalse($result['data']['success']);
+
+        $state = round_service::load_state($instance->cmid, $this->student->id);
+        $this->assertFalse($state['roundstarted']);
+        $this->assertSame(1, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
     }
 }

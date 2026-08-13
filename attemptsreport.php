@@ -33,7 +33,7 @@ $instance = $DB->get_record('playercross', ['id' => $cm->instance], '*', MUST_EX
 $context = context_module::instance($cm->id);
 
 require_login($course, true, $cm);
-require_capability('mod/playercross:addinstance', $context);
+require_capability('mod/playercross:viewreports', $context);
 
 $page = optional_param('page', 0, PARAM_INT);
 $sort = optional_param('sort', 'date', PARAM_ALPHA);

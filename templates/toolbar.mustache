@@ -33,6 +33,7 @@
         "canmanage": true,
         "managewordsurl": "https://example.com/mod/playercross/managewords.php?id=1",
         "toolbarmanagewords": "Manage words",
+        "canviewreports": true,
         "attemptsreporturl": "https://example.com/mod/playercross/attemptsreport.php?id=1",
         "toolbarreport": "Report",
         "showforfeit": true,
@@ -61,10 +62,12 @@
         <a href="{{{managewordsurl}}}" class="pc-toolbar-btn" title="{{toolbarmanagewords}}" aria-label="{{toolbarmanagewords}}">
             <i class="fa fa-font" aria-hidden="true"></i>
         </a>
+    {{/canmanage}}
+    {{#canviewreports}}
         <a href="{{{attemptsreporturl}}}" class="pc-toolbar-btn" title="{{toolbarreport}}" aria-label="{{toolbarreport}}">
             <i class="fa fa-bar-chart" aria-hidden="true"></i>
         </a>
-    {{/canmanage}}
+    {{/canviewreports}}
     <button type="button"
             id="playercross-forfeit-button"
             class="pc-toolbar-btn pc-toolbar-btn-danger"
