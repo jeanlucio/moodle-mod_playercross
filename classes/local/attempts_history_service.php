@@ -24,6 +24,8 @@
 
 namespace mod_playercross\local;
 
+use context_course;
+
 /**
  * Builds one student's own round history, plus the teacher/manager-facing report
  * across every student. Ported from mod_playerwords\local\attempts_history_service,
@@ -147,10 +149,47 @@ class attempts_history_service {
     }
 
     /**
+     * Resolves the group-membership filter for the current viewer of the
+     * teacher/manager-facing report — the SEPARATEGROUPS counterpart of
+     * ranking_service::resolve_user_filter(), with the moodle/site:accessallgroups
+     * override that a manage/report-viewing role can legitimately hold.
+     *
+     * Returns null when no filter is needed (every student's rows visible). Returns
+     * an array of user ids — members of every group the viewer themselves belongs
+     * to — when SEPARATEGROUPS is active and the viewer lacks accessallgroups.
+     *
+     * @param \stdClass $cm Course module record.
+     * @param \context $context Module context.
+     * @param int $userid Current viewer's user id.
+     * @return int[]|null
+     */
+    private static function resolve_group_filter(\stdClass $cm, \context $context, int $userid): ?array {
+        global $DB;
+
+        $groupmode = groups_get_activity_groupmode($cm);
+        if ($groupmode != SEPARATEGROUPS || has_capability('moodle/site:accessallgroups', $context, $userid)) {
+            return null;
+        }
+
+        $groups = groups_get_all_groups($cm->course, $userid, $cm->groupingid);
+        if (empty($groups)) {
+            return [$userid];
+        }
+
+        [$sql, $params] = groups_get_members_ids_sql(
+            array_keys($groups),
+            context_course::instance($cm->course)
+        );
+        return array_map('intval', $DB->get_fieldset_sql($sql, $params));
+    }
+
+    /**
      * Returns one page of attempts across every student, for the teacher/manager-facing report.
      *
+     * @param \stdClass $cm Course module record.
      * @param \stdClass $instance Activity instance.
      * @param \context $context Module context.
+     * @param int $viewerid Current viewer's user id, for SEPARATEGROUPS scoping.
      * @param int $page Zero-based page number.
      * @param int $perpage Rows per page.
      * @param string $sort Column key from SORTABLE_COLUMNS.
@@ -159,8 +198,10 @@ class attempts_history_service {
      * @return array
      */
     public static function get_all_history(
+        \stdClass $cm,
         \stdClass $instance,
         \context $context,
+        int $viewerid,
         int $page,
         int $perpage,
         string $sort,
@@ -182,10 +223,19 @@ class attempts_history_service {
         [$managerwhere, $managerparams] = self::manager_exclusion($context);
         $params = array_merge($params, $managerparams);
 
+        $groupwhere = '';
+        $groupfilter = self::resolve_group_filter($cm, $context, $viewerid);
+        if ($groupfilter !== null) {
+            [$groupinsql, $groupinparams] = $DB->get_in_or_equal($groupfilter, SQL_PARAMS_NAMED, 'grp');
+            $groupwhere = "AND pa.userid $groupinsql";
+            $params = array_merge($params, $groupinparams);
+        }
+
         $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
         $wheresql = "pa.playercrossid = :instanceid
                        $userwhere
-                       $managerwhere";
+                       $managerwhere
+                       $groupwhere";
 
         $total = $DB->count_records_sql(
             "SELECT COUNT(*)
@@ -218,17 +268,34 @@ class attempts_history_service {
 
     /**
      * Returns students with at least one attempt, for the report's filter dropdown.
-     * Excludes the same manager set get_all_history() excludes from the report itself.
+     * Excludes the same manager set get_all_history() excludes from the report itself, and
+     * applies the same SEPARATEGROUPS scoping so the dropdown never offers a student the
+     * report itself would refuse to show.
      *
+     * @param \stdClass $cm Course module record.
      * @param \stdClass $instance Activity instance.
      * @param \context $context Module context.
+     * @param int $viewerid Current viewer's user id, for SEPARATEGROUPS scoping.
      * @return \stdClass[]
      */
-    public static function get_players_for_filter(\stdClass $instance, \context $context): array {
+    public static function get_players_for_filter(
+        \stdClass $cm,
+        \stdClass $instance,
+        \context $context,
+        int $viewerid
+    ): array {
         global $DB;
 
         [$managerwhere, $managerparams] = self::manager_exclusion($context);
         $params = array_merge(['instanceid' => (int)$instance->id], $managerparams);
+
+        $groupwhere = '';
+        $groupfilter = self::resolve_group_filter($cm, $context, $viewerid);
+        if ($groupfilter !== null) {
+            [$groupinsql, $groupinparams] = $DB->get_in_or_equal($groupfilter, SQL_PARAMS_NAMED, 'grp');
+            $groupwhere = "AND pa.userid $groupinsql";
+            $params = array_merge($params, $groupinparams);
+        }
 
         $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
         $sql = "SELECT DISTINCT u.id, $fullname AS fullname
@@ -236,6 +303,7 @@ class attempts_history_service {
                   JOIN {user} u ON u.id = pa.userid
                  WHERE pa.playercrossid = :instanceid
                        $managerwhere
+                       $groupwhere
               ORDER BY fullname ASC";
 
         return array_values($DB->get_records_sql($sql, $params));

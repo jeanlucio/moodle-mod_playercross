@@ -48,15 +48,17 @@ $PAGE->set_pagelayout('incourse');
 $PAGE->requires->css('/mod/playercross/styles.css');
 
 $history = attempts_history_service::get_all_history(
+    $cm,
     $instance,
     $context,
+    (int)$USER->id,
     $page,
     $perpage,
     $sort,
     $dir,
     $filteruserid
 );
-$players = attempts_history_service::get_players_for_filter($instance, $context);
+$players = attempts_history_service::get_players_for_filter($cm, $instance, $context, (int)$USER->id);
 
 $columns = [
     ['key' => 'student', 'label' => get_string('myattempts_student', 'mod_playercross'), 'alignend' => false],
