@@ -90,6 +90,23 @@ final class end_round_test extends \advanced_testcase {
     }
 
     /**
+     * Arms a puzzle for the current student without starting the round — the exact
+     * shape view.php's GET-time ensure_round_state() call leaves in session before the
+     * "Iniciar rodada" button is ever clicked.
+     *
+     * Must run after $this->setUser() — setUser() empties the session, so any session
+     * state written before it is silently lost.
+     *
+     * @param \stdClass $instance Activity instance.
+     * @return void
+     */
+    private function arm_puzzle_without_starting(\stdClass $instance): void {
+        $state = round_service::load_state($instance->cmid, $this->student->id);
+        $state = round_service::ensure_round_state($state, $instance, $instance->cmid, $this->student->id);
+        round_service::save_state($instance->cmid, $this->student->id, $state);
+    }
+
+    /**
      * Calls the mod_playercross_end_round web service through the real dispatch path.
      *
      * @param int $cmid Course module id.
@@ -175,5 +192,49 @@ final class end_round_test extends \advanced_testcase {
         $result = $this->call_end_round($instance->cmid, 'forfeit');
 
         $this->assertTrue($result['error']);
+    }
+
+    /**
+     * Regression test: a student who skips "Iniciar rodada" entirely and calls
+     * mod_playercross_end_round(reason=forfeit) directly through the real web service
+     * dispatch path must be rejected — otherwise a puzzle merely armed by view.php's
+     * own GET could burn one of the student's max_rounds and trigger the cooldown
+     * without the round ever having actually been played.
+     *
+     * @covers \mod_playercross\external\end_round::execute
+     * @return void
+     */
+    public function test_forfeit_rejected_when_round_not_started(): void {
+        global $DB;
+        $instance = $this->make_instance();
+        $this->setUser($this->student);
+        $this->arm_puzzle_without_starting($instance);
+
+        $result = $this->call_end_round($instance->cmid, 'forfeit');
+
+        $this->assertFalse($result['error']);
+        $this->assertFalse($result['data']['finished']);
+        $this->assertSame(0, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
+    }
+
+    /**
+     * Same regression as test_forfeit_rejected_when_round_not_started(), for
+     * reason=timeout — the more dangerous branch, since with starttime still at its
+     * default of 0 the deadline check alone would otherwise pass unconditionally.
+     *
+     * @covers \mod_playercross\external\end_round::execute
+     * @return void
+     */
+    public function test_timeout_rejected_when_round_not_started(): void {
+        global $DB;
+        $instance = $this->make_instance(['timer_minutes' => 1]);
+        $this->setUser($this->student);
+        $this->arm_puzzle_without_starting($instance);
+
+        $result = $this->call_end_round($instance->cmid, 'timeout');
+
+        $this->assertFalse($result['error']);
+        $this->assertFalse($result['data']['finished']);
+        $this->assertSame(0, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
     }
 }

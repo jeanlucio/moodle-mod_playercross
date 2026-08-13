@@ -919,6 +919,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         [$state] = round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
 
@@ -928,6 +929,33 @@ final class round_service_test extends \advanced_testcase {
 
         $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
         $this->assertSame(0, (int)$attempt->completed);
+    }
+
+    /**
+     * Regression test: forfeiting a puzzle that was only ever armed at page-load time
+     * (ensure_round_state(), before "Iniciar rodada" is ever clicked) must be rejected
+     * — otherwise a student could burn one of their max_rounds, and trigger the
+     * cooldown, on a round they never actually played.
+     *
+     * @covers \mod_playercross\local\round_service::forfeit
+     * @return void
+     */
+    public function test_forfeit_rejected_when_round_not_started(): void {
+        global $DB;
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        $this->assertFalse($state['roundstarted']);
+
+        [$state, $notification] = round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
+
+        $this->assertNotEmpty($notification);
+        $this->assertFalse($state['finished']);
+        $this->assertSame(0, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
     }
 
     /**
@@ -958,6 +986,39 @@ final class round_service_test extends \advanced_testcase {
         [$state] = round_service::timeout($state, $instance, $cm->cmid, $this->user->id);
 
         $this->assertFalse($state['finished']);
+    }
+
+    /**
+     * Regression test: a puzzle armed at page-load time but never started
+     * (starttime stays 0) must reject timeout() outright, not fall through to the
+     * deadline check — with starttime=0, that check's own deadline sits in the remote
+     * past and would otherwise pass unconditionally, defeating the anti-forgery
+     * tolerance window it documents.
+     *
+     * @covers \mod_playercross\local\round_service::timeout
+     * @return void
+     */
+    public function test_timeout_rejected_when_round_not_started(): void {
+        global $DB;
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'timer_minutes' => 5,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        $this->assertFalse($state['roundstarted']);
+        $this->assertSame(0, $state['starttime']);
+
+        [$state, $notification] = round_service::timeout($state, $instance, $cm->cmid, $this->user->id);
+
+        $this->assertNotEmpty($notification);
+        $this->assertFalse($state['finished']);
+        $this->assertSame(0, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
     }
 
     /**
@@ -1467,6 +1528,7 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
 
