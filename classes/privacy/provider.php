@@ -19,7 +19,8 @@
  *
  * Personal data stored:
  *   - playercross_attempts: one record per round per user (userid).
- *   - playercross_words.addedby: userid of the teacher/user who added the word.
+ *   - playercross_words: addedby (userid of the teacher/user who added the word),
+ *     plus the word, source and timecreated of that same row.
  *
  * @package    mod_playercross
  * @copyright  2026 Jean Lúcio
@@ -68,7 +69,10 @@ class provider implements
         $collection->add_database_table(
             'playercross_words',
             [
-                'addedby' => 'privacy:metadata:playercross_words:addedby',
+                'addedby'     => 'privacy:metadata:playercross_words:addedby',
+                'word'        => 'privacy:metadata:playercross_words:word',
+                'source'      => 'privacy:metadata:playercross_words:source',
+                'timecreated' => 'privacy:metadata:playercross_words:timecreated',
             ],
             'privacy:metadata:playercross_words'
         );
