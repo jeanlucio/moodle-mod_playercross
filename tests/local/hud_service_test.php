@@ -282,6 +282,82 @@ final class hud_service_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that get_xp_for_items resolves every requested item's XP in one pass.
+     *
+     * @covers \mod_playercross\local\hud_service::get_xp_for_items
+     * @return void
+     */
+    public function test_get_xp_for_items_resolves_every_item(): void {
+        $this->skip_if_no_playerhud();
+        $course = $this->getDataGenerator()->create_course();
+        $biid = $this->make_block_instance($course);
+        $itemid1 = $this->make_item($biid, 'Gold Key', 10);
+        $itemid2 = $this->make_item($biid, 'Silver Key', 5);
+
+        $result = hud_service::get_xp_for_items($biid, [$itemid1, $itemid2]);
+
+        $this->assertSame([$itemid1 => 10, $itemid2 => 5], $result);
+    }
+
+    /**
+     * An item belonging to a different block instance is simply absent from the
+     * returned map — the same cross-course leak prevention get_xp() applies via
+     * belongs_to_instance(), preserved by filtering on blockinstanceid in the bulk
+     * query rather than trusting the caller's item id list alone.
+     *
+     * @covers \mod_playercross\local\hud_service::get_xp_for_items
+     * @return void
+     */
+    public function test_get_xp_for_items_omits_item_from_other_instance(): void {
+        $this->skip_if_no_playerhud();
+        $course = $this->getDataGenerator()->create_course();
+        $othercourse = $this->getDataGenerator()->create_course();
+        $biid = $this->make_block_instance($course);
+        $otherbiid = $this->make_block_instance($othercourse);
+        $ownitemid = $this->make_item($biid, 'Gold Key', 10);
+        $otheritemid = $this->make_item($otherbiid, 'Foreign Key', 99);
+
+        $result = hud_service::get_xp_for_items($biid, [$ownitemid, $otheritemid]);
+
+        $this->assertSame([$ownitemid => 10], $result);
+        $this->assertArrayNotHasKey($otheritemid, $result);
+    }
+
+    /**
+     * An empty item id list short-circuits to an empty map without querying the
+     * database — get_in_or_equal() on an empty array would otherwise throw.
+     *
+     * @covers \mod_playercross\local\hud_service::get_xp_for_items
+     * @return void
+     */
+    public function test_get_xp_for_items_empty_list_returns_empty_map(): void {
+        $this->skip_if_no_playerhud();
+        $course = $this->getDataGenerator()->create_course();
+        $biid = $this->make_block_instance($course);
+
+        $this->assertSame([], hud_service::get_xp_for_items($biid, []));
+    }
+
+    /**
+     * Duplicate item ids in the input are resolved once, not once per occurrence —
+     * the same de-duplication the N+1 loop this method replaces got "for free" by
+     * calling get_xp() independently for each instance sharing the same item.
+     *
+     * @covers \mod_playercross\local\hud_service::get_xp_for_items
+     * @return void
+     */
+    public function test_get_xp_for_items_deduplicates_repeated_ids(): void {
+        $this->skip_if_no_playerhud();
+        $course = $this->getDataGenerator()->create_course();
+        $biid = $this->make_block_instance($course);
+        $itemid = $this->make_item($biid, 'Gold Key', 10);
+
+        $result = hud_service::get_xp_for_items($biid, [$itemid, $itemid, $itemid]);
+
+        $this->assertSame([$itemid => 10], $result);
+    }
+
+    /**
      * Tests that consume_items returns false when the user has fewer items than requested.
      *
      * @covers \mod_playercross\local\hud_service::consume_items

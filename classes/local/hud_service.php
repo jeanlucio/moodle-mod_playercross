@@ -149,6 +149,44 @@ class hud_service {
     }
 
     /**
+     * Bulk-resolves the XP value of several items at once, keyed by item id — used
+     * where a caller needs the XP of many items in one pass instead of one
+     * \block_playerhud\local\external_items::get_xp() query per item.
+     *
+     * Items that do not belong to $blockinstanceid (deleted, or configured for a
+     * different course) are simply absent from the returned map. Callers should treat
+     * a missing key the same way get_xp() treats "does not belong": as zero.
+     *
+     * @param int $blockinstanceid Block instance ID every item must belong to.
+     * @param int[] $itemids Item IDs to resolve.
+     * @return array<int,int> Item id => XP value.
+     */
+    public static function get_xp_for_items(int $blockinstanceid, array $itemids): array {
+        global $DB;
+
+        $itemids = array_values(array_unique(array_map('intval', $itemids)));
+        if (empty($itemids)) {
+            return [];
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($itemids, SQL_PARAMS_NAMED);
+        $params['blockinstanceid'] = $blockinstanceid;
+        $records = $DB->get_records_select(
+            'block_playerhud_items',
+            "blockinstanceid = :blockinstanceid AND id $insql",
+            $params,
+            '',
+            'id, xp'
+        );
+
+        $map = [];
+        foreach ($records as $record) {
+            $map[(int)$record->id] = (int)$record->xp;
+        }
+        return $map;
+    }
+
+    /**
      * Grants $qty units of $itemid to $userid, awarding the item's own XP value unless
      * $suppressxp is set. A no-op when the item does not belong to $blockinstanceid or is
      * disabled.

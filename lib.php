@@ -514,10 +514,13 @@ function playercross_playerhud_grant_potential(int $blockinstanceid): array {
         'id, name, hud_win_reward_item, hud_win_reward_qty, max_rounds'
     );
 
+    $itemids = array_map(fn(\stdClass $instance): int => (int)$instance->hud_win_reward_item, $instances);
+    $xpbyitem = \mod_playercross\local\hud_service::get_xp_for_items($blockinstanceid, $itemids);
+
     $rows = [];
     foreach ($instances as $instance) {
         $itemid = (int)$instance->hud_win_reward_item;
-        $itemxp = \block_playerhud\local\external_items::get_xp($blockinstanceid, $itemid);
+        $itemxp = $xpbyitem[$itemid] ?? 0;
         if ($itemxp <= 0) {
             // Zero-XP item, or the item does not belong to this block instance (e.g. stale
             // config copied from another course) — either way, nothing to add here.

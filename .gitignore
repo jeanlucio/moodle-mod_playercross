@@ -13,3 +13,6 @@ SCOPE.md
 
 .claude/
 .docs/
+
+# AI assistant session/workspace directories, not part of the plugin.
+.plans

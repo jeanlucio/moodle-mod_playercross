@@ -226,4 +226,67 @@ final class ranking_service_test extends \advanced_testcase {
         $this->assertContains(fullname($userb), $seenuserids);
         $this->assertNotContains(fullname($userc), $seenuserids);
     }
+
+    /**
+     * With SEPARATEGROUPS, a user who belongs to more than one group sees the union
+     * of every one of those groups' members — a teammate shared between two of the
+     * user's own groups must appear only once, not be dropped or duplicated. This is
+     * the scenario resolve_user_filter()'s bulk group-membership query needs to
+     * aggregate correctly across groups, unlike the single-group case above where a
+     * bulk query and a one-group loop are indistinguishable.
+     *
+     * @covers \mod_playercross\local\ranking_service::get_ranking
+     * @return void
+     */
+    public function test_get_ranking_separategroups_unions_members_across_users_own_groups(): void {
+        global $DB;
+
+        $DB->set_field('course_modules', 'groupmode', SEPARATEGROUPS, ['id' => $this->cm->id]);
+        $this->cm = get_coursemodule_from_instance(
+            'playercross',
+            $this->instance->id,
+            $this->course->id,
+            false,
+            MUST_EXIST
+        );
+
+        $groupa = $this->getDataGenerator()->create_group(['courseid' => $this->course->id]);
+        $groupb = $this->getDataGenerator()->create_group(['courseid' => $this->course->id]);
+        $groupc = $this->getDataGenerator()->create_group(['courseid' => $this->course->id]);
+
+        $usera = $this->getDataGenerator()->create_user(['firstname' => 'Alpha', 'lastname' => 'Multigroup']);
+        $userb = $this->getDataGenerator()->create_user(['firstname' => 'Beta', 'lastname' => 'Shared']);
+        $userc = $this->getDataGenerator()->create_user(['firstname' => 'Gamma', 'lastname' => 'SecondGroupOnly']);
+        $userd = $this->getDataGenerator()->create_user(['firstname' => 'Delta', 'lastname' => 'Outsider']);
+
+        foreach ([$usera, $userb, $userc, $userd] as $user) {
+            $this->getDataGenerator()->enrol_user($user->id, $this->course->id);
+        }
+
+        // Usera belongs to both groupa and groupb; userb is shared between the same
+        // two groups (must be deduplicated, not counted/returned twice); userc is
+        // reachable only via groupb; userd is in groupc, which usera never joins.
+        $this->getDataGenerator()->create_group_member(['groupid' => $groupa->id, 'userid' => $usera->id]);
+        $this->getDataGenerator()->create_group_member(['groupid' => $groupa->id, 'userid' => $userb->id]);
+        $this->getDataGenerator()->create_group_member(['groupid' => $groupb->id, 'userid' => $usera->id]);
+        $this->getDataGenerator()->create_group_member(['groupid' => $groupb->id, 'userid' => $userb->id]);
+        $this->getDataGenerator()->create_group_member(['groupid' => $groupb->id, 'userid' => $userc->id]);
+        $this->getDataGenerator()->create_group_member(['groupid' => $groupc->id, 'userid' => $userd->id]);
+
+        $this->add_attempt($usera, 50);
+        $this->add_attempt($userb, 40);
+        $this->add_attempt($userc, 90);
+        $this->add_attempt($userd, 10);
+
+        $ranking = ranking_service::get_ranking($this->instance, $this->cm, $usera->id);
+
+        $seennames = array_map(fn(array $row): string => $row['fullname'], $ranking['rows']);
+        $this->assertCount(3, $ranking['rows']);
+        $this->assertContains(fullname($usera), $seennames);
+        $this->assertContains(fullname($userb), $seennames);
+        $this->assertContains(fullname($userc), $seennames);
+        $this->assertNotContains(fullname($userd), $seennames);
+        // Userb's single row (not two) is the direct proof of deduplication across groups.
+        $this->assertCount(1, array_filter($seennames, fn(string $name): bool => $name === fullname($userb)));
+    }
 }

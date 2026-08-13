@@ -24,6 +24,8 @@
 
 namespace mod_playercross\local;
 
+use context_course;
+
 /**
  * Builds the accumulated ranking for a PlayerCross activity.
  */
@@ -123,11 +125,19 @@ class ranking_service {
      * Returns null when no filter is needed (all course users visible).
      * Returns an array of user ids when SEPARATEGROUPS is active.
      *
+     * Bulk-loads every group's membership in a single query via
+     * groups_get_members_ids_sql() instead of calling groups_get_members() once per
+     * group — that helper applies the exact same per-group visibility rule
+     * (\core_group\visibility::can_view_all_groups()) that groups_get_members() does,
+     * just combined into one query instead of N.
+     *
      * @param \stdClass $cm Course module record.
      * @param int $userid Current user id.
      * @return int[]|null
      */
     private static function resolve_user_filter(\stdClass $cm, int $userid): ?array {
+        global $DB;
+
         $groupmode = groups_get_activity_groupmode($cm);
         if ($groupmode != SEPARATEGROUPS) {
             return null;
@@ -138,14 +148,10 @@ class ranking_service {
             return [$userid];
         }
 
-        $memberids = [];
-        foreach ($groups as $group) {
-            $members = groups_get_members($group->id, 'u.id');
-            foreach ($members as $member) {
-                $memberids[$member->id] = $member->id;
-            }
-        }
-
-        return array_keys($memberids);
+        [$sql, $params] = groups_get_members_ids_sql(
+            array_keys($groups),
+            context_course::instance($cm->course)
+        );
+        return array_map('intval', $DB->get_fieldset_sql($sql, $params));
     }
 }
