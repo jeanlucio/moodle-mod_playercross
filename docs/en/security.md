@@ -1,6 +1,6 @@
 # 🔐 Security & Compliance
 
-* Capability-based access control (`mod/playercross:view`, `mod/playercross:addinstance`)
+* Capability-based access control (`mod/playercross:view`, `mod/playercross:addinstance`, `mod/playercross:managewords`, `mod/playercross:viewreports`)
 * `require_sesskey()` protection on all POST actions; AJAX calls are validated by Moodle's `core/ajax` dispatcher
 * Server-side enforcement of round limits and cooldown, always recomputed from current settings
 * Round timeout is re-validated against the server's own deadline instead of trusting the client's countdown alone

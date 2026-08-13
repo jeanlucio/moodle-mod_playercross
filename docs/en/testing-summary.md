@@ -24,16 +24,16 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `ai_word_generator_test.php` | 12 |
 | `attempts_history_service_test.php` | 11 |
 | `gameplay_service_test.php` | 8 |
-| `hud_service_test.php` | 22 |
+| `hud_service_test.php` | 26 |
 | `intro_service_test.php` | 5 |
 | `puzzle_builder_test.php` | 9 |
-| `ranking_service_test.php` | 5 |
-| `round_presenter_test.php` | 36 |
-| `round_service_test.php` | 37 |
-| `view_page_service_test.php` | 22 |
+| `ranking_service_test.php` | 6 |
+| `round_presenter_test.php` | 39 |
+| `round_service_test.php` | 44 |
+| `view_page_service_test.php` | 23 |
 | `word_normalizer_test.php` | 21 |
 | `words_repository_test.php` | 51 |
-| **Subtotal** | **239** |
+| **Subtotal** | **255** |
 
 ### Web Services Tests (`tests/external/`)
 
@@ -44,13 +44,13 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `count_glossary_candidates_test.php` | 4 |
 | `end_round_test.php` | 4 |
 | `new_round_test.php` | 3 |
-| `reveal_hint_test.php` | 6 |
-| `start_round_test.php` | 5 |
-| `submit_clue_guess_test.php` | 4 |
-| `submit_final_guess_test.php` | 3 |
-| **Subtotal** | **39** |
+| `reveal_hint_test.php` | 7 |
+| `start_round_test.php` | 7 |
+| `submit_clue_guess_test.php` | 5 |
+| `submit_final_guess_test.php` | 5 |
+| **Subtotal** | **45** |
 
-| **Grand Total** | **319** |
+| **Grand Total** | **341** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross

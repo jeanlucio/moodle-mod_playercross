@@ -1,6 +1,6 @@
 # 🔐 Segurança e Conformidade
 
-* Controle de acesso baseado em capabilities (`mod/playercross:view`, `mod/playercross:addinstance`)
+* Controle de acesso baseado em capabilities (`mod/playercross:view`, `mod/playercross:addinstance`, `mod/playercross:managewords`, `mod/playercross:viewreports`)
 * Proteção `require_sesskey()` em todas as ações POST; chamadas AJAX são validadas pelo dispatcher `core/ajax` do Moodle
 * Aplicação no servidor dos limites de rodada e do intervalo, sempre recalculados a partir das configurações atuais
 * O tempo esgotado da rodada é revalidado contra o próprio prazo do servidor, em vez de confiar apenas na contagem regressiva do cliente
