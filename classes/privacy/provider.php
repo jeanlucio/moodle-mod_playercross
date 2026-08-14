@@ -20,7 +20,8 @@
  * Personal data stored:
  *   - playercross_attempts: one record per round per user (userid).
  *   - playercross_words: addedby (userid of the teacher/user who added the word),
- *     plus the word, source and timecreated of that same row.
+ *     plus the word, hint, source and timecreated of that same row. See get_metadata()
+ *     for why concept/glossaryid/approved/timemodified are deliberately excluded.
  *
  * @package    mod_playercross
  * @copyright  2026 Jean Lúcio
@@ -66,13 +67,24 @@ class provider implements
             'privacy:metadata:playercross_attempts'
         );
 
+        // Every column of playercross_words that is not declared below has an explicit
+        // reason to be excluded: concept mirrors word verbatim for manual/AI-sourced
+        // rows and otherwise carries glossary content on rows imported with addedby=0
+        // (never attributable to a real user, and mod_glossary's own privacy provider
+        // already covers the source glossary entry); glossaryid only has a meaning on
+        // those same addedby=0 rows; approved is a moderation flag a manager sets,
+        // which may never be the addedby user at all; timemodified likewise can be
+        // updated by a manager approving or editing someone else's word, so it is not
+        // reliably a trace of the addedby user's own action.
         $collection->add_database_table(
             'playercross_words',
             [
-                'addedby'     => 'privacy:metadata:playercross_words:addedby',
-                'word'        => 'privacy:metadata:playercross_words:word',
-                'source'      => 'privacy:metadata:playercross_words:source',
-                'timecreated' => 'privacy:metadata:playercross_words:timecreated',
+                'addedby'       => 'privacy:metadata:playercross_words:addedby',
+                'playercrossid' => 'privacy:metadata:playercross_words:playercrossid',
+                'word'          => 'privacy:metadata:playercross_words:word',
+                'hint'          => 'privacy:metadata:playercross_words:hint',
+                'source'        => 'privacy:metadata:playercross_words:source',
+                'timecreated'   => 'privacy:metadata:playercross_words:timecreated',
             ],
             'privacy:metadata:playercross_words'
         );
@@ -250,13 +262,14 @@ class provider implements
                 'addedby = :addedby AND playercrossid = :pid',
                 ['addedby' => $userid, 'pid' => $instanceid],
                 'timecreated ASC',
-                'id, word, source, timecreated'
+                'id, word, hint, source, timecreated'
             );
 
             if (!empty($words)) {
                 $rows = array_values(array_map(function (\stdClass $w): array {
                     return [
                         'word'        => $w->word,
+                        'hint'        => $w->hint,
                         'source'      => $w->source,
                         'timecreated' => transform::datetime($w->timecreated),
                     ];

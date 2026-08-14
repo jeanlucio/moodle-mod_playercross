@@ -71,6 +71,39 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     }
 
     /**
+     * Tests that the declared playercross_attempts field keys match every real column
+     * of the table (minus id). Asserted as a set-equality against $DB->get_columns()
+     * rather than checking individual keys one by one, so a future column silently
+     * added to install.xml without a matching metadata entry fails this test — unlike
+     * playercross_words, every column of this table genuinely is personal data (no
+     * catalogue/config columns to carve out), so a strict schema diff is the right
+     * tool here rather than a declared-vs-exported comparison.
+     *
+     * @covers \mod_playercross\privacy\provider::get_metadata
+     * @return void
+     */
+    public function test_get_metadata_playercross_attempts_fields_match_schema(): void {
+        global $DB;
+
+        $tableitem = null;
+        foreach (provider::get_metadata(new collection('mod_playercross'))->get_collection() as $item) {
+            if ($item->get_name() === 'playercross_attempts') {
+                $tableitem = $item;
+                break;
+            }
+        }
+        $this->assertNotNull($tableitem);
+
+        $declaredfields = array_keys($tableitem->get_privacy_fields());
+        $realcolumns = array_keys($DB->get_columns('playercross_attempts'));
+        $realcolumns = array_values(array_diff($realcolumns, ['id']));
+
+        sort($declaredfields);
+        sort($realcolumns);
+        $this->assertSame($realcolumns, $declaredfields);
+    }
+
+    /**
      * Regression test for metadata drift: every field export_user_data() actually
      * puts in a playercross_words row must be declared in get_metadata() — asserted
      * against what export_user_data() really returns, not by hardcoding the expected
@@ -115,6 +148,59 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
                 $declaredfields,
                 "Field '$exportedkey' is exported but not declared in get_metadata()."
             );
+        }
+    }
+
+    /**
+     * Regression test: every real column of playercross_words must have an explicit
+     * privacy decision — either declared in get_metadata() (asserted above to also
+     * match what export_user_data() actually returns) or listed here as a documented
+     * exclusion, with the same reasoning as the comment directly above the
+     * add_database_table('playercross_words', ...) call in get_metadata(). A new
+     * column added to install.xml without updating either list fails this test,
+     * instead of silently falling through undeclared and unexplained.
+     *
+     * @covers \mod_playercross\privacy\provider::get_metadata
+     * @return void
+     */
+    public function test_playercross_words_every_column_is_declared_or_documented(): void {
+        global $DB;
+
+        // Kept in sync by hand with the comment in provider.php::get_metadata():
+        // concept mirrors word verbatim for manual/AI rows and otherwise carries
+        // glossary content on addedby=0 rows (never attributable to a real user);
+        // glossaryid only means anything on those same addedby=0 rows; approved is a
+        // moderation flag a manager sets, not necessarily addedby; timemodified can
+        // likewise be touched by a manager acting on someone else's word.
+        $documentedexclusions = ['concept', 'glossaryid', 'approved', 'timemodified'];
+
+        $tableitem = null;
+        foreach (provider::get_metadata(new collection('mod_playercross'))->get_collection() as $item) {
+            if ($item->get_name() === 'playercross_words') {
+                $tableitem = $item;
+                break;
+            }
+        }
+        $this->assertNotNull($tableitem);
+        $declaredfields = array_keys($tableitem->get_privacy_fields());
+
+        $realcolumns = array_keys($DB->get_columns('playercross_words'));
+        $realcolumns = array_values(array_diff($realcolumns, ['id']));
+
+        $accountedfor = array_merge($declaredfields, $documentedexclusions);
+        foreach ($realcolumns as $column) {
+            $this->assertContains(
+                $column,
+                $accountedfor,
+                "Column '$column' is neither declared in get_metadata() nor listed as a documented exclusion."
+            );
+        }
+
+        // Also guards the other direction: an exclusion left in the list after the
+        // column itself was renamed or dropped would otherwise go unnoticed.
+        foreach ($documentedexclusions as $excluded) {
+            $this->assertContains($excluded, $realcolumns);
+            $this->assertNotContains($excluded, $declaredfields);
         }
     }
 
