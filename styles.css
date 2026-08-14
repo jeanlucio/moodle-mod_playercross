@@ -64,6 +64,24 @@
     padding: 1rem 1.25rem;
 }
 
+/*
+ * Bootstrap 4's (Moodle 4.5) .form-check-input is position: absolute with a negative
+ * margin-left, designed to sit under an adjacent .form-check-label's reserved
+ * padding-left — a checkbox used alone, with only an aria-label and no visible label
+ * sibling, has nothing to anchor that padding against. Wrapping it in .form-check
+ * does not fix this: with no other in-flow content, the wrapper collapses to
+ * height: 0 (the checkbox itself is out of flow), so the checkbox's vertical position
+ * ends up wherever the browser happens to place a zero-height box within the table
+ * cell — observed sitting near the cell's bottom edge, overlapping the row below
+ * instead of centred in its own header cell. Bootstrap 5 (Moodle 5.x) does not have
+ * this problem — .form-check-input is position: static there — so this override is a
+ * no-op on 5.x and only matters on 4.5. Ported from mod_playerwords's identical fix.
+ */
+.path-mod-playercross .form-check-input {
+    position: static;
+    margin: 0;
+}
+
 .path-mod-playercross .pc-header {
     display: flex;
     flex-wrap: wrap;
