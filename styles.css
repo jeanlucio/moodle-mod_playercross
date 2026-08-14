@@ -389,6 +389,27 @@
     gap: 0.375rem;
 }
 
+/*
+ * position: sticky reserves its own space in normal flow, but still paints glued to
+ * the viewport's bottom edge as soon as the page (header + full tile grid) is taller
+ * than the viewport — even before the player has scrolled anywhere near it. The
+ * keyboard then visually overlaps whatever tiles are still on screen, and only
+ * settles into its real resting place, fully clear of the grid, once scrolled to the
+ * bottom. On a desktop-sized viewport there is no dynamic mobile browser chrome to
+ * fight (see the fixed-positioning comment below, in the max-width: 576px block,
+ * which exists for exactly that reason) and players mostly type on their own
+ * physical keyboard — this on-screen one is a visual reference, not something that
+ * needs to stay pinned while scrolling. Letting it sit in normal flow here removes
+ * the early-glue overlap entirely: the whole board is visible on load whenever it
+ * fits the viewport, and a genuinely short window just scrolls normally, like any
+ * other page. Ported from mod_playerwords's identical fix.
+ */
+@media (min-width: 577px) {
+    .path-mod-playercross .mod-playercross-keyboard {
+        position: static;
+    }
+}
+
 .path-mod-playercross .pc-accent-popup {
     position: absolute;
     display: flex;
