@@ -384,7 +384,7 @@ class words_repository {
 
         [$insql, $inparams] = $DB->get_in_or_equal($glossaryids, SQL_PARAMS_NAMED, 'gid');
         $entries = $DB->get_records_sql(
-            "SELECT ge.id, ge.concept, ge.definition, ge.glossaryid"
+            "SELECT ge.id, ge.concept, ge.definition, ge.definitionformat, ge.glossaryid"
             . " FROM {glossary_entries} ge"
             . " WHERE ge.glossaryid $insql AND ge.approved = 1",
             $inparams
@@ -420,7 +420,19 @@ class words_repository {
             if ($concept === '') {
                 continue;
             }
-            $hint = trim(html_entity_decode(strip_tags($entry->definition), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            // Calling content_to_text() alone does not neutralise markup that arrives
+            // entity-encoded (e.g. a literal "&lt;img onerror=...&gt;" typed into the
+            // editor): its underlying core_html2text strips real tags before decoding
+            // entities, the same vulnerable order this fix is meant to avoid, so a
+            // decoded fake tag survives it unstripped. Feeding its output through
+            // strip_tags(html_entity_decode()) closes that gap while keeping
+            // content_to_text()'s handling of genuine HTML (real <script>/<style>
+            // removal, paragraphs and inline formatting collapsed to readable text).
+            $hint = trim(strip_tags(html_entity_decode(
+                content_to_text($entry->definition, $entry->definitionformat),
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            )));
             $words = self::extract_candidate_words($concept, (string)($instance->stopwords ?? ''));
 
             foreach ($words as $word) {

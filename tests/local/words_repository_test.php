@@ -655,6 +655,31 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test for the sanitization-order bug: a glossary definition whose
+     * markup arrives entity-encoded (exactly how the Moodle editor stores an escaped
+     * `<img src=x onerror=...>` typed literally into a FORMAT_HTML field) must not
+     * survive as live HTML in the imported hint. The old strip_tags() then
+     * html_entity_decode() order let the decode step re-introduce the very markup
+     * strip_tags() was meant to remove; content_to_text() converts HTML to plain text
+     * instead, so no tag survives regardless of encoding.
+     *
+     * @covers \mod_playercross\local\words_repository::sync_glossary_words
+     * @return void
+     */
+    public function test_sync_glossary_words_strips_entity_encoded_markup_from_hint(): void {
+        global $DB;
+        $payload = '&lt;img src=x onerror=alert(document.domain)&gt;';
+        [$glossary] = $this->make_glossary_entry('planeta', $payload);
+        $instance = $this->make_full_instance(['glossaryid' => $glossary->id]);
+
+        words_repository::sync_glossary_words($instance);
+
+        $record = $DB->get_record('playercross_words', ['playercrossid' => $instance->id], '*', MUST_EXIST);
+        $this->assertStringNotContainsString('<img', $record->hint);
+        $this->assertStringNotContainsString('onerror', $record->hint);
+    }
+
+    /**
      * A multi-word concept is split into one candidate word per token when no
      * stopwords are configured.
      *
