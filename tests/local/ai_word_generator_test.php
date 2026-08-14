@@ -60,6 +60,21 @@ final class ai_word_generator_test extends \basic_testcase {
     }
 
     /**
+     * Invokes the protected static build_prompt() method.
+     *
+     * @param string $topic Subject area or theme.
+     * @param string $language Target language name.
+     * @param int $count Number of words to request.
+     * @param string[] $avoidwords Existing pool words the AI should not repeat.
+     * @return string
+     */
+    private function build_prompt(string $topic, string $language, int $count, array $avoidwords = []): string {
+        $method = new \ReflectionMethod(ai_word_generator::class, 'build_prompt');
+        $method->setAccessible(true);
+        return $method->invoke(null, $topic, $language, $count, $avoidwords);
+    }
+
+    /**
      * The documented "words" wrapper is parsed into term/hint pairs.
      *
      * @covers \mod_playercross\local\ai_word_generator::parse_words
@@ -209,5 +224,30 @@ final class ai_word_generator_test extends \basic_testcase {
         $this->assertFalse($this->is_valid_term('c3po'));
         $this->assertFalse($this->is_valid_term('planeta!'));
         $this->assertFalse($this->is_valid_term("plan'eta"));
+    }
+
+    /**
+     * The prompt lists existing pool words as terms to avoid when any are given.
+     *
+     * @covers \mod_playercross\local\ai_word_generator::build_prompt
+     * @return void
+     */
+    public function test_build_prompt_includes_avoid_words(): void {
+        $prompt = $this->build_prompt('astronomia', 'Portuguese', 5, ['planeta', 'estrela']);
+
+        $this->assertStringContainsString('Do not repeat any of these words', $prompt);
+        $this->assertStringContainsString('planeta, estrela', $prompt);
+    }
+
+    /**
+     * No avoid-list section is added when there are no existing words to avoid.
+     *
+     * @covers \mod_playercross\local\ai_word_generator::build_prompt
+     * @return void
+     */
+    public function test_build_prompt_omits_avoid_section_when_empty(): void {
+        $prompt = $this->build_prompt('astronomia', 'Portuguese', 5);
+
+        $this->assertStringNotContainsString('Do not repeat', $prompt);
     }
 }

@@ -24,6 +24,8 @@
 
 namespace mod_playercross\local;
 
+use core_text;
+
 /**
  * Generates single-word terms through the shared AI ladder.
  *
@@ -33,6 +35,16 @@ namespace mod_playercross\local;
  * raw, untrusted text.
  */
 class ai_word_generator {
+    /**
+     * Maximum number of existing pool words listed in the prompt as terms to avoid.
+     *
+     * Keeps the prompt bounded for an activity with a very large pool — the defensive
+     * duplicate check in generate_and_save() still compares against the full set
+     * regardless of this cap, so a truncated avoid-list never lets a duplicate
+     * through, it only makes the AI's own avoidance slightly less complete.
+     */
+    private const MAX_AVOID_WORDS = 200;
+
     /**
      * Returns true when an AI source (hub key or core_ai) is available.
      *
@@ -55,6 +67,10 @@ class ai_word_generator {
      *
      * Only single-word, purely alphabetic terms within the activity's configured
      * length bounds are saved. Multi-word phrases and numeric tokens are skipped.
+     * A term matching a word the activity already owns (any source, any approval
+     * status) is skipped too — the prompt asks the AI to avoid the activity's
+     * existing words, and this is the actual enforcement of that, independent of
+     * whether the AI follows the instruction.
      *
      * @param \stdClass $instance Activity instance record.
      * @param int $userid ID of the user triggering the generation.
@@ -71,9 +87,16 @@ class ai_word_generator {
         int $count,
         \context $context
     ): int {
+        $existingwords = words_repository::get_all_word_texts((int)$instance->id);
+        $seen = [];
+        foreach ($existingwords as $existingword) {
+            $seen[core_text::strtolower(trim($existingword))] = true;
+        }
+
         $language = get_string('thislanguage', 'langconfig');
         $requestcount = min(60, $count * 3);
-        $prompt = self::build_prompt($topic, $language, $requestcount);
+        $avoidwords = array_slice($existingwords, 0, self::MAX_AVOID_WORDS);
+        $prompt = self::build_prompt($topic, $language, $requestcount, $avoidwords);
         $description = get_string('aiusage', 'mod_playercross', $topic);
 
         $result = self::call_ai($prompt, $description, $context);
@@ -96,7 +119,17 @@ class ai_word_generator {
                 continue;
             }
 
+            // The prompt already asks the AI to avoid the activity's existing words,
+            // but that is an instruction, not a guarantee — this is the actual gate
+            // that keeps a duplicate from ever being written, and also catches the
+            // AI repeating a term within its own response.
+            $key = core_text::strtolower($term);
+            if (isset($seen[$key])) {
+                continue;
+            }
+
             words_repository::add_ai_word((int)$instance->id, $userid, $term, $hint);
+            $seen[$key] = true;
             $saved++;
         }
 
@@ -131,9 +164,10 @@ class ai_word_generator {
      * @param string $topic Subject area or theme.
      * @param string $language Target language name.
      * @param int $count Number of words to request.
+     * @param string[] $avoidwords Existing pool words the AI should not repeat.
      * @return string The constructed prompt.
      */
-    protected static function build_prompt(string $topic, string $language, int $count): string {
+    protected static function build_prompt(string $topic, string $language, int $count, array $avoidwords = []): string {
         $langname = $language !== '' ? $language : 'English';
         $example = '{"words":[{"term":"...","hint":"..."}]}';
 
@@ -145,9 +179,15 @@ class ai_word_generator {
                 . ' or punctuation.',
             '- hint: one short clue sentence that helps guess the word without containing the word itself.',
             'Prefer common, guessable words. Avoid proper nouns and abbreviations.',
-            'IMPORTANT: Reply ONLY with a valid JSON object in this exact format, no code fences:',
-            $example,
         ];
+
+        if (!empty($avoidwords)) {
+            $parts[] = 'Do not repeat any of these words, which are already in the activity\'s word pool: '
+                . implode(', ', $avoidwords) . '.';
+        }
+
+        $parts[] = 'IMPORTANT: Reply ONLY with a valid JSON object in this exact format, no code fences:';
+        $parts[] = $example;
 
         return implode("\n", $parts);
     }

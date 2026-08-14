@@ -309,6 +309,43 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * get_all_word_texts() returns every word for the instance regardless of source or
+     * approval status, since the AI generator needs to avoid pending words too.
+     *
+     * @covers \mod_playercross\local\words_repository::get_all_word_texts
+     * @return void
+     */
+    public function test_get_all_word_texts_returns_every_word_regardless_of_status(): void {
+        global $DB;
+
+        $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        $this->modgenerator->create_word($instance->id, 'planeta');
+        $pending = $this->modgenerator->create_word($instance->id, 'cometa');
+        $DB->set_field('playercross_words', 'approved', 0, ['id' => $pending->id]);
+        words_repository::add_ai_word($instance->id, $this->user->id, 'estrela', 'corpo celeste');
+
+        $texts = words_repository::get_all_word_texts($instance->id);
+
+        sort($texts);
+        $this->assertSame(['cometa', 'estrela', 'planeta'], $texts);
+    }
+
+    /**
+     * get_all_word_texts() is scoped to the given instance and empty when it has no words.
+     *
+     * @covers \mod_playercross\local\words_repository::get_all_word_texts
+     * @return void
+     */
+    public function test_get_all_word_texts_scoped_to_instance(): void {
+        $instancea = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        $instanceb = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        $this->modgenerator->create_word($instancea->id, 'planeta');
+
+        $this->assertSame(['planeta'], words_repository::get_all_word_texts($instancea->id));
+        $this->assertSame([], words_repository::get_all_word_texts($instanceb->id));
+    }
+
+    /**
      * Tests that has_cedilla_word is false when no approved word contains one.
      *
      * @covers \mod_playercross\local\words_repository::has_cedilla_word

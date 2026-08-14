@@ -323,6 +323,32 @@ class words_repository {
     }
 
     /**
+     * Returns every word's text already stored for this activity instance, across all
+     * sources and approval statuses.
+     *
+     * Used to keep the AI generator from being asked for (and from accidentally
+     * producing) duplicates of words the activity already owns, whether approved or
+     * still pending review — fetched once as a batch so the generator can check
+     * membership in PHP instead of querying per candidate term.
+     *
+     * @param int $instanceid Activity instance id.
+     * @return string[] Word texts, in their original stored casing.
+     */
+    public static function get_all_word_texts(int $instanceid): array {
+        global $DB;
+
+        $records = $DB->get_records_select(
+            'playercross_words',
+            'playercrossid = :instanceid',
+            ['instanceid' => $instanceid],
+            '',
+            'id, word'
+        );
+
+        return array_values(array_map(static fn(\stdClass $record): string => $record->word, $records));
+    }
+
+    /**
      * Inserts one manual word as approved.
      *
      * @param int $instanceid Activity instance id.
