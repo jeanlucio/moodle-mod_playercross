@@ -40,6 +40,7 @@ require_capability('mod/playercross:managewords', $context);
 
 $sort = optional_param('sort', 'id', PARAM_ALPHA);
 $dir  = optional_param('dir', 'DESC', PARAM_ALPHA);
+$page = optional_param('page', 0, PARAM_INT);
 
 $allowedsorts = ['id', 'word', 'source', 'approved'];
 if (!in_array($sort, $allowedsorts, true)) {
@@ -49,6 +50,7 @@ $dir = strtoupper($dir);
 if (!in_array($dir, ['ASC', 'DESC'], true)) {
     $dir = 'DESC';
 }
+$perpage = words_repository::MANAGE_PERPAGE;
 
 $editwordid = optional_param('editwordid', 0, PARAM_INT);
 
@@ -172,7 +174,8 @@ if (optional_param('generateai', 0, PARAM_BOOL)) {
     }
 }
 
-$recentwords = words_repository::get_recent_words((int)$instance->id, 0, $sort, $dir);
+$wordpool = words_repository::get_recent_words((int)$instance->id, $page, $perpage, $sort, $dir);
+$recentwords = $wordpool['rows'];
 $fragmentedconcepts = words_repository::get_fragmented_concepts((int)$instance->id);
 $drawcounts = words_repository::get_theme_draw_counts((int)$instance->id);
 
@@ -204,6 +207,11 @@ foreach ($sortcols as $col) {
     $sorturls[$col] = $colurl->out(false);
 }
 
+$pagingbaseurl = clone $basepageurl;
+$pagingbaseurl->param('sort', $sort);
+$pagingbaseurl->param('dir', $dir);
+$pagingbar = $OUTPUT->paging_bar($wordpool['total'], $page, $perpage, $pagingbaseurl);
+
 $templaterows = [];
 foreach ($recentwords as $recentword) {
     $sourcelabel = get_string('source_' . $recentword->source, 'mod_playercross');
@@ -217,6 +225,7 @@ foreach ($recentwords as $recentword) {
     $editurl = clone $basepageurl;
     $editurl->param('sort', $sort);
     $editurl->param('dir', $dir);
+    $editurl->param('page', $page);
     $editurl->param('editwordid', $recentword->id);
 
     $isfragmentedconcept = $recentword->source === 'glossary'
@@ -248,6 +257,7 @@ foreach ($recentwords as $recentword) {
 $cancelediteurl = clone $basepageurl;
 $cancelediteurl->param('sort', $sort);
 $cancelediteurl->param('dir', $dir);
+$cancelediteurl->param('page', $page);
 
 $cansyncglossary = ((int)$instance->sources & PLAYERCROSS_SOURCE_GLOSSARY) !== 0;
 
@@ -311,6 +321,7 @@ $templatecontext = [
     'editword_word'          => $editworddata ? $editworddata->word : '',
     'editword_hint'          => $editworddata ? ($editworddata->hint ?? '') : '',
     'cancelediteurl'         => $cancelediteurl->out(false),
+    'pagingbar'              => $pagingbar,
 ];
 
 echo $OUTPUT->header();

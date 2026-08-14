@@ -37,6 +37,9 @@ use core_text;
  * round.
  */
 class words_repository {
+    /** @var int Default rows per page for the teacher word pool listing. */
+    const MANAGE_PERPAGE = 30;
+
     /**
      * Splits a glossary concept into individual candidate words, ignoring given stopwords.
      *
@@ -643,30 +646,42 @@ class words_repository {
     }
 
     /**
-     * Returns words for the teacher word pool, ordered by the given column.
+     * Returns one page of the teacher word pool, ordered by the given column.
      *
      * Both $sort and $dir must be validated by the caller against an allow-list
-     * before being passed here.
+     * before being passed here. Pass $page = 0 and $perpage = 0 together to fetch
+     * every row unpaginated (used by tests that only care about the full set).
      *
      * @param int $instanceid Activity instance id.
-     * @param int $limit Maximum number of records (0 = unlimited).
+     * @param int $page Zero-based page number.
+     * @param int $perpage Rows per page (0 = unlimited, together with $page = 0).
      * @param string $sort Column name to sort by.
      * @param string $dir Sort direction: 'ASC' or 'DESC'.
-     * @return array
+     * @return array{rows: \stdClass[], total: int, isempty: bool}
      */
     public static function get_recent_words(
         int $instanceid,
-        int $limit = 0,
+        int $page = 0,
+        int $perpage = 0,
         string $sort = 'id',
         string $dir = 'DESC'
     ): array {
         global $DB;
+
+        $total = $DB->count_records('playercross_words', ['playercrossid' => $instanceid]);
+
         $sql = "SELECT w.id, w.word, w.source, w.approved, w.concept, g.name AS glossaryname"
             . " FROM {playercross_words} w"
             . " LEFT JOIN {glossary} g ON g.id = w.glossaryid"
             . " WHERE w.playercrossid = :playercrossid"
             . " ORDER BY w.$sort $dir";
-        return $DB->get_records_sql($sql, ['playercrossid' => $instanceid], 0, $limit);
+        $rows = $DB->get_records_sql($sql, ['playercrossid' => $instanceid], $page * $perpage, $perpage);
+
+        return [
+            'rows'    => $rows,
+            'total'   => (int)$total,
+            'isempty' => ($total === 0),
+        ];
     }
 
     /**
