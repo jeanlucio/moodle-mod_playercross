@@ -25,6 +25,8 @@
 
 namespace mod_playercross;
 
+use core_courseformat\local\cmactions;
+
 /**
  * Tests that duplicating a playercross activity, and backing up/restoring a full
  * course, complete without error and preserve every column.
@@ -64,7 +66,14 @@ final class backup_restore_test extends \advanced_testcase {
 
         $cm = get_coursemodule_from_instance('playercross', $instancecm->id, $course->id, false, MUST_EXIST);
 
-        $newcm = duplicate_module($course, $cm);
+        // Core's duplicate_module() is deprecated since Moodle 5.2 (MDL-86858), replaced by
+        // cmactions::duplicate() — but that method doesn't exist before 5.2, so this must
+        // stay guarded rather than switched outright while the plugin supports 4.5+5.2.
+        if (method_exists(cmactions::class, 'duplicate')) {
+            $newcm = (new cmactions($course))->duplicate($cm->id);
+        } else {
+            $newcm = duplicate_module($course, $cm);
+        }
 
         $this->assertNotNull($newcm);
         $this->assertNotSame($cm->id, $newcm->id);
@@ -348,7 +357,14 @@ final class backup_restore_test extends \advanced_testcase {
         ]);
 
         $cm = get_coursemodule_from_instance('playercross', $instancecm->id, $course->id, false, MUST_EXIST);
-        $newcm = duplicate_module($course, $cm);
+        // Core's duplicate_module() is deprecated since Moodle 5.2 (MDL-86858), replaced by
+        // cmactions::duplicate() — but that method doesn't exist before 5.2, so this must
+        // stay guarded rather than switched outright while the plugin supports 4.5+5.2.
+        if (method_exists(cmactions::class, 'duplicate')) {
+            $newcm = (new cmactions($course))->duplicate($cm->id);
+        } else {
+            $newcm = duplicate_module($course, $cm);
+        }
 
         $newinstance = $DB->get_record('playercross', ['id' => $newcm->instance], '*', MUST_EXIST);
         $this->assertSame($itemid, (int)$newinstance->hud_win_reward_item);
