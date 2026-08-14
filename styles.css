@@ -232,6 +232,16 @@
 
 .path-mod-playercross .mod-playercross-tile {
     width: 2.5rem;
+    /*
+     * Flex items default to min-width: auto, which for an item with an explicit width
+     * effectively pins that width as a floor — flex-shrink never actually engages, no
+     * matter how little room the row has. flex-wrap on the parent already keeps a long
+     * word from overflowing past the card (it wraps to a second line instead), but a
+     * single wrapped line can still overflow on its own on a narrow phone; min-width: 0
+     * removes that floor so flex-shrink can do its job. aspect-ratio: 1 keeps the tile
+     * square as it shrinks. Ported from mod_playerwords's identical fix.
+     */
+    min-width: 0;
     flex-shrink: 1;
     aspect-ratio: 1;
     display: flex;
