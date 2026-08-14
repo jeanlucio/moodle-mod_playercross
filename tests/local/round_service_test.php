@@ -989,6 +989,151 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test: submit_clue_guess() must close an expired round itself instead
+     * of processing the guess — a client that never calls end_round(timeout) (or
+     * reloads after the deadline, since the timer is only ever armed client-side once
+     * it first sees timeleft > 0) would otherwise keep scoring indefinitely past the
+     * activity's configured time limit.
+     *
+     * @covers \mod_playercross\local\round_service::submit_clue_guess
+     * @return void
+     */
+    public function test_submit_clue_guess_closes_round_once_deadline_has_passed(): void {
+        global $DB;
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'timer_minutes' => 1,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+        $state['starttime'] = time() - 120;
+        $clue = $state['clues'][0];
+
+        [$state, $resolved, $notification] = round_service::submit_clue_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            (int)$clue['wordid'],
+            $clue['word']
+        );
+
+        $this->assertFalse($resolved);
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['timedout']);
+        $this->assertNotEmpty($notification);
+        $this->assertFalse($state['clues'][0]['resolved']);
+        $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
+        $this->assertSame(0, (int)$attempt->completed);
+    }
+
+    /**
+     * Same regression as test_submit_clue_guess_closes_round_once_deadline_has_passed(),
+     * for a direct guess of the mystery phrase.
+     *
+     * @covers \mod_playercross\local\round_service::submit_final_guess
+     * @return void
+     */
+    public function test_submit_final_guess_closes_round_once_deadline_has_passed(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'timer_minutes' => 1,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+        $state['starttime'] = time() - 120;
+
+        [$state, $correct, $notification] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+
+        $this->assertFalse($correct);
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['timedout']);
+        $this->assertNotEmpty($notification);
+        $this->assertFalse($state['finalguesscorrect']);
+    }
+
+    /**
+     * Same regression as test_submit_clue_guess_closes_round_once_deadline_has_passed(),
+     * for revealing a hint.
+     *
+     * @covers \mod_playercross\local\round_service::reveal_hint
+     * @return void
+     */
+    public function test_reveal_hint_closes_round_once_deadline_has_passed(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'timer_minutes' => 1,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+        $state['starttime'] = time() - 120;
+        $revealedbefore = $state['revealedslots'];
+
+        [$state, $notification] = round_service::reveal_hint($state, $instance, $cm->cmid, $this->user->id);
+
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['timedout']);
+        $this->assertNotEmpty($notification);
+        $this->assertSame($revealedbefore, $state['revealedslots']);
+    }
+
+    /**
+     * Regression test: close_if_expired() — used by view_page_service so a page
+     * reload after the deadline renders the round as finished — must leave an
+     * unstarted or still-within-deadline round untouched, and close a genuinely
+     * expired one exactly the way timeout() would.
+     *
+     * @covers \mod_playercross\local\round_service::close_if_expired
+     * @return void
+     */
+    public function test_close_if_expired_only_closes_a_genuinely_expired_round(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_clues' => 3,
+            'theme_min_length' => 6,
+            'timer_minutes' => 1,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        $untouched = round_service::close_if_expired($state, $instance, $cm->cmid, $this->user->id);
+        $this->assertFalse($untouched['finished']);
+
+        $state['starttime'] = time() - 120;
+        $closed = round_service::close_if_expired($state, $instance, $cm->cmid, $this->user->id);
+        $this->assertTrue($closed['finished']);
+        $this->assertTrue($closed['timedout']);
+    }
+
+    /**
      * Regression test: a puzzle armed at page-load time but never started
      * (starttime stays 0) must reject timeout() outright, not fall through to the
      * deadline check — with starttime=0, that check's own deadline sits in the remote

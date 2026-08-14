@@ -275,4 +275,33 @@ final class submit_clue_guess_test extends \advanced_testcase {
         $this->assertFalse($result['finished']);
         $this->assertNotEmpty($result['notification']);
     }
+
+    /**
+     * Regression test for the timer bypass in the security report's PoC: a student
+     * who never calls mod_playercross_end_round(reason=timeout) — because the client
+     * only ever arms that call when it first sees timeleft > 0, so simply reloading
+     * after the deadline never fires it — must still be stopped from resolving a clue
+     * through mod_playercross_submit_clue_guess after the round's own deadline has
+     * passed. The server, not the client, must be the one enforcing the time limit.
+     *
+     * @covers \mod_playercross\external\submit_clue_guess::execute
+     * @return void
+     */
+    public function test_rejects_clue_guess_once_deadline_has_passed(): void {
+        [$instance, $cm] = $this->make_ready_instance(['timer_minutes' => 1]);
+        $this->setUser($this->student);
+
+        $state = round_service::load_state($cm->cmid, $this->student->id);
+        $state = round_service::ensure_round_state($state, $instance, $cm->cmid, $this->student->id);
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
+        $state['starttime'] = time() - 120;
+        round_service::save_state($cm->cmid, $this->student->id, $state);
+        $clue = $state['clues'][0];
+
+        $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
+
+        $this->assertFalse($result['resolved']);
+        $this->assertTrue($result['finished']);
+        $this->assertNotEmpty($result['notification']);
+    }
 }

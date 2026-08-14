@@ -69,6 +69,10 @@ class view_page_service {
         }
 
         $state = round_service::ensure_round_state($state, $instance, (int)$cm->id, $userid);
+        // A round that timed out while the player simply never fired end_round(timeout)
+        // (or reloaded after the deadline, since the client only ever arms the timer
+        // when it first sees timeleft > 0) must not keep rendering playable forms.
+        $state = round_service::close_if_expired($state, $instance, (int)$cm->id, $userid);
         round_service::save_state((int)$cm->id, $userid, $state);
 
         $templatecontext = self::build_template_context($cm, $instance, $state, $context, $userid);

@@ -352,6 +352,28 @@ class round_service {
     }
 
     /**
+     * Whether a started, timed round's deadline has genuinely passed, with the same
+     * tolerance window timeout() applies in the opposite direction: timeout() refuses
+     * to close a round up to TIMEOUT_TOLERANCE_SECONDS before the deadline (never trust
+     * the client's own countdown alone), so a guess or hint arriving up to that same
+     * window after the deadline is still accepted here — normal network latency, not a
+     * bypass. An untimed activity (timer_seconds <= 0) or a round that never started
+     * never expires by this check.
+     *
+     * @param array $state Current state.
+     * @param \stdClass $instance Activity instance.
+     * @return bool
+     */
+    private static function round_expired(array $state, \stdClass $instance): bool {
+        if ((int)$instance->timer_seconds <= 0 || empty($state['roundstarted'])) {
+            return false;
+        }
+
+        $deadline = (int)$state['starttime'] + (int)$instance->timer_seconds;
+        return time() > $deadline + self::TIMEOUT_TOLERANCE_SECONDS;
+    }
+
+    /**
      * Finds a clue's array index by its word id.
      *
      * @param array $state Current state.
@@ -517,6 +539,13 @@ class round_service {
             return [$state, get_string('roundnotstarted', 'mod_playercross'), 'warning', true];
         }
 
+        // See submit_clue_guess() for why this is re-checked here too, not just in
+        // timeout() itself.
+        if (self::round_expired($state, $instance)) {
+            $state = self::finish_round($state, $instance, $cmid, $userid, false, false, true, false);
+            return [$state, get_string('roundtimeout', 'mod_playercross'), 'warning', true];
+        }
+
         $hiddenslots = array_values(array_diff(range(1, (int)$state['slotcount']), $state['revealedslots']));
         if (empty($hiddenslots)) {
             return [$state, get_string('hintnotavailable', 'mod_playercross'), 'warning', true];
@@ -609,6 +638,18 @@ class round_service {
         // for free.
         if (empty($state['roundstarted'])) {
             return [$state, false, get_string('roundnotstarted', 'mod_playercross'), 'warning', true];
+        }
+
+        // The client is expected to call end_round(timeout) itself once its own
+        // countdown reaches zero, but nothing forces it to — a client that simply
+        // never fires that call (or a reload after the deadline, since the timer is
+        // only ever armed client-side when timeleft > 0) would otherwise keep this
+        // round playable, and scoring, indefinitely past its configured time limit.
+        // Closing it here, the same way timeout() itself would, makes the server the
+        // one actually enforcing the limit.
+        if (self::round_expired($state, $instance)) {
+            $state = self::finish_round($state, $instance, $cmid, $userid, false, false, true, false);
+            return [$state, false, get_string('roundtimeout', 'mod_playercross'), 'warning', true];
         }
 
         $index = self::find_clue_index($state, $clueid);
@@ -717,6 +758,13 @@ class round_service {
             return [$state, false, get_string('roundnotstarted', 'mod_playercross'), 'warning', true];
         }
 
+        // See submit_clue_guess() for why this is re-checked here too, not just in
+        // timeout() itself.
+        if (self::round_expired($state, $instance)) {
+            $state = self::finish_round($state, $instance, $cmid, $userid, false, false, true, false);
+            return [$state, false, get_string('roundtimeout', 'mod_playercross'), 'warning', true];
+        }
+
         $guesswords = word_normalizer::normalize_phrase($guess);
         if ($guesswords === []) {
             return [$state, false, get_string('error_invalidchars', 'mod_playercross'), 'warning', true];
@@ -815,6 +863,28 @@ class round_service {
         $state = self::finish_round($state, $instance, $cmid, $userid, false, false, true, false);
 
         return [$state, get_string('roundtimeout', 'mod_playercross'), 'warning', true];
+    }
+
+    /**
+     * Closes a started round if its deadline has already passed, the same way
+     * end_round(timeout) would. Used by view_page_service so a page reload after the
+     * deadline renders the round as finished immediately, instead of it only closing
+     * on the player's next guess/hint attempt (round_expired() is also checked at the
+     * top of submit_clue_guess(), submit_final_guess() and reveal_hint(), which is the
+     * actual security boundary — this is purely about not rendering stale playable
+     * forms on a read-only GET).
+     *
+     * @param array $state Current state.
+     * @param \stdClass $instance Activity instance.
+     * @param int $cmid Course module id.
+     * @param int $userid User id.
+     * @return array Updated state.
+     */
+    public static function close_if_expired(array $state, \stdClass $instance, int $cmid, int $userid): array {
+        if (self::round_expired($state, $instance)) {
+            return self::finish_round($state, $instance, $cmid, $userid, false, false, true, false);
+        }
+        return $state;
     }
 
     /**
