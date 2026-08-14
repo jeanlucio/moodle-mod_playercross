@@ -479,11 +479,24 @@
     opacity: 0.75;
 }
 
+/*
+ * Deliberately not var(--info, ...): Bootstrap renamed this variable from --info (BS4,
+ * Moodle 4.5) to --bs-info (BS5, Moodle 5.x), so var(--info, #0dcaf0) silently fell back
+ * to this fallback's own hardcoded value on 5.x while correctly picking up the site's
+ * actual custom info colour on 4.5 — a real cross-version inconsistency, not just a
+ * cosmetic one. Worse, the site's own custom info colour (#008196, a teal) paired with
+ * black text measures ~4.58:1 contrast, only barely over the WCAG AA 4.5:1 minimum for
+ * normal-weight text — a single admin recolouring "info" could push it under the line
+ * without anyone noticing. Fixing the variable name would only trade one problem for the
+ * other, so this pair is fixed instead: #0dcaf0 with black text measures ~10.7:1, comfortably
+ * past even the stricter AAA threshold (7:1), consistent across every Moodle version and
+ * every site's own branding. Ported from mod_playerwords's identical fix.
+ */
 .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-wide {
     min-width: 3.75rem;
-    color: var(--black, #000);
-    background-color: var(--info, #0dcaf0);
-    border-color: var(--info, #0dcaf0);
+    color: #000;
+    background-color: #0dcaf0;
+    border-color: #0dcaf0;
 }
 
 .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-enter {
