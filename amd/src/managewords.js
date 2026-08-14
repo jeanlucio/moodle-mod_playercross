@@ -63,6 +63,13 @@ define(['core/modal_save_cancel', 'core/modal_events', 'core/str'], function(Mod
     /**
      * Opens the Moodle save/cancel modal then calls onConfirm when the user confirms.
      *
+     * Never passes show: true to create() — that would render the modal, with core/
+     * modal_save_cancel's own default "Save changes" button, before get_string('yes')
+     * has resolved (a real, visible gap on a first, uncached call), reading as a wrong
+     * dialog flashing before the real one settles. Calling .show() explicitly only once
+     * both promises have resolved means the modal is never on screen with the wrong
+     * button label — same fix applied to mod_playerwords's own equivalent modals.
+     *
      * @param {string} title Modal title string.
      * @param {string} body  Modal body string.
      * @param {Function} onConfirm Called when the user clicks the save button.
@@ -73,13 +80,13 @@ define(['core/modal_save_cancel', 'core/modal_events', 'core/str'], function(Mod
                 ModalSaveCancel.create({
                     title: title,
                     body: body,
-                    show: true,
                     removeOnClose: true,
                 }),
                 Str.get_string('yes', 'core'),
             ]);
             modal.setSaveButtonText(yesStr);
             modal.getRoot().on(ModalEvents.save, () => onConfirm());
+            modal.show();
         } catch (error) {
             window.console.error(error);
         }
