@@ -162,6 +162,32 @@ final class hud_service_test extends \advanced_testcase {
         $this->assertSame(class_exists('\block_playerhud\game'), hud_service::is_installed());
     }
 
+    /**
+     * Tests that get_available_quantity, get_item_name, consume_items and grant_items all
+     * return their documented neutral values instead of fataling when block_playerhud is
+     * not installed. Ported from the same regression test in mod_playerwords, whose
+     * hud_service this class is a direct port of (see the class docblock).
+     *
+     * Mirrors the inverse-skip pattern used elsewhere in the Player ecosystem for a soft
+     * dependency (see blocks/playerhud/tests/ai/hub_usage_reporting_test.php): every dev
+     * and CI environment for this plugin installs block_playerhud alongside it, so this
+     * only actually executes on a site where the block was never installed or has since
+     * been removed.
+     *
+     * @return void
+     */
+    public function test_item_methods_return_neutral_values_when_not_installed(): void {
+        if (hud_service::is_installed()) {
+            $this->markTestSkipped('block_playerhud is installed; the fallback path is inert.');
+        }
+
+        $this->assertSame(0, hud_service::get_available_quantity(1, 1, 1));
+        $this->assertSame('', hud_service::get_item_name(1, 1));
+        $this->assertTrue(hud_service::consume_items(1, 1, 1, 1));
+        // Void return: reaching this line without a fatal is the assertion.
+        hud_service::grant_items(1, 1, 1, 1, false);
+    }
+
     // Tests that require block_playerhud tables.
 
     /**
