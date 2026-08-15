@@ -177,6 +177,42 @@ final class new_round_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that a theme word already armed in the lobby (ensure_round_state() has
+     * picked one, but start_round() was never called — roundstarted is still false)
+     * cannot be re-rolled for free through the web service. Before this guard covered
+     * themewordid instead of only roundstarted, a client could call this endpoint
+     * repeatedly before ever starting the round to re-roll until an easier puzzle came
+     * up, without spending max_rounds, cooldown or a PlayerHUD item — none of which
+     * are charged until start_round() actually runs.
+     *
+     * @return void
+     */
+    public function test_blocked_while_theme_armed_in_lobby(): void {
+        $instance = $this->make_instance(['max_rounds' => 0, 'cooldown_amount' => 0]);
+        $this->setUser($this->student);
+
+        $state = round_service::load_state($instance->cmid, $this->student->id);
+        $state = round_service::ensure_round_state($state, $instance, $instance->cmid, $this->student->id);
+        round_service::save_state($instance->cmid, $this->student->id, $state);
+        $originalthemewordid = (int)$state['themewordid'];
+        $this->assertGreaterThan(0, $originalthemewordid);
+        $this->assertFalse($state['roundstarted']);
+
+        $result = $this->call_new_round($instance->cmid);
+
+        $this->assertFalse($result['error']);
+        $this->assertFalse($result['data']['hastheme']);
+        $this->assertNotEmpty($result['data']['notification']);
+
+        // The armed theme must be untouched: same themewordid, still not started, not
+        // finished — no free re-roll happened.
+        $state = round_service::load_state($instance->cmid, $this->student->id);
+        $this->assertSame($originalthemewordid, (int)$state['themewordid']);
+        $this->assertFalse($state['roundstarted']);
+        $this->assertFalse($state['finished']);
+    }
+
+    /**
      * Tests that a user without the view capability in the module context is rejected.
      *
      * @return void

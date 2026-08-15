@@ -66,13 +66,18 @@ class new_round extends external_api {
         $instance = $DB->get_record('playercross', ['id' => $cm->instance], '*', MUST_EXIST);
         $userid = (int)$USER->id;
 
-        // Must be checked before the restriction notice below: a round in progress is
-        // not a rate-limit/cooldown question, it is the same "server is the authority"
-        // invariant submit_clue_guess()/submit_final_guess()/reveal_hint()/forfeit()/
-        // timeout() already enforce. Without it, a client can call this web service
-        // directly mid-round to discard a losing round before it is ever recorded.
+        // Must be checked before the restriction notice below: a theme word already
+        // armed — whether the round has actually been started or is still sitting in
+        // the lobby — is not a rate-limit/cooldown question, it is the same "server is
+        // the authority" invariant submit_clue_guess()/submit_final_guess()/
+        // reveal_hint()/forfeit()/timeout() already enforce. Checking roundstarted
+        // alone left the lobby state (themewordid > 0, roundstarted still false)
+        // unguarded: a client could call this web service directly, before ever
+        // pressing "start round", to re-roll for free — no max_rounds/cooldown/
+        // PlayerHUD cost applies until start_round() runs — until an easier puzzle
+        // came up. themewordid is what both states share.
         $state = round_service::load_state($cmid, $userid);
-        if (!empty($state['roundstarted']) && empty($state['finished'])) {
+        if (!empty($state['themewordid']) && empty($state['finished'])) {
             return [
                 'hastheme'         => false,
                 'notification'     => get_string('roundinprogress', 'mod_playercross'),
