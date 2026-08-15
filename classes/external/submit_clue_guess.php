@@ -149,6 +149,7 @@ class submit_clue_guess extends external_api {
             'feedbackmessage'        => new external_value(PARAM_TEXT, 'End-of-round flavour message'),
             'revealthemeword'        => new external_value(PARAM_TEXT, 'The mystery phrase, empty until finished'),
             'revealthemewordlabel'   => new external_value(PARAM_TEXT, 'Label for the revealed mystery phrase'),
+            'resultclueslabel'       => new external_value(PARAM_TEXT, 'Heading label for the per-clue recap list'),
             'scoreachieved'          => new external_value(PARAM_TEXT, 'Score achieved, formatted to 2 decimals'),
             'scoreachievedlabel'     => new external_value(PARAM_TEXT, 'Label for the achieved score'),
             'cooldownuntil'          => new external_value(PARAM_INT, 'Cooldown expiry epoch, 0 if inactive'),
@@ -199,6 +200,18 @@ class submit_clue_guess extends external_api {
             'themelabel' => new external_value(PARAM_TEXT, 'Mystery phrase label'),
             'themeconceptlabel' => new external_value(PARAM_TEXT, 'Theme concept caption label'),
             'themeconcept' => new external_value(PARAM_TEXT, 'Theme concept word, always shown openly'),
+            'themesolved' => new external_value(
+                PARAM_BOOL,
+                'Whether the mystery-phrase tiles/form have collapsed into resolved text'
+            ),
+            'finalguesscorrect' => new external_value(
+                PARAM_BOOL,
+                'Whether the mystery phrase has been confirmed correct'
+            ),
+            'themedisplayword' => new external_value(
+                PARAM_TEXT,
+                'Mystery phrase text once themesolved, empty otherwise'
+            ),
             'clues' => new external_multiple_structure(
                 new external_single_structure([
                     'clueid'       => new external_value(PARAM_INT, 'Clue word id'),

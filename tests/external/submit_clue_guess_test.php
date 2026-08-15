@@ -26,6 +26,7 @@
 namespace mod_playercross\external;
 
 use core_text;
+use mod_playercross\local\round_presenter;
 use mod_playercross\local\round_service;
 
 /**
@@ -37,6 +38,7 @@ use mod_playercross\local\round_service;
  *
  * @covers \mod_playercross\external\submit_clue_guess
  * @covers \mod_playercross\external\submit_final_guess
+ * @covers \mod_playercross\local\round_presenter
  */
 final class submit_clue_guess_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -81,6 +83,44 @@ final class submit_clue_guess_test extends \advanced_testcase {
         $this->modgenerator->create_word($instance->id, 'mel');
 
         return [$instance, $cm];
+    }
+
+    /**
+     * Every context field round_presenter::build_round_panel_context() can return must
+     * also be declared in submit_clue_guess::panel_structure() — a field present in the
+     * PHP array but absent from the external API's declared schema is silently stripped
+     * by external_api::clean_returnvalue() the moment a mutating endpoint actually
+     * returns it over AJAX, with no error or warning anywhere on the PHP side. This is
+     * exactly what happened when themesolved/finalguesscorrect/themedisplayword were
+     * added to build_round_panel_context() without extending panel_structure() to
+     * match: the round panel rendered correctly on the very first full-page load (a
+     * direct render_from_template() call, which never goes through the external API),
+     * but every AJAX round-trip afterwards silently lost those three keys, so the
+     * client's own Templates.renderForPromise() call fell back to the tile grid instead
+     * of collapsing it into resolved text, no matter how the round actually finished.
+     *
+     * Comparing the full key sets, rather than asserting a handful of fields exist
+     * individually (as a previous version of this guard, in start_round_test.php, did
+     * with a single field), is the only way this catches a field added later without a
+     * matching schema update — a per-key assertion never fails just because a new key
+     * is missing.
+     *
+     * @return void
+     */
+    public function test_panel_structure_declares_every_build_round_panel_context_key(): void {
+        [$instance, $cm] = $this->make_ready_instance();
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->student->id),
+            $instance,
+            $cm->cmid,
+            $this->student->id
+        );
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $this->student->id);
+        $declared = array_keys(submit_clue_guess::panel_structure()->keys);
+
+        $missing = array_diff(array_keys($context), $declared);
+        $this->assertSame([], $missing, 'panel_structure() is missing: ' . implode(', ', $missing));
     }
 
     /**
