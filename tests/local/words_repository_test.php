@@ -1031,6 +1031,34 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test for the security audit finding (ported from mod_playerwords,
+     * which the same bug was found and fixed in first): sync_glossary_words() must
+     * apply the same course-ownership check count_glossary_candidates() already
+     * applies to client-supplied input — a glossaryid pointing at another course's
+     * glossary is treated as absent (0 imported) instead of importing that course's
+     * content into this activity's pool.
+     *
+     * @return void
+     */
+    public function test_sync_glossary_words_ignores_glossary_from_another_course(): void {
+        global $DB;
+
+        $othercourse = $this->getDataGenerator()->create_course();
+        $foreignglossary = $this->getDataGenerator()->create_module('glossary', ['course' => $othercourse->id]);
+        $this->getDataGenerator()->get_plugin_generator('mod_glossary')->create_content($foreignglossary, [
+            'concept'    => 'segredo',
+            'definition' => 'conteudo de outro curso',
+            'approved'   => 1,
+        ]);
+        $instance = $this->make_full_instance(['glossaryid' => $foreignglossary->id]);
+
+        $imported = words_repository::sync_glossary_words($instance);
+
+        $this->assertSame(0, $imported);
+        $this->assertSame(0, $DB->count_records('playercross_words', ['playercrossid' => $instance->id]));
+    }
+
+    /**
      * A glossary concept whose text already belongs to a manually added word is
      * skipped: no duplicate row is inserted, and the manual word's own hint is left
      * untouched.

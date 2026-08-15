@@ -417,6 +417,15 @@ class words_repository {
 
         $glossaryid = (int)($instance->glossaryid ?? 0);
         if ($glossaryid > 0) {
+            // The stored glossaryid is never re-validated against the activity's own
+            // course elsewhere in the write path — mirrors the same check
+            // count_glossary_candidates() already applies to client-supplied input, so
+            // the two functions enforce identical instance isolation regardless of how
+            // glossaryid was populated (form select today, potentially a future write
+            // path tomorrow).
+            if (!$DB->record_exists('glossary', ['id' => $glossaryid, 'course' => $instance->course])) {
+                return 0;
+            }
             $glossaryids = [$glossaryid];
         } else {
             $glossaryids = $DB->get_fieldset_select(
