@@ -645,12 +645,20 @@ class words_repository {
         $DB->set_field_select('playercross_words', 'timemodified', time(), $condition, $inparams);
     }
 
+    /** @var string[] Allow-listed columns get_recent_words() may sort by. */
+    private const RECENT_WORDS_SORTABLE_COLUMNS = ['id', 'word', 'source', 'approved'];
+
     /**
      * Returns one page of the teacher word pool, ordered by the given column.
      *
-     * Both $sort and $dir must be validated by the caller against an allow-list
-     * before being passed here. Pass $page = 0 and $perpage = 0 together to fetch
-     * every row unpaginated (used by tests that only care about the full set).
+     * $sort and $dir are re-validated here against the same allow-list managewords.php
+     * already applies before calling this — defence in depth, so the function is safe
+     * by construction for any future caller, not only the one that happens to validate
+     * correctly today. An out-of-list $sort falls back to 'id'; $dir normalises to
+     * 'ASC' or defaults to 'DESC'.
+     *
+     * Pass $page = 0 and $perpage = 0 together to fetch every row unpaginated (used by
+     * tests that only care about the full set).
      *
      * @param int $instanceid Activity instance id.
      * @param int $page Zero-based page number.
@@ -667,6 +675,11 @@ class words_repository {
         string $dir = 'DESC'
     ): array {
         global $DB;
+
+        if (!in_array($sort, self::RECENT_WORDS_SORTABLE_COLUMNS, true)) {
+            $sort = 'id';
+        }
+        $dir = (strtoupper($dir) === 'ASC') ? 'ASC' : 'DESC';
 
         $total = $DB->count_records('playercross_words', ['playercrossid' => $instanceid]);
 

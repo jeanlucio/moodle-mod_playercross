@@ -620,6 +620,38 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test for the security audit's defence-in-depth finding (ported from
+     * mod_playerwords, which the same bug was found and fixed in first): get_recent_words()
+     * used to interpolate $sort/$dir into ORDER BY trusting the caller's own allow-list
+     * (correctly applied by managewords.php today, but not enforced by the function
+     * itself). An out-of-list $sort/$dir — as a future caller forgetting to validate
+     * would send — must fall back safely (id/DESC) instead of reaching the database as
+     * raw SQL, proving the function is now safe by construction.
+     *
+     * @return void
+     */
+    public function test_get_recent_words_falls_back_on_invalid_sort_and_dir(): void {
+        $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        $this->modgenerator->create_word($instance->id, 'alfa');
+        $this->modgenerator->create_word($instance->id, 'beta');
+
+        $malicious = words_repository::get_recent_words(
+            $instance->id,
+            0,
+            0,
+            'id; DROP TABLE mdl_playercross_words; --',
+            'ASC; DROP TABLE mdl_playercross_words; --'
+        );
+
+        // Falls back to the default sort (id) and direction (DESC) rather than
+        // fataling or executing the injected fragment — the table survives, proven by
+        // the pool still returning both words afterwards.
+        $this->assertSame(2, $malicious['total']);
+        $stillqueryable = words_repository::get_recent_words($instance->id, 0, 0);
+        $this->assertSame(2, $stillqueryable['total']);
+    }
+
+    /**
      * An empty word pool is reported as such.
      *
      * @return void
