@@ -136,4 +136,39 @@ final class word_normalizer_test extends \basic_testcase {
         }
         $this->assertSame(['a', 'c', 'a', 'o'], $chars);
     }
+
+    /**
+     * Provides raw phrase text and its expected normalized word tokens — this is
+     * the exact split submit_final_guess() compares a player's mystery-phrase
+     * guess against (see round_service::submit_final_guess()), so it needs to
+     * tolerate the same messiness a hint's own free text can carry: punctuation,
+     * digits, extra whitespace.
+     *
+     * @return array[]
+     */
+    public static function normalize_phrase_provider(): array {
+        return [
+            'plain two-word phrase'                 => ['gato preto', ['gato', 'preto']],
+            'accents and case normalized per word'   => ['AÇÃO Rápida', ['acao', 'rapida']],
+            'digits and punctuation act as separators' => ['café, com 2 açúcares!', ['cafe', 'com', 'acucares']],
+            'extra whitespace trimmed and collapsed' => ['  gato   preto  ', ['gato', 'preto']],
+            'hyphen splits into separate words'      => ['guarda-chuva', ['guarda', 'chuva']],
+            'apostrophe splits into separate words'  => ["d'agua", ['d', 'agua']],
+            'empty phrase returns empty array'       => ['', []],
+            'only punctuation returns empty array'   => ['!!! ...', []],
+        ];
+    }
+
+    /**
+     * Tests that normalize_phrase splits a free-text phrase into its individual
+     * normalized word tokens, treating any non-letter run as a separator.
+     *
+     * @dataProvider normalize_phrase_provider
+     * @param string $phrase Raw phrase text.
+     * @param string[] $expected Expected normalized word tokens.
+     * @return void
+     */
+    public function test_normalize_phrase(string $phrase, array $expected): void {
+        $this->assertSame($expected, word_normalizer::normalize_phrase($phrase));
+    }
 }
