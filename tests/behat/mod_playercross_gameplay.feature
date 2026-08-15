@@ -100,6 +100,67 @@ Feature: PlayerCross core gameplay loop
     And I should see "Rounds played: 1 / 1."
     And "#playercross-new-round-button" "css_element" should not exist
 
+  Scenario: A clue's own submit button stays hidden while the row is still incomplete
+    Given the following "activities" exist:
+      | activity    | course | name         | num_clues | theme_min_length | min_length | max_length |
+      | playercross | C1     | Cross Button | 1         | 6                | 3          | 15         |
+    And the following PlayerCross words exist in activity "Cross Button":
+      | word   |
+      | escola |
+      | livro  |
+    And I log in as "student1"
+    And I am on the "Cross Button" "playercross activity" page
+    And I click on "Start round" "button"
+    When I fill PlayerCross clue "1" tiles with "livr"
+    Then PlayerCross clue "1"'s submit button should be "not ready"
+
+  Scenario: A clue's own submit button appears once every letter is typed
+    Given the following "activities" exist:
+      | activity    | course | name         | num_clues | theme_min_length | min_length | max_length |
+      | playercross | C1     | Cross Button | 1         | 6                | 3          | 15         |
+    And the following PlayerCross words exist in activity "Cross Button":
+      | word   |
+      | escola |
+      | livro  |
+    And I log in as "student1"
+    And I am on the "Cross Button" "playercross activity" page
+    And I click on "Start round" "button"
+    When I fill PlayerCross clue "1" tiles with "livro"
+    Then PlayerCross clue "1"'s submit button should be "ready"
+
+  Scenario: A clue can be submitted by tapping its own row button
+    Given the following "activities" exist:
+      | activity    | course | name       | num_clues | theme_min_length | min_length | max_length |
+      | playercross | C1     | Cross Tap  | 1         | 6                | 3          | 15         |
+    And the following PlayerCross words exist in activity "Cross Tap":
+      | word   |
+      | escola |
+      | livro  |
+    And I log in as "student1"
+    And I am on the "Cross Tap" "playercross activity" page
+    And I click on "Start round" "button"
+    When I fill PlayerCross clue "1" tiles with "livro"
+    And I click on "#playercross-clues-list .pc-row-submit" "css_element"
+    Then "li.mod-playercross-clue.is-resolved" "css_element" should exist
+
+  Scenario: Submitting one clue preserves another still-open clue's in-progress typing
+    Given the following "activities" exist:
+      | activity    | course | name           | num_clues | theme_min_length | min_length | max_length |
+      | playercross | C1     | Cross Preserve | 2         | 6                | 3          | 15         |
+    And the following PlayerCross words exist in activity "Cross Preserve":
+      | word   |
+      | escola |
+      | livro  |
+      | carro  |
+    And I log in as "student1"
+    And I am on the "Cross Preserve" "playercross activity" page
+    And I click on "Start round" "button"
+    When I fill PlayerCross clue "1" tiles with "liv"
+    And I fill PlayerCross clue "2" tiles with "zzzzz"
+    And I press enter
+    Then I should see "Incorrect guess. Try again."
+    And PlayerCross clue "1" tiles should read "liv__"
+
   Scenario: A configured cooldown shows a countdown instead of the new-round button
     Given the following "activities" exist:
       | activity    | course | name           | num_clues | theme_min_length | min_length | max_length | win_condition |

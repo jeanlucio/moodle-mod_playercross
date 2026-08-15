@@ -288,6 +288,105 @@ class behat_mod_playercross extends behat_base {
     }
 
     /**
+     * Asserts a clue's own guess row currently holds exactly the given letters, one
+     * per tile-wrap, in position order — "_" marks a position expected to still be
+     * empty. Covers the amd/src/game.js regression this exists to guard: submitting
+     * one clue used to silently wipe whatever a player had typed into every other
+     * still-open clue, since the whole panel re-renders from the server's own
+     * response, which never knew about that unsent typing (see
+     * snapshotInProgressGuesses/restoreInProgressGuesses in game.js). Reads values via
+     * a single evaluateScript() call rather than per-element getValue() traversal —
+     * faster and less brittle over WebDriver for a whole row at once. Mirrors "I fill
+     * PlayerCross clue :position tiles with :word"'s own indexing (position among the
+     * currently guessable clues).
+     *
+     * @param int $position 1-based position among the currently guessable clues.
+     * @param string $expected Expected letters, "_" marking a still-empty box.
+     * @Then PlayerCross clue :position tiles should read :expected
+     */
+    public function playercross_clue_tiles_should_read(int $position, string $expected): void {
+        $index = $position - 1;
+        $js = <<<JS
+            (function() {
+                var containers = document.querySelectorAll('#playercross-clues-list .mod-playercross-clue-tiles');
+                var container = containers[{$index}];
+                if (!container) {
+                    return null;
+                }
+                var wraps = container.querySelectorAll('.mod-playercross-tile-wrap');
+                return Array.from(wraps).map(function(wrap) {
+                    var locked = wrap.querySelector('.mod-playercross-tile.is-revealed');
+                    if (locked) {
+                        return locked.textContent;
+                    }
+                    var input = wrap.querySelector('.mod-playercross-tile-input');
+                    return input ? input.value : '';
+                }).join('|');
+            })();
+JS;
+        $actual = $this->getSession()->evaluateScript($js);
+        if ($actual === null) {
+            throw new \Exception("No guessable PlayerCross clue at position {$position}.");
+        }
+
+        $actualchars = explode('|', $actual);
+        $expectedchars = preg_split('//u', $expected, -1, PREG_SPLIT_NO_EMPTY);
+        foreach ($actualchars as $i => $actualchar) {
+            $expectedchar = strtoupper($expectedchars[$i] ?? '');
+            $expectedchar = $expectedchar === '_' ? '' : $expectedchar;
+            if (strtoupper($actualchar) !== $expectedchar) {
+                throw new \Exception(
+                    "PlayerCross clue {$position} tile " . ($i + 1) . " expected '{$expectedchar}' " .
+                    "but found '{$actualchar}'."
+                );
+            }
+        }
+    }
+
+    /**
+     * Asserts whether a clue's own submit button is currently in its revealed
+     * "ready" state or its default hidden one (see refreshRowReadiness in
+     * amd/src/game.js, and the .pc-row-submit/.is-ready pair in styles.css). Reads
+     * the class directly via JS rather than a raw visibility check: the hidden state
+     * uses clip-based hiding (kept tab-reachable for screen readers), which some
+     * WebDriver implementations still report as "displayed" despite its 1x1px size,
+     * making the underlying CSS class the only reliable signal. Mirrors "I fill
+     * PlayerCross clue :position tiles with :word"'s own indexing.
+     *
+     * @param int $position 1-based position among the currently guessable clues.
+     * @param string $state Either "ready" or "not ready".
+     * @Then PlayerCross clue :position's submit button should be :state
+     */
+    public function playercross_clue_submit_button_state(int $position, string $state): void {
+        $index = $position - 1;
+        $js = <<<JS
+            (function() {
+                var forms = document.querySelectorAll(
+                    '#playercross-clues-list .mod-playercross-clue-form[data-clue-id]'
+                );
+                var form = forms[{$index}];
+                if (!form) {
+                    return null;
+                }
+                var btn = form.querySelector('.pc-row-submit');
+                return btn ? btn.classList.contains('is-ready') : false;
+            })();
+JS;
+        $isready = $this->getSession()->evaluateScript($js);
+        if ($isready === null) {
+            throw new \Exception("No guessable PlayerCross clue at position {$position}.");
+        }
+
+        $expected = $state === 'ready';
+        if ((bool)$isready !== $expected) {
+            throw new \Exception(
+                "Expected PlayerCross clue {$position}'s submit button to be " .
+                ($expected ? 'ready' : 'not ready') . ', but it was ' . ($isready ? 'ready' : 'not ready') . '.'
+            );
+        }
+    }
+
+    /**
      * Creates a PlayerHUD item in the block already added to the given course.
      *
      * Direct $DB insert rather than going through the block's own management UI,
