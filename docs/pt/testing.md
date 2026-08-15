@@ -31,9 +31,9 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 | `round_presenter_test.php` | 39 | Renderização das peças da frase-mistério (respeita os slots revelados, peças ocultas carregam seu número de slot, todas reveladas ao finalizar, agrupadas por palavra); renderização das linhas de pista (palavra não resolvida oculta, revelada ao finalizar a rodada, revelada ao ser resolvida, rótulo de tentativas esgotadas mostrado só quando realmente esgotado, a frase-mistério sempre é mostrada, uma letra compartilhada cruzadamente revelada é refletida); texto do intervalo (inativo/ativo, reflete uma mudança posterior de configuração); mensagem de feedback varia conforme o resultado; informação de relevância do método de avaliação; resumo da nota até agora (ausente sem item de nota, mostrado ao finalizar); contexto do lobby (custo/saldo do PlayerHUD, pode iniciar com saldo suficiente, informação do cronômetro só quando ativado, contagem de pistas desta rodada, nenhum custo mostrado para a conta convidado); contexto do painel de rodada (tempo restante zero antes de começar, oculta revelar enquanto ativo, disponibilidade da dica global, contagem de dicas restantes mostrada, o botão de dica se oculta ao atingir o limite configurado de revelações, o botão de dica mostra/omite seu custo do PlayerHUD, pode pagar a dica com saldo suficiente, nenhum custo de dica mostrado para a conta convidado, disponibilidade de cedilha reflete o pool de palavras); contexto do resultado da rodada (em branco até finalizar, revela ao finalizar, rótulo de concessão do PlayerHUD mostrado só numa vitória real, omitido numa derrota, e omitido para a conta convidado mesmo numa vitória) |
 | `round_service_test.php` | 44 | Estado padrão da rodada e descarte de estado estruturalmente obsoleto, incluindo estado sem os campos de ortografia de revelação de uma sessão mais antiga; construção do puzzle sob demanda, e recusa de sortear um puzzle novo quando `max_rounds`/intervalo restringe o estudante; revelar uma dica para de funcionar ao atingir o limite configurado por rodada, e dicas sozinhas podem finalizar e vencer a rodada; envio de palpite de pista (errado incrementa tentativas, correto resolve e revela slots compartilhados); resolver todas as pistas sozinho não finaliza a rodada; um palpite final correto sozinho não finaliza a rodada, e resolve automaticamente qualquer pista restante feita inteiramente de letras já compartilhadas; um palpite final errado mantém a rodada aberta; pistas-depois-palpite-final e palpite-final-depois-pistas finalizam e vencem a rodada; o esgotamento de uma pista encerra a rodada como derrota em "ambos obrigatórios", mas não em "só a frase-mistério"; em "só a frase-mistério", resolver todas as pistas sozinho ainda não finaliza a rodada, enquanto o palpite final sozinho vence imediatamente; desistência encerra a rodada como derrota e nunca concede o item de vitória; tempo esgotado rejeitado antes do prazo; uma nova rodada reseta o estado; contagem de rodadas jogadas e intervalo; variantes do aviso de restrição (limite de rodadas atingido, intervalo ativo, sem restrição); cálculo do intervalo (desativado, expirado pelo tempo, reflete uma mudança posterior de configuração); os eventos `round_started` e `round_completed` disparam no momento certo; vencer concede o item configurado do PlayerHUD com XP quando limitado e sem XP quando ilimitado; iniciar uma rodada ou revelar uma dica dispensa seu custo do PlayerHUD quando o item configurado foi excluído ou pertence a outro curso, mas ainda bloqueia quando o item está apenas desativado e o saldo é insuficiente; enviar um palpite de pista, um palpite final ou revelar uma dica é rejeitado de imediato antes de a rodada realmente ter sido iniciada, fechando o desvio que pularia seu custo configurado do PlayerHUD; a conta convidado nunca é cobrada ao iniciar uma rodada ou revelar uma dica, e uma rodada vencida não deixa nenhuma linha de tentativa, atualização de nota ou concessão do PlayerHUD para trás |
 | `view_page_service_test.php` | 23 | Ramificações de montagem da página: lobby recém-iniciado, um puzzle sorteado persiste entre chamadas, uma rodada finalizada calcula um intervalo real, aviso de restrição quando o limite de rodadas é atingido; ação de desistir mostrada só durante uma rodada ativa; URLs da barra de ferramentas sempre presentes, barra de ferramentas de gestor oculta para estudantes e mostrada para professores, e um professor não-editor (só com a capability de relatório) vê o link de relatório mas não o de gerenciar palavras; palavras inativas ocultas para estudantes, mostradas para um gestor, e a contagem de ativas mostrada sozinha quando nada está inativo; link de ranking oculto quando o ranking está desativado; ajuda do PlayerHUD mostrada quando uma recompensa de vitória está configurada; o texto de ajuda da condição de vitória parte de "ambos obrigatórios" e reflete a configuração "só a frase-mistério"; o aviso de perda por pista é mostrado quando as tentativas por pista são limitadas e oculto quando ilimitadas; auto-exibição da introdução sinalizada uma vez no lobby e não se repete numa atividade diferente, e também é sinalizada corretamente nas ramificações de rodada finalizada e aviso de restrição; o contexto de ajuda sempre carrega o ponteiro de dica de revisão |
-| `word_normalizer_test.php` | 21 | Normalização insensível a acentos em 8 combinações de acento/maiúscula-minúscula; `is_valid_charset` aceita só letras (incluindo acentuadas) e rejeita dígitos, espaços, um hífen, um apóstrofo e uma string vazia, em 8 casos; `chars()` divide uma palavra normalizada em caracteres individuais em 4 casos sem rasgar sequências multibyte — o motivo pelo qual `puzzle_builder::cipher_slots()` usa esse método em vez de uma divisão simples por byte |
+| `word_normalizer_test.php` | 29 | Normalização insensível a acentos em 8 combinações de acento/maiúscula-minúscula; `is_valid_charset` aceita só letras (incluindo acentuadas) e rejeita dígitos, espaços, um hífen, um apóstrofo e uma string vazia, em 8 casos; `chars()` divide uma palavra normalizada em caracteres individuais em 4 casos sem rasgar sequências multibyte — o motivo pelo qual `puzzle_builder::cipher_slots()` usa esse método em vez de uma divisão simples por byte; `normalize_phrase()` divide uma frase em texto livre em tokens de palavra normalizados em 8 casos, tratando dígitos/pontuação/hífen/apóstrofo como separadores e recolhendo espaços extras — a mesma divisão que `submit_final_guess()` aplica ao palpite de frase-mistério do estudante |
 | `words_repository_test.php` | 51 | Candidatas a frase-mistério e a pista respeitam seus próprios intervalos de comprimento independentes; seleção de tema compartilhada e aleatória, e o último id de palavra-tema jogado; verificações de existência de palavra (insensível a maiúsculas/minúsculas, restrita à instância, ignorando um id excluído, independente da fonte); detecção de palavra com cedilha (presente, ausente, ignora não aprovadas, restrita à própria instância); inserção manual e por IA, busca, atualização e exclusão de palavras (todas restritas à instância dona); exclusão e aprovação em lote; listagem de palavras recentes, incluindo o nome do glossário; sincronização com o Glossário (desativada sem o bit de fonte, conceitos de uma e várias palavras, stopwords configuradas, atualização da dica na ressincronização, remoção de órfãs, escopo a um ou todos os glossários do curso, ignorando palavra pertencente a outra fonte); relato de conceitos fragmentados (conceitos de várias palavras divididos, conceitos de uma palavra excluídos, fontes não-Glossário ignoradas, restrito à própria instância); detecção de palavras inativas (descompasso de comprimento, charset inválido, uma palavra válida só para o papel de tema não é relatada, palavras não aprovadas ignoradas); contagem de sorteios do tema (ausente, somada independente do resultado, restrita à própria instância); contagem de candidatas do Glossário (dentro do intervalo, em todos os glossários do curso, tokens deduplicados, restrita ao próprio curso, zero quando não há glossários) |
-| **Subtotal** | **255** | |
+| **Subtotal** | **263** | |
 
 ### Testes de Web Services (`tests/external/`)
 
@@ -50,7 +50,7 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 | `submit_final_guess_test.php` | 5 | Um palpite final errado nunca vaza a palavra-tema; um palpite final correto sozinho não vence a rodada nem revela a palavra-tema (em "ambos obrigatórios"); resolver todas as pistas e depois acertar a frase final vence a rodada e revela a palavra-tema; a conta convidado joga uma demo gratuita até vencer sem persistir tentativa nem concessão do PlayerHUD; rejeitado quando a rodada nunca foi realmente iniciada, driblando o custo de rodada do PlayerHUD |
 | **Subtotal** | **45** | |
 
-| **Total Geral** | **341** | |
+| **Total Geral** | **349** | |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross
@@ -61,32 +61,41 @@ vendor/bin/phpunit --testsuite mod_playercross
 | Classe | Cobertura de linhas |
 |-------|:-------------:|
 | `completion\custom_completion` | 100% |
-| `external\count_eligible_theme_words` | 70% |
-| `external\count_eligible_words` | 70% |
-| `external\count_glossary_candidates` | 55% |
-| `external\end_round` | 64% |
-| `external\new_round` | 49% |
-| `external\reveal_hint` | 49% |
-| `external\start_round` | 64% |
-| `external\submit_clue_guess` | 21% |
-| `external\submit_final_guess` | 59% |
-| `local\ai_word_generator` | 25% |
-| `local\attempts_history_service` | 75% |
+| `external\count_eligible_theme_words` | 100% |
+| `external\count_eligible_words` | 100% |
+| `external\count_glossary_candidates` | 100% |
+| `external\end_round` | 100% |
+| `external\new_round` | 100% |
+| `external\reveal_hint` | 100% |
+| `external\start_round` | 100% |
+| `external\submit_clue_guess` | 25% |
+| `external\submit_final_guess` | 67% |
+| `local\ai_word_generator` | 37% |
+| `local\attempts_history_service` | 99% |
 | `local\gameplay_service` | 94% |
 | `local\hud_service` | 95% |
 | `local\intro_service` | 100% |
-| `local\puzzle_builder` | 42% |
-| `local\ranking_service` | 78% |
-| `local\round_presenter` | 66% |
-| `local\round_service` | 72% |
-| `local\view_page_service` | 23% |
-| `local\word_normalizer` | 30% |
-| `local\words_repository` | 93% |
-| `privacy\provider` | 86% |
-| **Geral** | **60%** |
+| `local\puzzle_builder` | 98% |
+| `local\ranking_service` | 98% |
+| `local\round_presenter` | 98% |
+| `local\round_service` | 95% |
+| `local\view_page_service` | 96% |
+| `local\word_normalizer` | 100% |
+| `local\words_repository` | 98% |
+| `privacy\provider` | 95% |
+| **Geral** | **81%** |
 
 As classes `event/*.php` não estão listadas — o Moodle só as carrega de forma preguiçosa
 quando o evento correspondente realmente dispara, então a instrumentação nunca as enxerga.
+
+`submit_clue_guess` e `submit_final_guess` continuam baixas porque a maior parte das
+próprias linhas pertence a métodos de declaração de schema do web service
+(`execute_returns()`, `panel_structure()`, `roundresult_structure()`) — pura estrutura,
+sem ramificação, nunca exercitados por um teste que chama `execute()` diretamente em vez
+de passar por uma chamada real de web service. Os métodos de `ai_word_generator` que
+chamam IA de verdade (`call_ai()`, `call_core_ai()`, `generate_and_save()`...) são o
+outro gap deliberado: cobri-los exigiria mockar as chamadas HTTP reais do
+`local_aihub`/`core_ai`, julgado não valer a pena por ora.
 
 ### Behat — Testes de Ponta a Ponta
 
@@ -98,12 +107,12 @@ barra de ferramentas/modais — áreas que um teste unitário PHPUnit não conse
 | Arquivo de feature | Cenários | O que é coberto |
 |---------------------|----------:|----------------|
 | `mod_playercross_smoke.feature` | 1 | O lobby carrega e uma rodada pode ser iniciada — a verificação básica sobre a qual o resto da suíte se apoia |
-| `mod_playercross_gameplay.feature` | 6 | Vencer uma rodada acertando a frase-mistério diretamente esconde o selo do cronômetro; resolver uma pista revela cruzadamente suas letras compartilhadas na frase-mistério; desistir de uma rodada ativa pede confirmação; uma rodada termina automaticamente quando seu cronômetro se esgota; atingir o limite de rodadas oculta a ação de nova rodada em vez de um beco sem saída; um intervalo configurado mostra uma contagem regressiva em vez do botão de nova rodada |
+| `mod_playercross_gameplay.feature` | 10 | Vencer uma rodada acertando a frase-mistério diretamente esconde o selo do cronômetro; resolver uma pista revela cruzadamente suas letras compartilhadas na frase-mistério; desistir de uma rodada ativa pede confirmação; uma rodada termina automaticamente quando seu cronômetro se esgota; atingir o limite de rodadas oculta a ação de nova rodada em vez de um beco sem saída; um intervalo configurado mostra uma contagem regressiva em vez do botão de nova rodada; o botão de enviar de uma pista fica oculto enquanto sua linha está incompleta e aparece assim que cada letra é digitada; uma pista pode ser enviada tocando no próprio botão da linha, não só pelo Enter; enviar uma pista preserva a digitação em andamento de outra pista ainda aberta |
 | `mod_playercross_playerhud.feature` | 4 | O lobby bloqueia o início de uma rodada até o estudante poder pagar o custo do item configurado; revelar uma dica pede confirmação e saldo suficiente; uma rodada inicia e a dica é revelada de graça quando o item configurado não existe mais; vencer uma rodada concede o item configurado do PlayerHUD |
 | `mod_playercross_reports.feature` | 5 | Um estudante vê só o próprio histórico de tentativas, nunca o de outro estudante; o relatório de todos os estudantes do professor pagina além de 30 linhas, ordena ao clicar num cabeçalho de coluna e filtra para um único estudante; a página de ranking mostra o top 5 mais a linha do usuário atual quando ele fica fora dele |
 | `mod_playercross_settings.feature` | 4 | Número de pistas e método de avaliação travam assim que existe uma nota real; adicionar uma palavra manual já existente no pool, ou com um caractere que o jogo não consegue usar, é rejeitado; um item do PlayerHUD que não existe mais permanece selecionado no formulário de configurações em vez de resetar silenciosamente |
 | `mod_playercross_toolbar.feature` | 8 | O ícone de gerenciar palavras e o aviso de palavras inativas só aparecem para quem gerencia a atividade; o ícone de ranking só aparece quando o ranking está ativado; o ícone de desistir só aparece durante uma rodada ativa; o modal de ajuda mostra seus parágrafos opcionais só quando relevantes, e os oculta caso contrário; o modal "Como jogar" abre automaticamente na primeiríssima visita de um jogador, uma única vez; cancelar a confirmação de desistência deixa a rodada intocada |
-| **Subtotal** | **28** | |
+| **Subtotal** | **32** | |
 
 ```bash
 vendor/bin/behat --config public/behat.yml --profile=chrome --tags @mod_playercross

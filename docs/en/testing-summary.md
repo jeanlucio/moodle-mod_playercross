@@ -31,9 +31,9 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `round_presenter_test.php` | 39 |
 | `round_service_test.php` | 44 |
 | `view_page_service_test.php` | 23 |
-| `word_normalizer_test.php` | 21 |
+| `word_normalizer_test.php` | 29 |
 | `words_repository_test.php` | 51 |
-| **Subtotal** | **255** |
+| **Subtotal** | **263** |
 
 ### Web Services Tests (`tests/external/`)
 
@@ -50,24 +50,24 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `submit_final_guess_test.php` | 5 |
 | **Subtotal** | **45** |
 
-| **Grand Total** | **341** |
+| **Grand Total** | **349** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross
 ```
 
-**Overall line coverage** (`moodle-coverage`, PHPUnit + Xdebug): **60%**.
+**Overall line coverage** (`moodle-coverage`, PHPUnit + Xdebug): **81%**.
 
 ### Behat — End-to-End Tests
 
 | Feature file | Scenarios |
 |---------------|----------:|
 | `mod_playercross_smoke.feature` | 1 |
-| `mod_playercross_gameplay.feature` | 6 |
+| `mod_playercross_gameplay.feature` | 10 |
 | `mod_playercross_playerhud.feature` | 4 |
 | `mod_playercross_reports.feature` | 5 |
 | `mod_playercross_settings.feature` | 4 |
 | `mod_playercross_toolbar.feature` | 8 |
-| **Subtotal** | **28** |
+| **Subtotal** | **32** |
 
 [Full test-by-test breakdown and coverage table →]({{ '/testing.html' | relative_url }})

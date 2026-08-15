@@ -31,9 +31,9 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 | `round_presenter_test.php` | 39 |
 | `round_service_test.php` | 44 |
 | `view_page_service_test.php` | 23 |
-| `word_normalizer_test.php` | 21 |
+| `word_normalizer_test.php` | 29 |
 | `words_repository_test.php` | 51 |
-| **Subtotal** | **255** |
+| **Subtotal** | **263** |
 
 ### Testes de Web Services (`tests/external/`)
 
@@ -50,24 +50,24 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 | `submit_final_guess_test.php` | 5 |
 | **Subtotal** | **45** |
 
-| **Total Geral** | **341** |
+| **Total Geral** | **349** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross
 ```
 
-**Cobertura de linhas geral** (`moodle-coverage`, PHPUnit + Xdebug): **60%**.
+**Cobertura de linhas geral** (`moodle-coverage`, PHPUnit + Xdebug): **81%**.
 
 ### Behat — Testes de Ponta a Ponta
 
 | Arquivo de feature | Cenários |
 |----------------------|----------:|
 | `mod_playercross_smoke.feature` | 1 |
-| `mod_playercross_gameplay.feature` | 6 |
+| `mod_playercross_gameplay.feature` | 10 |
 | `mod_playercross_playerhud.feature` | 4 |
 | `mod_playercross_reports.feature` | 5 |
 | `mod_playercross_settings.feature` | 4 |
 | `mod_playercross_toolbar.feature` | 8 |
-| **Subtotal** | **28** |
+| **Subtotal** | **32** |
 
 [Detalhamento completo teste a teste e tabela de cobertura →]({{ '/testing-pt.html' | relative_url }})
