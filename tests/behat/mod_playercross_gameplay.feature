@@ -119,8 +119,8 @@ Feature: PlayerCross core gameplay loop
 
   Scenario: Arrow keys move focus between rows, reaching the mystery phrase from the first clue
     Given the following "activities" exist:
-      | activity    | course | name       | num_clues | theme_min_length | min_length | max_length |
-      | playercross | C1     | Cross Rows | 1         | 6                | 3          | 15         |
+      | activity    | course | name       | num_clues | theme_min_length | min_length | max_length | reveal_uncovered_slots |
+      | playercross | C1     | Cross Rows | 1         | 6                | 3          | 15         | 0                      |
     And the following PlayerCross words exist in activity "Cross Rows":
       | word   |
       | escola |
