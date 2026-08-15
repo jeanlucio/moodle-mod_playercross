@@ -171,4 +171,35 @@ final class word_normalizer_test extends \basic_testcase {
     public function test_normalize_phrase(string $phrase, array $expected): void {
         $this->assertSame($expected, word_normalizer::normalize_phrase($phrase));
     }
+
+    /**
+     * original_phrase_tokens() must stay index-aligned with normalize_phrase() on the
+     * exact same input — same split, same keep/drop filter — for every case that
+     * function is already tested against, differing only in keeping each token's
+     * original spelling instead of normalizing it. round_presenter::build_word_tiles()
+     * depends on this alignment to show a revealed mystery-phrase tile's true accented
+     * letter.
+     *
+     * @dataProvider normalize_phrase_provider
+     * @param string $phrase Raw phrase text.
+     * @param string[] $expectednormalized Expected normalized word tokens (unused
+     *     here beyond asserting the same count as the original-spelling tokens).
+     * @return void
+     */
+    public function test_original_phrase_tokens_matches_normalize_phrase_length(
+        string $phrase,
+        array $expectednormalized
+    ): void {
+        $this->assertCount(count($expectednormalized), word_normalizer::original_phrase_tokens($phrase));
+    }
+
+    /**
+     * Tests that original_phrase_tokens() keeps each token's real accents and cedillas
+     * — the whole reason it exists alongside normalize_phrase(), which strips them.
+     *
+     * @return void
+     */
+    public function test_original_phrase_tokens_keeps_accents(): void {
+        $this->assertSame(['café', 'com', 'açúcares'], word_normalizer::original_phrase_tokens('café, com 2 açúcares!'));
+    }
 }

@@ -197,6 +197,28 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * A revealed phrase tile shows the letter in its true original spelling (with
+     * accent), not the accent-stripped form used for slot matching and guess
+     * comparison — themewords/themeslots carry the normalized "cafe" (4 letters,
+     * matching the accent-insensitive c/a/f/e slot cipher), while themehint keeps the
+     * original "café" the word was actually authored with.
+     *
+     * @return void
+     */
+    public function test_build_phrase_tiles_shows_original_accent_when_revealed(): void {
+        $state = $this->make_state([
+            'themewords' => ['cafe'],
+            'themehint' => 'café',
+            'themeslots' => [1, 2, 3, 4],
+            'revealedslots' => [1, 2, 3, 4],
+        ]);
+
+        $tiles = round_presenter::build_phrase_tiles($state, false)[0]['tiles'];
+
+        $this->assertSame(['C', 'A', 'F', 'É'], array_column($tiles, 'letter'));
+    }
+
+    /**
      * Tests that an unresolved clue never reveals its word, and can still be guessed.
      * Every position in its tile row carries a slot number while hidden — both the
      * letters shared with the mystery phrase (l, slot 5; o, slot 4) and the letters
@@ -259,6 +281,26 @@ final class round_presenter_test extends \advanced_testcase {
             $this->assertTrue($tile['revealed']);
         }
         $this->assertSame('L', $rows[0]['tiles'][0]['letter']);
+    }
+
+    /**
+     * A resolved clue's own tiles show the letter in its true original spelling
+     * (accent or cedilla kept), the same as revealword already does — not the
+     * accent-stripped form guess comparison and slot matching use internally.
+     *
+     * @return void
+     */
+    public function test_build_clue_rows_tiles_show_original_accent_when_resolved(): void {
+        $state = $this->make_state();
+        $state['clues'][0]['word'] = 'pacoca';
+        $state['clues'][0]['originalword'] = 'paçoca';
+        $state['clues'][0]['slots'] = [1, 2, 3, 4, 5, 6];
+        $state['clues'][0]['resolved'] = true;
+
+        $rows = round_presenter::build_clue_rows($state, false);
+
+        $this->assertSame('PAÇOCA', $rows[0]['revealword']);
+        $this->assertSame(['P', 'A', 'Ç', 'O', 'C', 'A'], array_column($rows[0]['tiles'], 'letter'));
     }
 
     /**

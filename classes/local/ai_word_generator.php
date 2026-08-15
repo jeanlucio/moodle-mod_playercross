@@ -202,7 +202,9 @@ class ai_word_generator {
             "Generate {$count} words. Write all text in language: {$langname}.",
             'For each word provide:',
             '- term: EXACTLY ONE word (a single token) — letters only, no spaces, hyphens, digits'
-                . ' or punctuation.',
+                . ' or punctuation. Spell it correctly for language: ' . $langname
+                . ', keeping every accent, diacritic or cedilla the word normally takes —'
+                . ' do not strip them.',
             '- hint: one short clue sentence that helps guess the word without containing the word itself.',
             'Prefer common, guessable words. Avoid proper nouns and abbreviations.',
         ];

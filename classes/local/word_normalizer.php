@@ -89,4 +89,33 @@ class word_normalizer {
 
         return $words;
     }
+
+    /**
+     * Splits a free-text phrase the same way normalize_phrase() does, but keeps each
+     * token's original spelling (accents, cedillas, casing) instead of normalizing it.
+     *
+     * Calling both functions on the same $phrase always returns index-aligned arrays
+     * of equal length, since this applies the exact same split and the exact same
+     * keep/drop filter — only the kept value differs (the raw token here, versus
+     * normalize($token) there). round_presenter::build_word_tiles() relies on this
+     * alignment to show a revealed tile's true accented letter while every other use
+     * of the word (slot matching, guess comparison) keeps matching accent-insensitive
+     * on the normalized form.
+     *
+     * @param string $phrase Raw phrase text.
+     * @return string[] Original-spelling word tokens, in original order.
+     */
+    public static function original_phrase_tokens(string $phrase): array {
+        $tokens = preg_split('/[^\p{L}]+/u', trim($phrase), -1, PREG_SPLIT_NO_EMPTY);
+
+        $words = [];
+        foreach ($tokens as $token) {
+            $normalized = self::normalize($token);
+            if ($normalized !== '' && self::is_valid_charset($normalized)) {
+                $words[] = $token;
+            }
+        }
+
+        return $words;
+    }
 }

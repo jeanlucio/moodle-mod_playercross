@@ -298,4 +298,21 @@ final class ai_word_generator_test extends \basic_testcase {
 
         $this->assertStringNotContainsString('Do not repeat', $prompt);
     }
+
+    /**
+     * Regression test: the prompt must explicitly tell the AI to keep accents,
+     * diacritics and cedillas on the term field — is_valid_term() already accepts
+     * them (it matches any Unicode letter, not just ASCII), but an unaccented
+     * response like "pao" instead of "pão" still passes that check and slips into
+     * the pool spelled wrong, since nothing downstream can correct a term the AI
+     * itself already generated without its accent.
+     *
+     * @return void
+     */
+    public function test_build_prompt_asks_to_keep_accents(): void {
+        $prompt = $this->build_prompt('comida brasileira', 'Portuguese', 5);
+
+        $this->assertStringContainsString('accent', $prompt);
+        $this->assertStringContainsString('do not strip them', $prompt);
+    }
 }

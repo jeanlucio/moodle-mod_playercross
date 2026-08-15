@@ -57,12 +57,20 @@ class round_presenter {
      * @return array Array of {tiles: array} word groups.
      */
     public static function build_phrase_tiles(array $state, bool $roundfinished): array {
+        $originalwords = word_normalizer::original_phrase_tokens($state['themehint']);
+
         $groups = [];
         $position = 0;
-        foreach ($state['themewords'] as $word) {
+        foreach ($state['themewords'] as $index => $word) {
             $wordlength = count(word_normalizer::chars($word));
             $wordslots = array_slice($state['themeslots'], $position, $wordlength);
-            $groups[] = ['tiles' => self::build_word_tiles($word, $wordslots, $state['revealedslots'], $roundfinished)];
+            $groups[] = ['tiles' => self::build_word_tiles(
+                $word,
+                $originalwords[$index] ?? $word,
+                $wordslots,
+                $state['revealedslots'],
+                $roundfinished
+            )];
             $position += $wordlength;
         }
         return $groups;
@@ -74,18 +82,38 @@ class round_presenter {
      * letter always has a slot number, so a solved clue can cross-reveal a shared
      * letter directly in another clue, not only through the mystery phrase.
      *
+     * A revealed tile shows $originalword's own accented/cedilla'd letter rather than
+     * $word's normalized one — matching what round_result.mustache's final "the word
+     * was X" reveal already shows — as long as the two stay the same length
+     * character-for-character; word_normalizer::normalize() only ever strips a
+     * diacritic off a letter, never merges or drops one, but this still falls back to
+     * the normalized letter rather than risk a misaligned position on the rare word
+     * where that assumption does not hold.
+     *
      * @param string $word A word, already normalized (the theme word or a clue's own word).
+     * @param string $originalword The same word in its original spelling (accents kept).
      * @param int[] $slots Per-position slot numbers, parallel to $word's characters.
      * @param array $revealedslots Currently revealed slot numbers.
      * @param bool $reveal Whether the whole word is already known (resolved, or round finished).
      * @return array
      */
-    private static function build_word_tiles(string $word, array $slots, array $revealedslots, bool $reveal): array {
+    private static function build_word_tiles(
+        string $word,
+        string $originalword,
+        array $slots,
+        array $revealedslots,
+        bool $reveal
+    ): array {
+        $chars = word_normalizer::chars($word);
+        $originalchars = word_normalizer::chars($originalword);
+        $useoriginal = count($originalchars) === count($chars);
+
         $tiles = [];
-        foreach (word_normalizer::chars($word) as $position => $char) {
+        foreach ($chars as $position => $char) {
             $slot = $slots[$position];
             $isrevealed = $reveal || in_array($slot, $revealedslots, true);
-            $letter = $isrevealed ? core_text::strtoupper($char) : '';
+            $displaychar = $useoriginal ? $originalchars[$position] : $char;
+            $letter = $isrevealed ? core_text::strtoupper($displaychar) : '';
 
             $tiles[] = [
                 'letter'    => s($letter),
@@ -124,7 +152,13 @@ class round_presenter {
                     ? get_string('clueexhaustedlabel', 'mod_playercross', (int)$clue['attemptsused'])
                     : '',
                 'revealword'   => $reveal ? s(core_text::strtoupper($clue['originalword'])) : '',
-                'tiles'        => self::build_word_tiles($clue['word'], $clue['slots'], $state['revealedslots'], $reveal),
+                'tiles'        => self::build_word_tiles(
+                    $clue['word'],
+                    $clue['originalword'],
+                    $clue['slots'],
+                    $state['revealedslots'],
+                    $reveal
+                ),
                 'canguess'     => !$clue['resolved'] && !$clue['exhausted'] && !$roundfinished,
             ];
         }
