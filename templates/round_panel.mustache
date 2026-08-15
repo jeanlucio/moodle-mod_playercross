@@ -23,6 +23,19 @@
     post-round result (mod_playercross/round_result), depending on whether the round
     has finished.
 
+    The mystery-phrase tiles and its submit button are replaced by a plain
+    checkmark-and-word line — the same resolved-answer style round_play.mustache
+    already uses for a solved clue — as soon as themesolved is true. That happens
+    either once the round is finished, or earlier, the moment a direct guess through
+    this same form is confirmed correct (finalguesscorrect), even with clues still
+    pending: the phrase is already fully spelled out letter-by-letter in the tiles at
+    that point anyway, so leaving the tile grid and a still-live submit button on
+    screen for a form that has nothing left to resolve would be misleading. The
+    checkmark itself only appears when finalguesscorrect is genuinely true — a round
+    lost via forfeit/timeout/cluesexhausted still sets themesolved (so the tiles still
+    collapse to text), but shows the phrase without a checkmark, since the player never
+    actually solved it.
+
     Example context (json):
     {
         "themeconceptlabel": "Concept",
@@ -41,6 +54,9 @@
                 ]
             }
         ],
+        "themesolved": false,
+        "finalguesscorrect": false,
+        "themedisplayword": "",
         "themelabel": "Mystery phrase",
         "showglobalhint": true,
         "globalhintlabel": "Hint",
@@ -95,33 +111,40 @@
     </div>
     <form id="playercross-final-guess-form" class="mod-playercross-theme-form mod-playercross-guess-form mb-2">
         <p class="fw-bold d-block text-center mb-1">{{themelabel}}</p>
-        <div class="mod-playercross-theme" {{#canfinalguess}}role="group" aria-label="{{themelabel}}"{{/canfinalguess}}>
-            {{#themetiles}}
-                <div class="mod-playercross-word-group">
-                    {{#tiles}}
-                        <div class="mod-playercross-tile-wrap small">
-                            {{#revealed}}
-                                <span class="mod-playercross-tile is-revealed"
-                                      aria-label="{{arialabel}}">{{letter}}</span>
-                            {{/revealed}}
-                            {{^revealed}}
-                                <input type="text"
-                                       class="mod-playercross-tile mod-playercross-tile-input"
-                                       inputmode="none"
-                                       autocomplete="off"
-                                       maxlength="1"
-                                       aria-label="{{arialabel}}"
-                                       required>
-                            {{/revealed}}
-                            <span class="mod-playercross-tile-num">{{slotnum}}</span>
-                        </div>
-                    {{/tiles}}
-                </div>
-            {{/themetiles}}
-        </div>
-        {{#canfinalguess}}
-            <button type="submit" class="pc-row-submit">{{submitfinalguess}}</button>
-        {{/canfinalguess}}
+        {{^themesolved}}
+            <div class="mod-playercross-theme" {{#canfinalguess}}role="group" aria-label="{{themelabel}}"{{/canfinalguess}}>
+                {{#themetiles}}
+                    <div class="mod-playercross-word-group">
+                        {{#tiles}}
+                            <div class="mod-playercross-tile-wrap small">
+                                {{#revealed}}
+                                    <span class="mod-playercross-tile is-revealed"
+                                          aria-label="{{arialabel}}">{{letter}}</span>
+                                {{/revealed}}
+                                {{^revealed}}
+                                    <input type="text"
+                                           class="mod-playercross-tile mod-playercross-tile-input"
+                                           inputmode="none"
+                                           autocomplete="off"
+                                           maxlength="1"
+                                           aria-label="{{arialabel}}"
+                                           required>
+                                {{/revealed}}
+                                <span class="mod-playercross-tile-num">{{slotnum}}</span>
+                            </div>
+                        {{/tiles}}
+                    </div>
+                {{/themetiles}}
+            </div>
+            {{#canfinalguess}}
+                <button type="submit" class="pc-row-submit">{{submitfinalguess}}</button>
+            {{/canfinalguess}}
+        {{/themesolved}}
+        {{#themesolved}}
+            <p class="text-center mb-0">
+                <span class="mod-playercross-clue-answer">{{#finalguesscorrect}}&#10003; {{/finalguesscorrect}}{{themedisplayword}}</span>
+            </p>
+        {{/themesolved}}
     </form>
 
     {{#showglobalhint}}

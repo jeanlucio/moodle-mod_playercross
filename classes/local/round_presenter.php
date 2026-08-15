@@ -32,7 +32,16 @@ use core_text;
  *
  * The security invariant every method here must uphold (SCOPE.md §7): the mystery
  * phrase and any unresolved clue's word text are never included in the returned
- * context unless the round has actually finished server-side.
+ * context unless the round has actually finished server-side — with one narrow
+ * exception: once state['finalguesscorrect'] is true, every mystery-phrase slot is
+ * already independently revealed letter-by-letter (submit_final_guess() merges
+ * themeslots into revealedslots the moment the guess is confirmed correct, and the
+ * only other way to reach finalguesscorrect — every slot already incidentally
+ * revealed via clues/hints — means the same is already true), so surfacing that same
+ * word as a single string is not a new leak, just a different rendering of
+ * information already on screen. build_round_panel_context() relies on this to
+ * collapse the phrase's own tile grid into plain text as soon as it is confirmed,
+ * mirroring what already happens per-clue, without waiting for the whole round to end.
  */
 class round_presenter {
     /**
@@ -140,6 +149,16 @@ class round_presenter {
     /**
      * Returns the end-of-round flavour message.
      *
+     * feedback_finalguessed only fires when it actually tells the player something
+     * feedback_won would not: winning via BOTH always requires every clue resolved
+     * too, so once cluesresolved reaches cluestotal, "you solved every clue" is
+     * already true regardless of whether the phrase was also guessed directly — showing
+     * feedback_finalguessed there would just repeat, in different words, what an
+     * earlier in-round toast (finalguesscorrectneedsclues) already told the player the
+     * moment they guessed it. Reserving it for cluesresolved < cluestotal keeps it to
+     * the one case where it is genuinely new information: a win under
+     * PLAYERCROSS_WINCONDITION_FINALONLY reached without ever resolving every clue.
+     *
      * @param array $state Session state.
      * @return string
      */
@@ -156,7 +175,7 @@ class round_presenter {
         if (!empty($state['cluesexhausted'])) {
             return get_string('feedback_cluesexhausted', 'mod_playercross');
         }
-        if (!empty($state['finalguessed'])) {
+        if (!empty($state['finalguessed']) && (int)$state['cluesresolved'] < (int)$state['cluestotal']) {
             return get_string('feedback_finalguessed', 'mod_playercross');
         }
         if (!empty($state['won'])) {
@@ -412,11 +431,23 @@ class round_presenter {
             $timeleft = max(0, (int)$instance->timer_seconds - (time() - (int)$state['starttime']));
         }
 
+        // The phrase's own tile grid/submit form collapses into plain resolved text the
+        // moment it is confirmed correct, exactly like an individual clue does once
+        // resolved — not only once the whole round finishes, which can happen much
+        // later (or not at all) under PLAYERCROSS_WINCONDITION_BOTH with clues still
+        // pending. A lost round (forfeit/timeout/cluesexhausted) still collapses it too,
+        // via the $roundfinished half of the check, even though finalguesscorrect never
+        // became true in that case.
+        $themesolved = $roundfinished || !empty($state['finalguesscorrect']);
+
         return [
             'themetiles' => self::build_phrase_tiles($state, $roundfinished),
             'themelabel' => get_string('themewordlabel', 'mod_playercross'),
             'themeconceptlabel' => get_string('themeconceptlabel', 'mod_playercross'),
-            'themeconcept' => s($state['themeconcept']),
+            'themeconcept' => s(core_text::strtoupper($state['themeconcept'])),
+            'themesolved' => $themesolved,
+            'finalguesscorrect' => !empty($state['finalguesscorrect']),
+            'themedisplayword' => $themesolved ? s(core_text::strtoupper($state['themehint'])) : '',
             'clues' => self::build_clue_rows($state, $roundfinished),
             'cluesresolved' => (int)$state['cluesresolved'],
             'cluestotal' => (int)$state['cluestotal'],
@@ -430,7 +461,7 @@ class round_presenter {
             'roundfinished' => $roundfinished,
             'guesslabel' => get_string('guesslabel', 'mod_playercross'),
             'submitclueguess' => get_string('submitclueguess', 'mod_playercross'),
-            'canfinalguess' => !$roundfinished,
+            'canfinalguess' => !$themesolved,
             'submitfinalguess' => get_string('submitfinalguess', 'mod_playercross'),
             'forfeitlabel' => get_string('forfeitbutton', 'mod_playercross'),
             'forfeitconfirm' => get_string('forfeitconfirm', 'mod_playercross'),

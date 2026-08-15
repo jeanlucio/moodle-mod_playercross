@@ -380,7 +380,7 @@
 .path-mod-playercross .mod-playercross-clue-form {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.5rem;
 }
 

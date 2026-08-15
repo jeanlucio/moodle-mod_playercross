@@ -1225,8 +1225,18 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * Winning a round — resolving every clue, then guessing the mystery phrase — fires
-     * round_completed exactly once, with the outcome recorded in its "other" payload.
+     * Winning a round — resolving every clue — fires round_completed exactly once,
+     * with the outcome recorded in its "other" payload.
+     *
+     * num_clues defaults to 3 here, and with theme_min_length 6 the fixed word pool
+     * (casa/lobo/mel) always happens to cover every theme letter between the three of
+     * them (see test_resolving_all_clues_alone_does_not_finish_round()) — so the round
+     * already finishes as a side effect of the last clue, before the trailing
+     * submit_final_guess() call below is ever reached. That call is kept anyway to
+     * confirm it is a harmless no-op once the round is already finished (it returns
+     * early without touching state or firing a second event) — and, since the win came
+     * from clue resolution and not a typed-and-submitted guess, "other.finalguessed"
+     * must read false, not true.
      *
      * @return void
      */
@@ -1262,7 +1272,7 @@ final class round_service_test extends \advanced_testcase {
         $events = array_values(array_filter($sink->get_events(), fn($e) => $e instanceof round_completed));
         $this->assertCount(1, $events);
         $this->assertTrue($events[0]->other['completed']);
-        $this->assertTrue($events[0]->other['finalguessed']);
+        $this->assertFalse($events[0]->other['finalguessed']);
         $this->assertSame(3, $events[0]->other['cluesresolved']);
         $this->assertSame(3, $events[0]->other['cluestotal']);
     }

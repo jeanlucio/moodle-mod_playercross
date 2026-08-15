@@ -129,6 +129,7 @@ class round_service {
             'timedout'      => false,
             'finalguessed'  => false,
             'finalguesscorrect' => false,
+            'finalguesseddirectly' => false,
             'cluesexhausted' => false,
         ];
     }
@@ -460,6 +461,14 @@ class round_service {
      * separate times, once per call site, is exactly how it went missing from
      * submit_clue_guess() the first time around.
      *
+     * The round can finish here regardless of which of the three callers triggered it,
+     * but the "solved directly" feedback message must only fire when the phrase was
+     * actually typed and submitted correctly through submit_final_guess() — never when
+     * the same slots simply ended up revealed as a side effect of resolving clues or
+     * spending a hint. state['finalguesseddirectly'] carries that distinction (set only
+     * by submit_final_guess(), never by confirm_fully_revealed_theme()) through to
+     * finish_round()'s own $finalguessed parameter.
+     *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
      * @param int $cmid Course module id.
@@ -490,7 +499,16 @@ class round_service {
             (int)$state['cluesresolved']
         );
         $state['scoreaccumulated'] += $bonus;
-        $state = self::finish_round($state, $instance, $cmid, $userid, true, false, false, true);
+        $state = self::finish_round(
+            $state,
+            $instance,
+            $cmid,
+            $userid,
+            true,
+            false,
+            false,
+            !empty($state['finalguesseddirectly'])
+        );
 
         return [$state, get_string('roundwon', 'mod_playercross')];
     }
@@ -777,6 +795,7 @@ class round_service {
         }
 
         $state['finalguesscorrect'] = true;
+        $state['finalguesseddirectly'] = true;
 
         // Reveals the mystery phrase's own tiles immediately, independently of whether the
         // round finishes here — a correct guess demonstrates the player already knows every

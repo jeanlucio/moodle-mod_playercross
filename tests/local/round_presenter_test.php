@@ -366,6 +366,37 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * feedback_finalguessed only fires when it tells the player something feedback_won
+     * would not — a direct guess that won the round while clues were still pending
+     * (PLAYERCROSS_WINCONDITION_FINALONLY, or any win reached with cluesresolved short
+     * of cluestotal). Once every clue was also resolved, "you solved every clue" is
+     * already true regardless of the direct guess, and the player already saw a
+     * dedicated toast the moment they guessed correctly — repeating it in the
+     * end-of-round summary would just be the same fact stated twice.
+     *
+     * @return void
+     */
+    public function test_build_feedback_message_prefers_won_once_every_clue_is_also_resolved(): void {
+        $finalguessedwithcluespending = round_presenter::build_feedback_message($this->make_state([
+            'finished' => true,
+            'won' => true,
+            'finalguessed' => true,
+            'cluestotal' => 3,
+            'cluesresolved' => 1,
+        ]));
+        $finalguessedwitheveryclueresolved = round_presenter::build_feedback_message($this->make_state([
+            'finished' => true,
+            'won' => true,
+            'finalguessed' => true,
+            'cluestotal' => 3,
+            'cluesresolved' => 3,
+        ]));
+
+        $this->assertSame(get_string('feedback_finalguessed', 'mod_playercross'), $finalguessedwithcluespending);
+        $this->assertSame(get_string('feedback_won', 'mod_playercross'), $finalguessedwitheveryclueresolved);
+    }
+
+    /**
      * Tests that the grading method info line is shown only when grading is enabled
      * and more than one round is possible.
      *
@@ -604,6 +635,72 @@ final class round_presenter_test extends \advanced_testcase {
 
         $this->assertFalse($context['roundfinished']);
         $this->assertSame('', $context['revealthemeword']);
+    }
+
+    /**
+     * The theme concept caption is uppercased for display, the same as every other
+     * revealed word in the round (revealword, themedisplayword, revealthemeword) —
+     * puzzle_builder stores it exactly as the admin typed it in the word bank
+     * (puzzle_builder_test.php::test_build_round_theme_phrase_comes_from_hint()
+     * asserts the raw lowercase value survives that layer unchanged), so normalising
+     * the casing is this presentation layer's job.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_uppercases_theme_concept(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        $state = $this->make_state(['themeconcept' => 'pasta']);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertSame('PASTA', $context['themeconcept']);
+    }
+
+    /**
+     * A correct direct guess collapses the mystery-phrase tiles into resolved text
+     * immediately — mirroring an individual solved clue — even with the round still
+     * active (clues pending under PLAYERCROSS_WINCONDITION_BOTH), instead of only once
+     * the whole round finishes.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_theme_solved_before_round_finishes(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        $state = $this->make_state(['finalguesscorrect' => true]);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertFalse($context['roundfinished']);
+        $this->assertTrue($context['themesolved']);
+        $this->assertTrue($context['finalguesscorrect']);
+        $this->assertFalse($context['canfinalguess']);
+        $this->assertSame('ESCOLA', $context['themedisplayword']);
+    }
+
+    /**
+     * A round lost via forfeit/timeout/cluesexhausted still collapses the mystery-phrase
+     * tiles into text once finished, even though the phrase itself was never correctly
+     * guessed — but without the checkmark a genuine win gets, since the player did not
+     * actually solve it.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_theme_solved_on_finished_loss_without_checkmark(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        $state = $this->make_state(['finished' => true, 'forfeited' => true, 'finalguesscorrect' => false]);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertTrue($context['roundfinished']);
+        $this->assertTrue($context['themesolved']);
+        $this->assertFalse($context['finalguesscorrect']);
+        $this->assertSame('ESCOLA', $context['themedisplayword']);
     }
 
     /**
