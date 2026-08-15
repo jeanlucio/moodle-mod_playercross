@@ -72,9 +72,14 @@ class ranking_service {
             $params = array_merge($params, $notinparams);
         }
 
-        $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
+        // Confine sql_fullname() to ORDER BY (a tiebreak-free secondary sort has no
+        // visible effect either way here) — the displayed value is built afterwards
+        // with fullname(), which is the only API that honours fullnamedisplay/
+        // alternativefullnameformat and the moodle/site:viewfullnames capability.
+        $namefields = \core_user\fields::for_name()->get_sql('u', false, '', '', false);
+        $sortfullname = $DB->sql_fullname('u.firstname', 'u.lastname');
         $sql = "SELECT u.id,
-                       $fullname AS fullname,
+                       {$namefields->selects},
                        SUM(pa.score) AS totalscore,
                        AVG(pa.attempts_used) AS avgattempts,
                        AVG(pa.time_used) AS avgtime
@@ -82,11 +87,13 @@ class ranking_service {
                   JOIN {user} u ON u.id = pa.userid
                  WHERE pa.playercrossid = :instanceid
                        $userwhere
-              GROUP BY u.id, u.firstname, u.lastname
-              ORDER BY SUM(pa.score) DESC, AVG(pa.attempts_used) ASC, AVG(pa.time_used) ASC";
+              GROUP BY u.id, {$namefields->selects}
+              ORDER BY SUM(pa.score) DESC, AVG(pa.attempts_used) ASC, AVG(pa.time_used) ASC,
+                       $sortfullname ASC";
 
         $records = $DB->get_records_sql($sql, $params);
 
+        $canviewfullnames = has_capability('moodle/site:viewfullnames', $context);
         $rows = [];
         $outsiderrow = null;
         $position = 1;
@@ -95,7 +102,7 @@ class ranking_service {
             $iscurrent = ((int)$record->id === $userid);
             $row = [
                 'position'      => $position,
-                'fullname'      => $record->fullname,
+                'fullname'      => fullname($record, $canviewfullnames),
                 'totalscore'    => format_float((float)$record->totalscore, 2),
                 'iscurrentuser' => $iscurrent,
             ];

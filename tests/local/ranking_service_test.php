@@ -285,4 +285,56 @@ final class ranking_service_test extends \advanced_testcase {
         // Userb's single row (not two) is the direct proof of deduplication across groups.
         $this->assertCount(1, array_filter($seennames, fn(string $name): bool => $name === fullname($userb)));
     }
+
+    /**
+     * Regression test for the security audit finding (ported from mod_playerwords,
+     * which the same bug was found and fixed in first): the ranking used to build the
+     * displayed name with $DB->sql_fullname() directly, ignoring both
+     * $CFG->fullnamedisplay and the moodle/site:viewfullnames capability. A student
+     * viewer (who holds neither capability nor an override by default) must see the
+     * surname hidden exactly like every other page on a site configured this way.
+     *
+     * @return void
+     */
+    public function test_get_ranking_hides_surname_without_viewfullnames_capability(): void {
+        global $CFG;
+
+        $CFG->fullnamedisplay = 'firstname';
+
+        $viewer = $this->getDataGenerator()->create_user(['firstname' => 'Ana', 'lastname' => 'Secret']);
+        $this->getDataGenerator()->enrol_user($viewer->id, $this->course->id, 'student');
+        $this->add_attempt($viewer, 50);
+
+        $this->setUser($viewer);
+
+        $ranking = ranking_service::get_ranking($this->instance, $this->cm, $viewer->id);
+
+        $this->assertCount(1, $ranking['rows']);
+        $this->assertSame('Ana', $ranking['rows'][0]['fullname']);
+    }
+
+    /**
+     * Companion to the test above: a viewer who does hold moodle/site:viewfullnames
+     * (the default teacher archetype, which is not excluded from the ranking itself
+     * since it lacks mod/playercross:addinstance) must still see the full name, proving
+     * the fix does not over-restrict visibility for roles the site trusts with it.
+     *
+     * @return void
+     */
+    public function test_get_ranking_shows_full_name_with_viewfullnames_capability(): void {
+        global $CFG;
+
+        $CFG->fullnamedisplay = 'firstname';
+
+        $viewer = $this->getDataGenerator()->create_user(['firstname' => 'Ana', 'lastname' => 'Secret']);
+        $this->getDataGenerator()->enrol_user($viewer->id, $this->course->id, 'teacher');
+        $this->add_attempt($viewer, 50);
+
+        $this->setUser($viewer);
+
+        $ranking = ranking_service::get_ranking($this->instance, $this->cm, $viewer->id);
+
+        $this->assertCount(1, $ranking['rows']);
+        $this->assertSame('Ana Secret', $ranking['rows'][0]['fullname']);
+    }
 }

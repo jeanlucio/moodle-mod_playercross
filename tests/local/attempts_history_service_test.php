@@ -594,4 +594,58 @@ final class attempts_history_service_test extends \advanced_testcase {
 
         $this->assertSame(2, $history['total']);
     }
+
+    /**
+     * Regression test for the security audit finding (ported from mod_playerwords,
+     * which the same bug was found and fixed in first): both get_all_history()'s
+     * 'student' column and get_players_for_filter()'s ->fullname used to build the
+     * displayed name with $DB->sql_fullname() directly, ignoring both
+     * $CFG->fullnamedisplay and the moodle/site:viewfullnames capability. The default
+     * teacher archetype already holds that capability (so it would not have shown this
+     * bug), so this uses a custom report-viewer role without it — a realistic
+     * configuration for a site that restricts full-name visibility more tightly than
+     * core's own teacher default.
+     *
+     * @return void
+     */
+    public function test_get_all_history_and_players_hide_surname_without_viewfullnames_capability(): void {
+        global $CFG, $DB;
+
+        $modinstance = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        $instance = $DB->get_record('playercross', ['id' => $modinstance->id], '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('playercross', $instance->id, 0, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
+        $theme = $this->modgenerator->create_word($instance->id, 'escola');
+
+        $roleid = create_role('Report viewer without full names', 'reportviewernofullnames', '');
+        assign_capability('mod/playercross:viewreports', CAP_ALLOW, $roleid, $context->id, true);
+        assign_capability('moodle/site:viewfullnames', CAP_PREVENT, $roleid, $context->id, true);
+        $viewer = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($viewer->id, $this->course->id, 'student');
+        role_assign($roleid, $viewer->id, $context->id);
+
+        $student = $this->getDataGenerator()->create_user(['firstname' => 'Ana', 'lastname' => 'Secret']);
+        $this->getDataGenerator()->enrol_user($student->id, $this->course->id, 'student');
+        $this->modgenerator->create_attempt($instance->id, $student->id, $theme->id, ['score' => 50.0]);
+
+        $CFG->fullnamedisplay = 'firstname';
+        $this->setUser($viewer);
+
+        $history = attempts_history_service::get_all_history(
+            $cm,
+            $instance,
+            $context,
+            $viewer->id,
+            0,
+            30,
+            'date',
+            'DESC',
+            0
+        );
+        $players = attempts_history_service::get_players_for_filter($cm, $instance, $context, $viewer->id);
+
+        $this->assertSame('Ana', $history['rows'][0]['student']);
+        $this->assertCount(1, $players);
+        $this->assertSame('Ana', $players[0]->fullname);
+    }
 }

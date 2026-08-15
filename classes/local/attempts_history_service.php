@@ -231,7 +231,16 @@ class attempts_history_service {
             $params = array_merge($params, $groupinparams);
         }
 
-        $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
+        // The 'studentname' sentinel from SORTABLE_COLUMNS resolves here, not in the
+        // constant, since sql_fullname() needs a live $DB connection. The displayed
+        // name is built separately below with fullname(), which is the only API that
+        // honours fullnamedisplay/alternativefullnameformat and the
+        // moodle/site:viewfullnames capability — sql_fullname() stays confined to
+        // sorting.
+        if ($sortcolumn === 'studentname') {
+            $sortcolumn = $DB->sql_fullname('u.firstname', 'u.lastname');
+        }
+
         $wheresql = "pa.playercrossid = :instanceid
                        $userwhere
                        $managerwhere
@@ -245,7 +254,8 @@ class attempts_history_service {
             $params
         );
 
-        $sql = "SELECT pa.*, pw.word, pw.concept, $fullname AS studentname
+        $namefields = \core_user\fields::for_name()->get_sql('u', false, '', '', true);
+        $sql = "SELECT pa.*, pw.word, pw.concept{$namefields->selects}
                   FROM {playercross_attempts} pa
                   JOIN {user} u ON u.id = pa.userid
              LEFT JOIN {playercross_words} pw ON pw.id = pa.themewordid
@@ -253,6 +263,11 @@ class attempts_history_service {
               ORDER BY $sortcolumn $dir, pa.id $dir";
 
         $records = $DB->get_records_sql($sql, $params, $page * $perpage, $perpage);
+
+        $canviewfullnames = has_capability('moodle/site:viewfullnames', $context);
+        foreach ($records as $record) {
+            $record->studentname = fullname($record, $canviewfullnames);
+        }
 
         $rows = array_map(
             fn(\stdClass $attempt): array => self::build_row($attempt),
@@ -297,15 +312,27 @@ class attempts_history_service {
             $params = array_merge($params, $groupinparams);
         }
 
-        $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
-        $sql = "SELECT DISTINCT u.id, $fullname AS fullname
+        // Sql_fullname() is used only to sort the dropdown (aliased as sortname, since
+        // PostgreSQL requires every ORDER BY expression to appear in the select list
+        // for SELECT DISTINCT); the fullname property returned to the caller is built
+        // afterwards with fullname(), which alone honours fullnamedisplay/
+        // alternativefullnameformat and the moodle/site:viewfullnames capability.
+        $namefields = \core_user\fields::for_name()->get_sql('u', false, '', '', true);
+        $sortfullname = $DB->sql_fullname('u.firstname', 'u.lastname');
+        $sql = "SELECT DISTINCT u.id{$namefields->selects}, $sortfullname AS sortname
                   FROM {playercross_attempts} pa
                   JOIN {user} u ON u.id = pa.userid
                  WHERE pa.playercrossid = :instanceid
                        $managerwhere
                        $groupwhere
-              ORDER BY fullname ASC";
+              ORDER BY sortname ASC";
 
-        return array_values($DB->get_records_sql($sql, $params));
+        $records = array_values($DB->get_records_sql($sql, $params));
+        $canviewfullnames = has_capability('moodle/site:viewfullnames', $context);
+        foreach ($records as $record) {
+            $record->fullname = fullname($record, $canviewfullnames);
+        }
+
+        return $records;
     }
 }
