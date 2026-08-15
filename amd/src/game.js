@@ -33,9 +33,13 @@
  * never boxes to begin with. Clicking a specific box focuses exactly that one (native
  * browser behaviour), so a single wrong letter can be fixed without retyping the rest.
  * The physical Left/Right arrow keys move focus one editable box over, the same
- * verification-code-input convention as a bank 2FA field — see the stage's own keydown
- * listener, which takes this over from the browser's own default (moving the text
- * caret inside a single-character box, effectively a no-op).
+ * verification-code-input convention as a bank 2FA field; Up/Down move to the same
+ * column in the row above/below, clamped to a shorter target row's own length — the
+ * mystery phrase counts as the topmost row, so Up from the first clue reaches it —
+ * mirroring how real crossword apps let arrow keys move both along and across an
+ * answer (see the stage's own keydown listener, and focusAdjacentBox/
+ * focusAdjacentRow). All four take this over from the browser's own default (moving
+ * the text caret inside a single-character box, effectively a no-op there).
  * A guess is assembled at submit time by reading every tile in a row, in order: a
  * locked span's own letter, or a box's typed value (see buildClueGuess/
  * buildFinalGuess). A guess is confirmed via a physical Enter key or the row's own
@@ -506,6 +510,39 @@ const getFormBoxes = (box) => {
 const focusAdjacentBox = (box, offset) => {
     const boxes = getFormBoxes(box);
     boxes[boxes.indexOf(box) + offset]?.focus();
+};
+
+/**
+ * Returns every guess form currently on screen, in DOM order — the mystery phrase's
+ * own form always first (round_panel.mustache renders it, then includes round_play,
+ * which lists the clues), then each clue in the same top-to-bottom order the player
+ * sees. Used by Up/Down row navigation; a row whose form does not exist right now
+ * (a resolved clue, canguess false) is naturally absent, since no such <form> renders.
+ *
+ * @returns {HTMLElement[]}
+ */
+const getAllRows = () => Array.from(document.querySelectorAll('.mod-playercross-guess-form'));
+
+/**
+ * Moves focus to the equivalent box — same column index — in the row immediately
+ * above or below the given box's own row, clamped to the target row's own length
+ * when it has fewer editable boxes than the current one. A no-op past either end (no
+ * wrap, matching focusAdjacentBox()) or if the target row currently has no editable
+ * box at all (its own guess already fully revealed, but the round has not finished).
+ *
+ * @param {HTMLElement} box A .mod-playercross-tile-input element.
+ * @param {number} offset -1 for the row above, 1 for the row below.
+ */
+const focusAdjacentRow = (box, offset) => {
+    const rows = getAllRows();
+    const form = box.closest('.mod-playercross-guess-form');
+    const targetForm = rows[rows.indexOf(form) + offset];
+    if (!targetForm) {
+        return;
+    }
+    const columnIndex = getFormBoxes(box).indexOf(box);
+    const targetBoxes = Array.from(targetForm.querySelectorAll('.mod-playercross-tile-input'));
+    targetBoxes[Math.min(columnIndex, targetBoxes.length - 1)]?.focus();
 };
 
 /**
@@ -1121,7 +1158,10 @@ const wireStageDelegation = (cmid, timertotal) => {
     // value — the standard verification-code-input convention. Harmless to take over
     // from the browser's own default (moving the text caret before/after the single
     // character a maxlength="1" box can ever hold), and reuses focusAdjacentBox() so
-    // locked/revealed tiles are skipped exactly like Tab already skips them.
+    // locked/revealed tiles are skipped exactly like Tab already skips them. Up/Down
+    // move to the equivalent column in the row above/below (see focusAdjacentRow) —
+    // the mystery phrase counts as the topmost row — mirroring how real crossword
+    // apps let arrow keys move both along and across an answer.
     //
     // Backspace on an already-empty box moves back to the previous editable box and
     // clears it too — the 'input' listener above only fires when a box's value
@@ -1134,6 +1174,11 @@ const wireStageDelegation = (cmid, timertotal) => {
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
             e.preventDefault();
             focusAdjacentBox(box, e.key === 'ArrowLeft' ? -1 : 1);
+            return;
+        }
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            focusAdjacentRow(box, e.key === 'ArrowUp' ? -1 : 1);
             return;
         }
         if (e.key !== 'Backspace' || box.value !== '') {

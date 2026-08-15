@@ -63,11 +63,11 @@ vendor/bin/phpunit --testsuite mod_playercross
 | Feature file | Scenarios |
 |---------------|----------:|
 | `mod_playercross_smoke.feature` | 1 |
-| `mod_playercross_gameplay.feature` | 11 |
+| `mod_playercross_gameplay.feature` | 12 |
 | `mod_playercross_playerhud.feature` | 4 |
 | `mod_playercross_reports.feature` | 5 |
 | `mod_playercross_settings.feature` | 4 |
 | `mod_playercross_toolbar.feature` | 8 |
-| **Subtotal** | **33** |
+| **Subtotal** | **34** |
 
 [Full test-by-test breakdown and coverage table →]({{ '/testing.html' | relative_url }})

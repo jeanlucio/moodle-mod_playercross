@@ -113,8 +113,25 @@ Feature: PlayerCross core gameplay loop
     And I click on "Start round" "button"
     When I fill PlayerCross clue "1" tiles with "l"
     And I press the right key
-    And I press the "v" key
+    And I press the right key
+    And I press the v key
     Then PlayerCross clue "1" tiles should read "l_v__"
+
+  Scenario: Arrow keys move focus between rows, reaching the mystery phrase from the first clue
+    Given the following "activities" exist:
+      | activity    | course | name       | num_clues | theme_min_length | min_length | max_length |
+      | playercross | C1     | Cross Rows | 1         | 6                | 3          | 15         |
+    And the following PlayerCross words exist in activity "Cross Rows":
+      | word   |
+      | escola |
+      | livro  |
+    And I log in as "student1"
+    And I am on the "Cross Rows" "playercross activity" page
+    And I click on "Start round" "button"
+    When I fill PlayerCross clue "1" tiles with "l"
+    And I press the up key
+    And I press the e key
+    Then the PlayerCross mystery phrase tiles should read "e_____"
 
   Scenario: A clue's own submit button stays hidden while the row is still incomplete
     Given the following "activities" exist:

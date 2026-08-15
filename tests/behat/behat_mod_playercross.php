@@ -387,6 +387,53 @@ JS;
     }
 
     /**
+     * Asserts the mystery phrase's own tile boxes currently hold exactly the given
+     * letters, one per tile-wrap across every word group, in position order — "_"
+     * marks a position expected to still be empty. Same technique, and guards the
+     * same class of regression, as "PlayerCross clue :position tiles should read
+     * :expected" (see its own docblock), just for the theme row instead of a clue.
+     *
+     * @param string $expected Expected letters, "_" marking a still-empty box.
+     * @Then the PlayerCross mystery phrase tiles should read :expected
+     */
+    public function playercross_theme_tiles_should_read(string $expected): void {
+        $js = <<<'JS'
+            (function() {
+                var container = document.querySelector('.mod-playercross-theme');
+                if (!container) {
+                    return null;
+                }
+                var wraps = container.querySelectorAll('.mod-playercross-tile-wrap');
+                return Array.from(wraps).map(function(wrap) {
+                    var locked = wrap.querySelector('.mod-playercross-tile.is-revealed');
+                    if (locked) {
+                        return locked.textContent;
+                    }
+                    var input = wrap.querySelector('.mod-playercross-tile-input');
+                    return input ? input.value : '';
+                }).join('|');
+            })();
+JS;
+        $actual = $this->getSession()->evaluateScript($js);
+        if ($actual === null) {
+            throw new \Exception('No PlayerCross mystery phrase currently on screen.');
+        }
+
+        $actualchars = explode('|', $actual);
+        $expectedchars = preg_split('//u', $expected, -1, PREG_SPLIT_NO_EMPTY);
+        foreach ($actualchars as $i => $actualchar) {
+            $expectedchar = strtoupper($expectedchars[$i] ?? '');
+            $expectedchar = $expectedchar === '_' ? '' : $expectedchar;
+            if (strtoupper($actualchar) !== $expectedchar) {
+                throw new \Exception(
+                    'PlayerCross mystery phrase tile ' . ($i + 1) . " expected '{$expectedchar}' " .
+                    "but found '{$actualchar}'."
+                );
+            }
+        }
+    }
+
+    /**
      * Creates a PlayerHUD item in the block already added to the given course.
      *
      * Direct $DB insert rather than going through the block's own management UI,
