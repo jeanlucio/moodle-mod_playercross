@@ -705,7 +705,7 @@
     /*
      * Boost's own drawer-toggle buttons (#page.drawers .drawer-toggler) are position: fixed
      * and, on mobile, anchored via a vh-based `top` that happens to land in the same screen
-     * band as our fixed keyboard — overlapping its outer Enviar/Backspace keys. Gated on
+     * band as our fixed keyboard — overlapping its own outer keys. Gated on
      * :has(#playercross-keyboard), same reasoning as --pc-keyboard-reserve above, so Boost's
      * drawer positioning is only ever touched on the exact screen where our keyboard is
      * actually on top of them — never on this plugin's other pages, and never elsewhere on
