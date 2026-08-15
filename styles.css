@@ -76,8 +76,23 @@
  * instead of centred in its own header cell. Bootstrap 5 (Moodle 5.x) does not have
  * this problem — .form-check-input is position: static there — so this override is a
  * no-op on 5.x and only matters on 4.5. Ported from mod_playerwords's identical fix.
+ *
+ * Scoped to these two specific checkboxes (managewords.mustache's select-all header
+ * checkbox and its per-row bulk checkboxes — the only checkboxes in this plugin ever
+ * used without a visible label) rather than the blanket .form-check-input selector
+ * this rule used before: that selector also matched every ordinary labelled
+ * advcheckbox Moodle core itself renders on course/modedit.php (this plugin's own
+ * settings form), a page that already carries the path-mod-playercross body class.
+ * A labelled checkbox is exactly the case Bootstrap 4's absolute-positioning trick is
+ * designed for and already handles correctly on its own — position: static; margin: 0
+ * there discarded that correct default (Bootstrap 4's own margin-top: 0.3rem, which
+ * vertically centres the box against its label) and left every settings-form checkbox
+ * sitting flush against the top of its row instead, confirmed by comparing this same
+ * core checkbox markup on mod_playergroup's own settings form (no such override there,
+ * renders centred) against mod_playercross's (misaligned before this fix).
  */
-.path-mod-playercross .form-check-input {
+.path-mod-playercross #playercross-select-all,
+.path-mod-playercross .playercross-bulk-check {
     position: static;
     margin: 0;
 }
