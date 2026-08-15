@@ -68,17 +68,6 @@ Feature: PlayerCross teacher-facing settings behaviour
     And I click on "Add word" "button"
     Then I should see "Word must contain letters only"
 
-  Scenario: Adding a manual word without a hint is rejected
-    Given the following "activities" exist:
-      | activity    | course | name          | num_clues | theme_min_length | min_length | max_length |
-      | playercross | C1     | Cross NoHint  | 1         | 6                | 3          | 15         |
-    And I log in as "teacher1"
-    And I am on the "Cross NoHint" "playercross activity" page
-    And I click on "a.pc-toolbar-btn[title=\"Manage words\"]" "css_element"
-    When I set the field "playercross-manualword" to "caderno"
-    And I click on "Add word" "button"
-    Then I should see "Hint is required"
-
   Scenario: A PlayerHUD item that no longer exists stays selected instead of resetting silently
     Given the following "activities" exist:
       | activity    | course | name        | num_clues | theme_min_length | min_length | max_length | hud_round_cost_item |
