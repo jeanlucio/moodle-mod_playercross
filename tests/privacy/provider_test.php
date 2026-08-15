@@ -410,6 +410,91 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     }
 
     /**
+     * Tests that export_user_data writes the correct, non-overlapping attempts/words for
+     * each context when the approved list spans several activities — the correctness side
+     * of the N+1 fix: batching by playercrossid must not blend one activity's rows into
+     * another's export.
+     *
+     * @return void
+     */
+    public function test_export_user_data_across_multiple_contexts(): void {
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course();
+        $cm1 = $this->make_cm($course);
+        $cm2 = $this->make_cm($course);
+        $user = $this->getDataGenerator()->create_user();
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+
+        $theme1 = $modgenerator->create_word($cm1->id, 'escola');
+        $DB->set_field('playercross_words', 'addedby', $user->id, ['id' => $theme1->id]);
+        $modgenerator->create_attempt($cm1->id, $user->id, $theme1->id, ['score' => 10.0]);
+
+        $theme2 = $modgenerator->create_word($cm2->id, 'livro');
+        $DB->set_field('playercross_words', 'addedby', $user->id, ['id' => $theme2->id]);
+        $modgenerator->create_attempt($cm2->id, $user->id, $theme2->id, ['score' => 20.0]);
+
+        $context1 = \context_module::instance($cm1->cmid);
+        $context2 = \context_module::instance($cm2->cmid);
+        $contextlist = new approved_contextlist($user, 'mod_playercross', [$context1->id, $context2->id]);
+        provider::export_user_data($contextlist);
+
+        $data1 = writer::with_context($context1)->get_data([
+            get_string('pluginname', 'mod_playercross'),
+            get_string('privacy:attempts', 'mod_playercross'),
+        ]);
+        $data2 = writer::with_context($context2)->get_data([
+            get_string('pluginname', 'mod_playercross'),
+            get_string('privacy:attempts', 'mod_playercross'),
+        ]);
+
+        $this->assertCount(1, $data1->attempts);
+        $this->assertSame($theme1->id, (int)$data1->attempts[0]['themewordid']);
+        $this->assertSame(10.0, (float)$data1->attempts[0]['score']);
+
+        $this->assertCount(1, $data2->attempts);
+        $this->assertSame($theme2->id, (int)$data2->attempts[0]['themewordid']);
+        $this->assertSame(20.0, (float)$data2->attempts[0]['score']);
+    }
+
+    /**
+     * Regression test for the N+1 pattern flagged by the same security audit that found
+     * it in mod_playerwords: reading attempts and words used to run two
+     * get_records_select() calls per context in the approved list. Asserts the DB read
+     * count stays bounded as the number of contexts grows, instead of scaling linearly
+     * with it — mirrors the read-count assertion style already used in
+     * blocks/playerhud/tests/quest_test.php and mod_playerwords's own provider_test.php.
+     *
+     * @return void
+     */
+    public function test_export_user_data_read_count_does_not_scale_with_contexts(): void {
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course();
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $user = $this->getDataGenerator()->create_user();
+        $contextids = [];
+        for ($i = 0; $i < 6; $i++) {
+            $cm = $this->make_cm($course);
+            $theme = $modgenerator->create_word($cm->id, 'escola' . $i);
+            $DB->set_field('playercross_words', 'addedby', $user->id, ['id' => $theme->id]);
+            $modgenerator->create_attempt($cm->id, $user->id, $theme->id);
+            $contextids[] = \context_module::instance($cm->cmid)->id;
+        }
+
+        $contextlist = new approved_contextlist($user, 'mod_playercross', $contextids);
+
+        $readsbefore = $DB->perf_get_reads();
+        provider::export_user_data($contextlist);
+        $reads = $DB->perf_get_reads() - $readsbefore;
+
+        // Before the fix: 2 reads per context (12 for 6 contexts), plus the shared
+        // cmid=>instanceid lookup. After: the cmid=>instanceid lookup plus exactly one
+        // bulk read each for attempts and words, regardless of context count.
+        $this->assertLessThanOrEqual(4, $reads);
+    }
+
+    /**
      * Tests that export_user_data is a no-op for an empty approved contextlist.
      *
      * @return void

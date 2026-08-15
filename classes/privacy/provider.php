@@ -214,16 +214,80 @@ class provider implements
         return $map;
     }
 
-    #[\Override]
-    public static function export_user_data(approved_contextlist $contextlist): void {
+    /**
+     * Bulk-loads every attempt row for $userid across all given instance ids in a single
+     * query, grouped by playercrossid — the export_user_data() counterpart to
+     * get_instance_ids_by_cmid(), avoiding one get_records_select() per context.
+     *
+     * @param int $userid User id.
+     * @param int[] $instanceids Playercross instance ids to load attempts for.
+     * @return array<int,\stdClass[]> Playercrossid => attempt records, timecreated ASC.
+     */
+    private static function get_attempts_by_instanceid(int $userid, array $instanceids): array {
         global $DB;
 
+        if (empty($instanceids)) {
+            return [];
+        }
+
+        [$insql, $inparams] = $DB->get_in_or_equal($instanceids, SQL_PARAMS_NAMED);
+        $records = $DB->get_records_select(
+            'playercross_attempts',
+            "userid = :userid AND playercrossid $insql",
+            array_merge(['userid' => $userid], $inparams),
+            'timecreated ASC'
+        );
+
+        $grouped = [];
+        foreach ($records as $record) {
+            $grouped[(int)$record->playercrossid][] = $record;
+        }
+        return $grouped;
+    }
+
+    /**
+     * Bulk-loads every word row added by $userid across all given instance ids in a
+     * single query, grouped by playercrossid — the export_user_data() counterpart to
+     * get_attempts_by_instanceid() for the playercross_words table.
+     *
+     * @param int $userid User id.
+     * @param int[] $instanceids Playercross instance ids to load words for.
+     * @return array<int,\stdClass[]> Playercrossid => word records, timecreated ASC.
+     */
+    private static function get_words_by_instanceid(int $userid, array $instanceids): array {
+        global $DB;
+
+        if (empty($instanceids)) {
+            return [];
+        }
+
+        [$insql, $inparams] = $DB->get_in_or_equal($instanceids, SQL_PARAMS_NAMED);
+        $records = $DB->get_records_select(
+            'playercross_words',
+            "addedby = :addedby AND playercrossid $insql",
+            array_merge(['addedby' => $userid], $inparams),
+            'timecreated ASC',
+            'id, playercrossid, word, hint, source, timecreated'
+        );
+
+        $grouped = [];
+        foreach ($records as $record) {
+            $grouped[(int)$record->playercrossid][] = $record;
+        }
+        return $grouped;
+    }
+
+    #[\Override]
+    public static function export_user_data(approved_contextlist $contextlist): void {
         if (empty($contextlist->count())) {
             return;
         }
 
         $userid = $contextlist->get_user()->id;
         $instanceidsbycmid = self::get_instance_ids_by_cmid($contextlist);
+        $instanceids = array_values($instanceidsbycmid);
+        $attemptsbyinstanceid = self::get_attempts_by_instanceid($userid, $instanceids);
+        $wordsbyinstanceid = self::get_words_by_instanceid($userid, $instanceids);
 
         foreach ($contextlist->get_contexts() as $context) {
             if (!$context instanceof \context_module) {
@@ -235,13 +299,7 @@ class provider implements
                 continue;
             }
 
-            $attempts = $DB->get_records_select(
-                'playercross_attempts',
-                'userid = :userid AND playercrossid = :pid',
-                ['userid' => $userid, 'pid' => $instanceid],
-                'timecreated ASC'
-            );
-
+            $attempts = $attemptsbyinstanceid[$instanceid] ?? [];
             if (!empty($attempts)) {
                 $rows = array_values(array_map(function (\stdClass $a): array {
                     return [
@@ -266,14 +324,7 @@ class provider implements
                 );
             }
 
-            $words = $DB->get_records_select(
-                'playercross_words',
-                'addedby = :addedby AND playercrossid = :pid',
-                ['addedby' => $userid, 'pid' => $instanceid],
-                'timecreated ASC',
-                'id, word, hint, source, timecreated'
-            );
-
+            $words = $wordsbyinstanceid[$instanceid] ?? [];
             if (!empty($words)) {
                 $rows = array_values(array_map(function (\stdClass $w): array {
                     return [
