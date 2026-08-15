@@ -20,6 +20,7 @@
 * 🔢 **Round Limit:** Teachers can cap the total number of rounds per student (1–10 or unlimited).
 * 🔡 **Accent-Insensitive Matching:** Diacritics are always stripped before comparing a guess and its target.
 * ⌨️ **Accent Picker on the Virtual Keyboard:** Long-pressing a vowel key (A, E, I, O, U) on the on-screen keyboard opens a popup with its accented variants, mirroring a mobile keyboard's own long-press behaviour — sliding the finger picks a variant, releasing confirms it. Purely cosmetic: guess matching stays accent-insensitive throughout.
+* 🟢 **Submit-Ready Cue:** The keyboard's Send/Enter key pulses the instant a clue's row (or the mystery phrase's own row) is fully typed, showing that word can be checked right away — no need to fill in every other clue first.
 * ✅ **True-Spelling Reveal:** When a clue is resolved, the mystery phrase is guessed correctly, or the round ends, the clue word and the mystery phrase are shown with their real, accented spelling from the word bank, even if the winning guess was typed without accents. A clue left entirely spelled out by already-shared letters auto-resolves the moment the mystery phrase is guessed correctly, instead of staying marked unresolved.
 * 🧮 **Per-Clue Scoring:** Points accumulate as each clue is resolved (full credit on the first two attempts, then scaled down as the attempt limit is approached), plus an optional bonus for guessing the mystery phrase directly — see [Grading & Ranking](grading.html).
 * 📊 **Grading Methods:** Highest grade, average grade, first attempt, last attempt, or average over all required rounds.
@@ -28,7 +29,7 @@
 * 🔄 **Course Reset Support:** "Reset course" clears student attempts and resets grades for the activity, scoped to the target course only.
 * 🏆 **Top 5 Ranking:** Leaderboard scoped to the activity, capped to the top 5, with an outsider row so a lower-ranked student still sees their own real position. Respects `SEPARATEGROUPS`.
 * 📋 **Attempt History:** Students review every finished round of their own — mystery phrase, clues resolved, attempts used, time, and score — via the toolbar. Whoever can manage the activity sees every student's history instead, in one paginated report.
-* ❓ **In-Game Help:** A dedicated help page explains the puzzle mechanic, attempts, hints, timer, the activity's win condition and grading method, and — when attempts per clue are limited — the risk of losing the round if a clue's attempts run out.
+* ❓ **In-Game Help:** A dedicated help page explains the puzzle mechanic, how to submit a guess, attempts, hints, timer, the activity's win condition and grading method, and — when attempts per clue are limited — the risk of losing the round if a clue's attempts run out.
 * 👋 **First-Visit Onboarding:** The how-to-play modal opens automatically the very first time a user visits any PlayerCross activity on the site — once, ever, site-wide — and never repeats after that; the toolbar help icon always reopens it on demand.
 * ♿ **Accessibility:** WCAG AA contrast on every puzzle tile; non-colour state indicators; `aria-label` on every input; per-letter-box focus behaviour mirrors a verification-code input for predictable keyboard and click navigation.
 * ⚡ **AJAX-Powered:** Every round transition (clue guess, final guess, hint, forfeit, timeout, start, new round) happens without a page reload.
