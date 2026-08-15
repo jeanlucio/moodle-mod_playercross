@@ -531,39 +531,85 @@
     font-size: 0.8rem;
 }
 
-/*
- * Hardcoded rather than var(--success, ...): Bootstrap's raw success green (#28a745 on
- * BS4, #198754 on BS5) is too light for white bold text under 18px to clear WCAG AA
- * 4.5:1 — same reasoning as the --info fallback above. #157347 is Bootstrap 5's own
- * "success-text-emphasis" shade, chosen because it already exists as an intentional
- * darker/high-contrast variant of the same colour rather than an arbitrary pick.
- */
-.path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-enter.is-ready {
-    color: #fff;
-    background-color: #157347;
-    border-color: #157347;
-    animation: playercross-enter-pulse 1.1s ease-in-out infinite;
+.path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-backspace {
+    font-size: 0.95rem;
 }
 
-@keyframes playercross-enter-pulse {
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 rgba(21, 115, 71, 0.55);
-    }
+/*
+ * pc-row-submit deliberately does NOT reuse the shared .visually-hidden class above,
+ * even though its default (not .is-ready) state below is the exact same clip-based
+ * hiding technique: Bootstrap 5 ships its own .visually-hidden utility, unscoped and
+ * marked !important on every property, and Moodle's Boost theme loads it — a real
+ * collision, not a hypothetical one, confirmed by inspecting computed styles in a
+ * live page. This plugin's own .path-mod-playercross .visually-hidden rule (no
+ * !important) never actually wins against it, so an .is-ready override here could
+ * never un-hide the button while it still carried Bootstrap's class name, no matter
+ * how specific the override selector was — !important always wins over specificity.
+ * Never add !important to override this: house rule, and Bootstrap's own use of it
+ * is exactly the failure mode it exists to prevent. A dedicated class sidesteps the
+ * collision entirely instead.
+ */
+.path-mod-playercross .pc-row-submit {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
 
-    50% {
-        box-shadow: 0 0 0 0.4rem rgba(21, 115, 71, 0);
+/*
+ * Colour hardcoded rather than var(--success, ...): Bootstrap's raw success green
+ * (#28a745 on BS4, #198754 on BS5) is too light for white bold text under 18px to
+ * clear WCAG AA 4.5:1 — same reasoning as the --info fallback above. #157347 is
+ * Bootstrap 5's own "success-text-emphasis" shade, chosen because it already exists
+ * as an intentional darker/high-contrast variant of the same colour rather than an
+ * arbitrary pick.
+ */
+.path-mod-playercross .pc-row-submit.is-ready {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0.375rem 0.9rem;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #fff;
+    background-color: #157347;
+    border: 0;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.85);
+    animation: playercross-row-submit-in 0.15s ease-out forwards;
+}
+
+@keyframes playercross-row-submit-in {
+    to {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-enter.is-ready {
+    .path-mod-playercross .pc-row-submit.is-ready {
         animation: none;
+        opacity: 1;
+        transform: none;
     }
 }
 
-.path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-backspace {
-    font-size: 0.95rem;
+.path-mod-playercross .mod-playercross-theme-form .pc-row-submit.is-ready {
+    margin-top: 0.6rem;
 }
 
 .path-mod-playercross .mod-playercross-feedback {

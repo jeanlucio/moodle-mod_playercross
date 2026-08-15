@@ -34,12 +34,15 @@
  * browser behaviour), so a single wrong letter can be fixed without retyping the rest.
  * A guess is assembled at submit time by reading every tile in a row, in order: a
  * locked span's own letter, or a box's typed value (see buildClueGuess/
- * buildFinalGuess). No row carries a visible submit button — every guess is confirmed
- * via the keyboard's own Enviar key or a physical Enter key. The Enviar key pulses
- * (see refreshEnterReadiness) the instant the active row's own boxes are all filled —
- * usability testing showed players otherwise assumed every row had to be completed
- * before anything could be submitted, since no per-row button was visible to suggest
- * otherwise.
+ * buildFinalGuess). A guess is confirmed via the keyboard's own Enviar key, a physical
+ * Enter key, or the row's own submit button (each row's <form> carries one, see
+ * round_play.mustache/round_panel.mustache) — that last one stays hidden (.pc-row-submit,
+ * still tab-reachable) until every one of the row's own boxes is filled, at which point
+ * refreshRowReadiness reveals it right where the player is already looking. Usability
+ * testing showed players otherwise assumed every row had to be completed before
+ * anything could be submitted, since nothing on screen suggested a single row could be
+ * checked on its own; an earlier fix pulsed the shared keyboard key instead, but that cue
+ * sits far from the row itself and was replaced by this one.
  *
  * Submitting any one row (or revealing a hint) re-renders the *whole* panel from the
  * server's response — the only state the server knows about. Whatever the player had
@@ -347,7 +350,10 @@ const buildFinalGuess = (themeContainer) => Array.from(themeContainer.querySelec
  * Writes a guess's characters back into a tile row's editable boxes, skipping locked
  * positions — the row's structure (which letters are locked) never changes between a
  * wrong guess and the re-render that follows it, so the characters line up with the
- * fresh tile-wraps one for one.
+ * fresh tile-wraps one for one. Re-evaluates the row's own submit button afterwards
+ * (see refreshRowReadiness) — the only place that needs to happen, since every caller
+ * (restoreClueGuess, restoreFinalGuess, restoreInProgressGuesses) only ever changes box
+ * values through here.
  *
  * @param {HTMLElement} scope A clue's tiles container, or one word group.
  * @param {string[]} chars Characters to distribute, one per tile-wrap in scope.
@@ -359,6 +365,7 @@ const distributeIntoWraps = (scope, chars) => {
             box.value = chars[i].toUpperCase();
         }
     });
+    refreshRowReadiness(scope.closest('.mod-playercross-guess-form'));
 };
 
 /**
@@ -467,12 +474,6 @@ const restoreInProgressGuesses = (snapshot, skipClueId, skipTheme) => {
             distributeIntoWraps(group, chars);
         }
     });
-
-    // The panel re-render already auto-focused a row and evaluated the Enviar key's
-    // pulse before this restore ran (see applyPanelSideEffects) — if the row that landed
-    // the auto-focus is also one this function just filled back in, that earlier check is
-    // now stale.
-    refreshEnterReadiness();
 };
 
 /**
@@ -502,23 +503,23 @@ const focusAdjacentBox = (box, offset) => {
 };
 
 /**
- * Toggles the on-screen keyboard's Enviar key into its pulsing "ready" state exactly
- * when every box of the active row now holds a letter — the visual cue that this one
+ * Toggles a guess row's own submit button into its visible "ready" state exactly when
+ * every one of its editable boxes now holds a letter — the visual cue that this one
  * word can be checked right away, without filling any other row first (see
- * help_clues/help_finalguess). Reads activeInput directly rather than taking a box
- * argument, since it must also re-evaluate on focus changes alone (see setActiveInput)
- * where no value actually changed. A no-op if no row is active yet, or the keyboard
- * was already replaced by a re-render (see wireStageDelegation's module doc) before
- * this ran.
+ * help_clues/help_finalguess). Scoped to the row itself rather than to whichever box
+ * last had focus, so a row silently completed by restoreClueGuess/restoreFinalGuess/
+ * restoreInProgressGuesses (see distributeIntoWraps, which calls this after every
+ * write) shows its own button too, not only the row the player is actively typing in.
+ *
+ * @param {?HTMLElement} form A .mod-playercross-guess-form element, or null.
  */
-const refreshEnterReadiness = () => {
-    const enterKey = document.querySelector('#playercross-keyboard [data-key="ENTER"]');
-    if (!enterKey) {
+const refreshRowReadiness = (form) => {
+    const submitButton = form?.querySelector('.pc-row-submit');
+    if (!submitButton) {
         return;
     }
-    const boxes = activeInput ? getFormBoxes(activeInput) : [];
-    const ready = boxes.length > 0 && boxes.every((box) => box.value !== '');
-    enterKey.classList.toggle('is-ready', ready);
+    const boxes = Array.from(form.querySelectorAll('.mod-playercross-tile-input'));
+    submitButton.classList.toggle('is-ready', boxes.length > 0 && boxes.every((box) => box.value !== ''));
 };
 
 /**
@@ -535,7 +536,7 @@ const handleBoxInput = (box) => {
     if (filtered !== '') {
         focusAdjacentBox(box, 1);
     }
-    refreshEnterReadiness();
+    refreshRowReadiness(box.closest('.mod-playercross-guess-form'));
 };
 
 /**
@@ -557,7 +558,6 @@ const setActiveInput = (input) => {
     const row = input.closest('.mod-playercross-clue') ?? input.closest('.mod-playercross-theme-form');
     row?.classList.add('is-active');
     input.select();
-    refreshEnterReadiness();
 };
 
 /**
@@ -810,9 +810,10 @@ const writeLetterIntoActiveBox = (letter) => {
     if (!activeInput) {
         return;
     }
-    activeInput.value = letter;
-    focusAdjacentBox(activeInput, 1);
-    refreshEnterReadiness();
+    const box = activeInput;
+    box.value = letter;
+    focusAdjacentBox(box, 1);
+    refreshRowReadiness(box.closest('.mod-playercross-guess-form'));
 };
 
 /**
@@ -828,9 +829,10 @@ const handleKeyboardKey = (key) => {
         return;
     }
     if (key === 'BACKSPACE') {
+        const form = activeInput.closest('.mod-playercross-guess-form');
         if (activeInput.value !== '') {
             activeInput.value = '';
-            refreshEnterReadiness();
+            refreshRowReadiness(form);
             return;
         }
         const boxes = getFormBoxes(activeInput);
@@ -838,6 +840,7 @@ const handleKeyboardKey = (key) => {
         if (prev) {
             prev.value = '';
             prev.focus();
+            refreshRowReadiness(form);
         }
         return;
     }
@@ -1136,6 +1139,7 @@ const wireStageDelegation = (cmid, timertotal) => {
         e.preventDefault();
         prev.value = '';
         prev.focus();
+        refreshRowReadiness(prev.closest('.mod-playercross-guess-form'));
     });
 
     stage.addEventListener('submit', async(e) => {
