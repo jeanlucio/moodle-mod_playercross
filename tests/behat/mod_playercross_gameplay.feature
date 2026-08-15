@@ -100,6 +100,22 @@ Feature: PlayerCross core gameplay loop
     And I should see "Rounds played: 1 / 1."
     And "#playercross-new-round-button" "css_element" should not exist
 
+  Scenario: Arrow keys move focus between a clue's own boxes without changing values
+    Given the following "activities" exist:
+      | activity    | course | name        | num_clues | theme_min_length | min_length | max_length |
+      | playercross | C1     | Cross Arrow | 1         | 6                | 3          | 15         |
+    And the following PlayerCross words exist in activity "Cross Arrow":
+      | word   |
+      | escola |
+      | livro  |
+    And I log in as "student1"
+    And I am on the "Cross Arrow" "playercross activity" page
+    And I click on "Start round" "button"
+    When I fill PlayerCross clue "1" tiles with "l"
+    And I press the right key
+    And I press the "v" key
+    Then PlayerCross clue "1" tiles should read "l_v__"
+
   Scenario: A clue's own submit button stays hidden while the row is still incomplete
     Given the following "activities" exist:
       | activity    | course | name         | num_clues | theme_min_length | min_length | max_length |

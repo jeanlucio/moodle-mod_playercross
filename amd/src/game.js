@@ -32,6 +32,10 @@
  * hidden box in that row automatically — locked letters are skipped, since they were
  * never boxes to begin with. Clicking a specific box focuses exactly that one (native
  * browser behaviour), so a single wrong letter can be fixed without retyping the rest.
+ * The physical Left/Right arrow keys move focus one editable box over, the same
+ * verification-code-input convention as a bank 2FA field — see the stage's own keydown
+ * listener, which takes this over from the browser's own default (moving the text
+ * caret inside a single-character box, effectively a no-op).
  * A guess is assembled at submit time by reading every tile in a row, in order: a
  * locked span's own letter, or a box's typed value (see buildClueGuess/
  * buildFinalGuess). A guess is confirmed via a physical Enter key or the row's own
@@ -1113,15 +1117,26 @@ const wireStageDelegation = (cmid, timertotal) => {
         }
     });
 
+    // Left/Right move focus one editable box over, without touching either box's own
+    // value — the standard verification-code-input convention. Harmless to take over
+    // from the browser's own default (moving the text caret before/after the single
+    // character a maxlength="1" box can ever hold), and reuses focusAdjacentBox() so
+    // locked/revealed tiles are skipped exactly like Tab already skips them.
+    //
     // Backspace on an already-empty box moves back to the previous editable box and
     // clears it too — the 'input' listener above only fires when a box's value
     // actually changes, which an empty box's own backspace never does.
     stage.addEventListener('keydown', (e) => {
-        if (e.key !== 'Backspace') {
+        const box = e.target.closest('.mod-playercross-tile-input');
+        if (!box) {
             return;
         }
-        const box = e.target.closest('.mod-playercross-tile-input');
-        if (!box || box.value !== '') {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            focusAdjacentBox(box, e.key === 'ArrowLeft' ? -1 : 1);
+            return;
+        }
+        if (e.key !== 'Backspace' || box.value !== '') {
             return;
         }
         const boxes = getFormBoxes(box);
