@@ -35,7 +35,11 @@
  * A guess is assembled at submit time by reading every tile in a row, in order: a
  * locked span's own letter, or a box's typed value (see buildClueGuess/
  * buildFinalGuess). No row carries a visible submit button — every guess is confirmed
- * via the keyboard's own Enviar key or a physical Enter key.
+ * via the keyboard's own Enviar key or a physical Enter key. The Enviar key pulses
+ * (see refreshEnterReadiness) the instant the active row's own boxes are all filled —
+ * usability testing showed players otherwise assumed every row had to be completed
+ * before anything could be submitted, since no per-row button was visible to suggest
+ * otherwise.
  *
  * Long-pressing a keyboard key with accent variants (A, E, I, O, U — see
  * initAccentLongPress/ACCENT_VARIANTS) opens a popup to type the accented form
@@ -411,6 +415,26 @@ const focusAdjacentBox = (box, offset) => {
 };
 
 /**
+ * Toggles the on-screen keyboard's Enviar key into its pulsing "ready" state exactly
+ * when every box of the active row now holds a letter — the visual cue that this one
+ * word can be checked right away, without filling any other row first (see
+ * help_clues/help_finalguess). Reads activeInput directly rather than taking a box
+ * argument, since it must also re-evaluate on focus changes alone (see setActiveInput)
+ * where no value actually changed. A no-op if no row is active yet, or the keyboard
+ * was already replaced by a re-render (see wireStageDelegation's module doc) before
+ * this ran.
+ */
+const refreshEnterReadiness = () => {
+    const enterKey = document.querySelector('#playercross-keyboard [data-key="ENTER"]');
+    if (!enterKey) {
+        return;
+    }
+    const boxes = activeInput ? getFormBoxes(activeInput) : [];
+    const ready = boxes.length > 0 && boxes.every((box) => box.value !== '');
+    enterKey.classList.toggle('is-ready', ready);
+};
+
+/**
  * Filters a letter box's value down to a single letter and, once filled, advances
  * focus to the next editable box in the same guess form. Delegated on the stage (see
  * wireStageDelegation) so it applies uniformly whether the letter came from a physical
@@ -424,6 +448,7 @@ const handleBoxInput = (box) => {
     if (filtered !== '') {
         focusAdjacentBox(box, 1);
     }
+    refreshEnterReadiness();
 };
 
 /**
@@ -445,6 +470,7 @@ const setActiveInput = (input) => {
     const row = input.closest('.mod-playercross-clue') ?? input.closest('.mod-playercross-theme-form');
     row?.classList.add('is-active');
     input.select();
+    refreshEnterReadiness();
 };
 
 /**
@@ -693,6 +719,7 @@ const writeLetterIntoActiveBox = (letter) => {
     }
     activeInput.value = letter;
     focusAdjacentBox(activeInput, 1);
+    refreshEnterReadiness();
 };
 
 /**
@@ -710,6 +737,7 @@ const handleKeyboardKey = (key) => {
     if (key === 'BACKSPACE') {
         if (activeInput.value !== '') {
             activeInput.value = '';
+            refreshEnterReadiness();
             return;
         }
         const boxes = getFormBoxes(activeInput);

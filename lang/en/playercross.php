@@ -127,6 +127,7 @@ $string['help_intro'] = 'Solve clues about course concepts. Each correct answer 
 $string['help_legend_hidden'] = 'Hidden: this letter is not known yet.';
 $string['help_legend_revealed'] = 'Revealed: this letter is known.';
 $string['help_reviewhint'] = 'You can review these instructions anytime by clicking the help icon at the top of the game.';
+$string['help_submit'] = 'Press {$a} (or Enter) to check a word as soon as you finish typing it — you do not need to fill in every clue first.';
 $string['help_timer'] = 'Some activities have a time limit per round.';
 $string['help_title'] = 'How to play';
 $string['help_wincondition_both'] = 'To win a round, you must resolve every clue and correctly guess the mystery phrase — in either order.';

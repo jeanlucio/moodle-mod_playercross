@@ -127,6 +127,7 @@ $string['help_intro'] = 'Resolva pistas sobre conceitos do curso. Cada acerto re
 $string['help_legend_hidden'] = 'Oculta: esta letra ainda não é conhecida.';
 $string['help_legend_revealed'] = 'Revelada: esta letra já é conhecida.';
 $string['help_reviewhint'] = 'Você pode rever estas instruções a qualquer momento clicando no ícone de ajuda no topo do jogo.';
+$string['help_submit'] = 'Toque em {$a} (ou Enter) para conferir uma palavra assim que terminar de digitá-la — não é preciso preencher todas as pistas antes.';
 $string['help_timer'] = 'Algumas atividades têm um limite de tempo por rodada.';
 $string['help_title'] = 'Como jogar';
 $string['help_wincondition_both'] = 'Para vencer uma rodada, você precisa resolver todas as pistas e acertar a frase-mistério — em qualquer ordem.';
