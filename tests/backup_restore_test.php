@@ -30,6 +30,9 @@ use core_courseformat\local\cmactions;
 /**
  * Tests that duplicating a playercross activity, and backing up/restoring a full
  * course, complete without error and preserve every column.
+ *
+ * @covers \restore_playercross_activity_structure_step
+ * @covers \backup_playercross_activity_structure_step
  */
 final class backup_restore_test extends \advanced_testcase {
     #[\Override]
@@ -48,7 +51,6 @@ final class backup_restore_test extends \advanced_testcase {
      * throws unknown_context_mapping and leaves the copy invisible until caches are
      * purged.
      *
-     * @covers \restore_playercross_activity_structure_step::define_structure
      * @return void
      */
     public function test_duplicate_activity(): void {
@@ -156,7 +158,6 @@ final class backup_restore_test extends \advanced_testcase {
      * its DB default on restore otherwise, with nothing in PHPCS/moodlecheck/PHPStan
      * catching the omission.
      *
-     * @covers \backup_playercross_activity_structure_step::define_structure
      * @return void
      */
     public function test_backup_restore_preserves_attempt_columns(): void {
@@ -203,7 +204,6 @@ final class backup_restore_test extends \advanced_testcase {
      * catches the omission — this is exactly the failure mode that let win_condition
      * ship without being backed up at all for one release.
      *
-     * @covers \backup_playercross_activity_structure_step::define_structure
      * @return void
      */
     public function test_backup_step_mirrors_every_install_xml_column(): void {
@@ -254,8 +254,6 @@ final class backup_restore_test extends \advanced_testcase {
      * column-drift regression guard mirroring the exact bug class that hit
      * PlayerWords in production before this checklist rule existed.
      *
-     * @covers \backup_playercross_activity_structure_step::define_structure
-     * @covers \restore_playercross_activity_structure_step::process_playercross_word
      * @return void
      */
     public function test_backup_restore_preserves_word_timemodified(): void {
@@ -338,7 +336,6 @@ final class backup_restore_test extends \advanced_testcase {
      * survive unchanged, even though no playerhud_item restore mapping was ever
      * registered.
      *
-     * @covers \restore_playercross_activity_structure_step::resolve_hud_item
      * @return void
      */
     public function test_duplicate_activity_preserves_hud_item_from_same_course(): void {
@@ -376,7 +373,6 @@ final class backup_restore_test extends \advanced_testcase {
      * NEW id, via the playerhud_item mapping block_playerhud's own restore step
      * registers.
      *
-     * @covers \restore_playercross_activity_structure_step::resolve_hud_item
      * @return void
      */
     public function test_backup_restore_full_course_remaps_hud_item(): void {
@@ -413,7 +409,6 @@ final class backup_restore_test extends \advanced_testcase {
      * foreign course's item. The foreign course's own PlayerHUD block is deliberately
      * not part of this backup, so no playerhud_item mapping exists for it either.
      *
-     * @covers \restore_playercross_activity_structure_step::resolve_hud_item
      * @return void
      */
     public function test_backup_restore_drops_hud_item_from_foreign_course(): void {

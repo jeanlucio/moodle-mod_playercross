@@ -29,6 +29,8 @@ use core_external\external_api;
 
 /**
  * Tests for the mod_playercross_count_glossary_candidates web service.
+ *
+ * @covers \mod_playercross\external\count_glossary_candidates
  */
 final class count_glossary_candidates_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -91,7 +93,6 @@ final class count_glossary_candidates_test extends \advanced_testcase {
     /**
      * Counts candidate words for a specific glossary within the requested range.
      *
-     * @covers \mod_playercross\external\count_glossary_candidates::execute
      * @return void
      */
     public function test_counts_candidates_for_a_specific_glossary(): void {
@@ -107,7 +108,6 @@ final class count_glossary_candidates_test extends \advanced_testcase {
     /**
      * A word outside the requested length range is excluded from the count.
      *
-     * @covers \mod_playercross\external\count_glossary_candidates::execute
      * @return void
      */
     public function test_excludes_words_outside_range(): void {
@@ -123,7 +123,6 @@ final class count_glossary_candidates_test extends \advanced_testcase {
      * A stopword passed straight from the settings form (not yet saved to any
      * instance) drops the matching token from a multi-word concept before counting.
      *
-     * @covers \mod_playercross\external\count_glossary_candidates::execute
      * @return void
      */
     public function test_counts_candidates_respecting_stopwords_param(): void {
@@ -140,7 +139,6 @@ final class count_glossary_candidates_test extends \advanced_testcase {
     /**
      * A user without mod/playercross:addinstance (e.g. a student) is rejected.
      *
-     * @covers \mod_playercross\external\count_glossary_candidates::execute
      * @return void
      */
     public function test_requires_addinstance_capability(): void {

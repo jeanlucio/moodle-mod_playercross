@@ -30,6 +30,8 @@ use mod_playercross\local\round_service;
 
 /**
  * Tests for the mod_playercross_end_round web service.
+ *
+ * @covers \mod_playercross\external\end_round
  */
 final class end_round_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -124,7 +126,6 @@ final class end_round_test extends \advanced_testcase {
     /**
      * Tests that forfeiting finishes the round and reveals the mystery phrase.
      *
-     * @covers \mod_playercross\external\end_round::execute
      * @return void
      */
     public function test_forfeit_finishes_round(): void {
@@ -143,7 +144,6 @@ final class end_round_test extends \advanced_testcase {
      * Tests that timing out finishes the round and reveals the mystery phrase, once the
      * configured deadline has genuinely passed.
      *
-     * @covers \mod_playercross\external\end_round::execute
      * @return void
      */
     public function test_timeout_finishes_round(): void {
@@ -165,7 +165,6 @@ final class end_round_test extends \advanced_testcase {
     /**
      * Tests that an invalid reason value is rejected.
      *
-     * @covers \mod_playercross\external\end_round::execute
      * @return void
      */
     public function test_rejects_invalid_reason(): void {
@@ -181,7 +180,6 @@ final class end_round_test extends \advanced_testcase {
     /**
      * Tests that a user without the view capability in the module context is rejected.
      *
-     * @covers \mod_playercross\external\end_round::execute
      * @return void
      */
     public function test_requires_view_capability(): void {
@@ -201,7 +199,6 @@ final class end_round_test extends \advanced_testcase {
      * own GET could burn one of the student's max_rounds and trigger the cooldown
      * without the round ever having actually been played.
      *
-     * @covers \mod_playercross\external\end_round::execute
      * @return void
      */
     public function test_forfeit_rejected_when_round_not_started(): void {
@@ -222,7 +219,6 @@ final class end_round_test extends \advanced_testcase {
      * reason=timeout — the more dangerous branch, since with starttime still at its
      * default of 0 the deadline check alone would otherwise pass unconditionally.
      *
-     * @covers \mod_playercross\external\end_round::execute
      * @return void
      */
     public function test_timeout_rejected_when_round_not_started(): void {

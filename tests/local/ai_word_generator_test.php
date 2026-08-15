@@ -33,6 +33,8 @@ namespace mod_playercross\local;
  * filter applied before anything is saved to the word pool) directly via
  * reflection, since both are intentionally kept protected: they are internal
  * parsing helpers, not part of the class's public contract.
+ *
+ * @covers \mod_playercross\local\ai_word_generator
  */
 final class ai_word_generator_test extends \basic_testcase {
     /**
@@ -77,7 +79,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * The documented "words" wrapper is parsed into term/hint pairs.
      *
-     * @covers \mod_playercross\local\ai_word_generator::parse_words
      * @return void
      */
     public function test_parse_words_words_wrapper(): void {
@@ -91,7 +92,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * The legacy "concepts" wrapper is still accepted.
      *
-     * @covers \mod_playercross\local\ai_word_generator::parse_words
      * @return void
      */
     public function test_parse_words_legacy_concepts_wrapper(): void {
@@ -105,7 +105,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * A bare JSON list (no wrapper key) is accepted.
      *
-     * @covers \mod_playercross\local\ai_word_generator::parse_words
      * @return void
      */
     public function test_parse_words_bare_list(): void {
@@ -119,7 +118,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * Markdown code fences around the JSON payload are stripped before decoding.
      *
-     * @covers \mod_playercross\local\ai_word_generator::parse_words
      * @return void
      */
     public function test_parse_words_strips_markdown_code_fence(): void {
@@ -134,7 +132,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * Malformed JSON never throws; it degrades to an empty result.
      *
-     * @covers \mod_playercross\local\ai_word_generator::parse_words
      * @return void
      */
     public function test_parse_words_malformed_json_returns_empty(): void {
@@ -147,7 +144,6 @@ final class ai_word_generator_test extends \basic_testcase {
      * A syntactically valid JSON value that is not an object/list wrapper
      * (e.g. a bare string or number) is rejected instead of crashing.
      *
-     * @covers \mod_playercross\local\ai_word_generator::parse_words
      * @return void
      */
     public function test_parse_words_non_array_json_returns_empty(): void {
@@ -159,7 +155,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * An entry using "definition" instead of "hint" still yields a hint value.
      *
-     * @covers \mod_playercross\local\ai_word_generator::parse_words
      * @return void
      */
     public function test_parse_words_hint_falls_back_to_definition(): void {
@@ -173,7 +168,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * A non-array entry inside the list is skipped rather than crashing.
      *
-     * @covers \mod_playercross\local\ai_word_generator::parse_words
      * @return void
      */
     public function test_parse_words_skips_non_array_entries(): void {
@@ -187,7 +181,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * A single alphabetic word is accepted.
      *
-     * @covers \mod_playercross\local\ai_word_generator::is_valid_term
      * @return void
      */
     public function test_is_valid_term_accepts_single_alphabetic_word(): void {
@@ -197,7 +190,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * An empty term is rejected.
      *
-     * @covers \mod_playercross\local\ai_word_generator::is_valid_term
      * @return void
      */
     public function test_is_valid_term_rejects_empty_string(): void {
@@ -207,7 +199,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * A multi-word phrase is rejected — only single tokens are allowed.
      *
-     * @covers \mod_playercross\local\ai_word_generator::is_valid_term
      * @return void
      */
     public function test_is_valid_term_rejects_multi_word_phrase(): void {
@@ -217,7 +208,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * Terms containing digits or punctuation are rejected.
      *
-     * @covers \mod_playercross\local\ai_word_generator::is_valid_term
      * @return void
      */
     public function test_is_valid_term_rejects_non_alphabetic_terms(): void {
@@ -229,7 +219,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * The prompt lists existing pool words as terms to avoid when any are given.
      *
-     * @covers \mod_playercross\local\ai_word_generator::build_prompt
      * @return void
      */
     public function test_build_prompt_includes_avoid_words(): void {
@@ -242,7 +231,6 @@ final class ai_word_generator_test extends \basic_testcase {
     /**
      * No avoid-list section is added when there are no existing words to avoid.
      *
-     * @covers \mod_playercross\local\ai_word_generator::build_prompt
      * @return void
      */
     public function test_build_prompt_omits_avoid_section_when_empty(): void {

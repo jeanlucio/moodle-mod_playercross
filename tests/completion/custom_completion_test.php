@@ -137,7 +137,6 @@ final class custom_completion_test extends advanced_testcase {
     /**
      * The module declares exactly one custom completion rule: completionrounds.
      *
-     * @covers \mod_playercross\completion\custom_completion::get_defined_custom_rules
      * @return void
      */
     public function test_get_defined_custom_rules_returns_completionrounds(): void {

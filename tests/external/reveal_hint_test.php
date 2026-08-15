@@ -47,6 +47,8 @@ use mod_playercross\local\round_service;
  * lowest-first for the theme, the first two calls specifically land on the theme's own
  * 4 and 5 (revealing the whole mystery phrase) before ever touching livro's exclusive
  * 7, 8, 9 — a useful, deterministic ordering this suite relies on more than once below.
+ *
+ * @covers \mod_playercross\external\reveal_hint
  */
 final class reveal_hint_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -227,7 +229,6 @@ final class reveal_hint_test extends \advanced_testcase {
      * — so they are always exhausted first, before the hint ever touches a slot that
      * would not show up in the mystery phrase's own tile row.
      *
-     * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
     public function test_reveals_one_more_tile(): void {
@@ -264,7 +265,6 @@ final class reveal_hint_test extends \advanced_testcase {
      * round only actually finishes on the 5th, once livro's last exclusive slot makes
      * it resolved too and both PLAYERCROSS_WINCONDITION_BOTH conditions are met.
      *
-     * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
     public function test_rejects_once_every_slot_is_revealed(): void {
@@ -299,7 +299,6 @@ final class reveal_hint_test extends \advanced_testcase {
      * hintable slots left, see class docblock — the cap of 2 must stop the round well
      * before that natural exhaustion point).
      *
-     * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
     public function test_rejects_once_hint_limit_is_reached(): void {
@@ -321,7 +320,6 @@ final class reveal_hint_test extends \advanced_testcase {
     /**
      * Tests that a user without the view capability in the module context is rejected.
      *
-     * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
     public function test_requires_view_capability(): void {
@@ -337,7 +335,6 @@ final class reveal_hint_test extends \advanced_testcase {
     /**
      * Tests that an insufficient PlayerHUD item balance blocks revealing the hint.
      *
-     * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
     public function test_hud_insufficient_item_blocks_reveal(): void {
@@ -363,7 +360,6 @@ final class reveal_hint_test extends \advanced_testcase {
      * deleted after the activity was configured) is waived rather than blocking the hint
      * forever with a broken notification.
      *
-     * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
     public function test_hud_deleted_item_waives_reveal_cost(): void {
@@ -388,7 +384,6 @@ final class reveal_hint_test extends \advanced_testcase {
      * separately-costed action with no dependency on the round's own cost. The reveal
      * must not happen: no tile beyond the pool's always-revealed baseline is exposed.
      *
-     * @covers \mod_playercross\external\reveal_hint::execute
      * @return void
      */
     public function test_rejects_hint_when_round_not_started_bypassing_hud_cost(): void {

@@ -27,6 +27,8 @@ namespace mod_playercross\local;
 
 /**
  * Tests for the site-wide "seen intro" user preference tracked by intro_service.
+ *
+ * @covers \mod_playercross\local\intro_service
  */
 final class intro_service_test extends \advanced_testcase {
     #[\Override]
@@ -38,7 +40,6 @@ final class intro_service_test extends \advanced_testcase {
     /**
      * A user who never had the preference set has not seen the intro.
      *
-     * @covers \mod_playercross\local\intro_service::has_seen_intro
      * @return void
      */
     public function test_has_seen_intro_false_by_default(): void {
@@ -49,8 +50,6 @@ final class intro_service_test extends \advanced_testcase {
     /**
      * Marking the intro seen flips has_seen_intro to true for that user.
      *
-     * @covers \mod_playercross\local\intro_service::mark_intro_seen
-     * @covers \mod_playercross\local\intro_service::has_seen_intro
      * @return void
      */
     public function test_mark_intro_seen_persists(): void {
@@ -65,8 +64,6 @@ final class intro_service_test extends \advanced_testcase {
      * The preference is site-wide per user, not shared across users: marking one
      * user as having seen the intro must never affect another user's state.
      *
-     * @covers \mod_playercross\local\intro_service::mark_intro_seen
-     * @covers \mod_playercross\local\intro_service::has_seen_intro
      * @return void
      */
     public function test_has_seen_intro_is_isolated_per_user(): void {
@@ -83,8 +80,6 @@ final class intro_service_test extends \advanced_testcase {
      * Calling mark_intro_seen a second time is a harmless no-op: the preference
      * stays true, it is never toggled back off.
      *
-     * @covers \mod_playercross\local\intro_service::mark_intro_seen
-     * @covers \mod_playercross\local\intro_service::has_seen_intro
      * @return void
      */
     public function test_mark_intro_seen_is_idempotent(): void {
@@ -101,7 +96,6 @@ final class intro_service_test extends \advanced_testcase {
      * and db/uninstall.php's prefix-based cleanup — a regression guard against
      * silently renaming it in only one of the three places that must agree on it.
      *
-     * @covers \mod_playercross\local\intro_service::get_preference_name
      * @return void
      */
     public function test_get_preference_name_is_prefixed_for_the_plugin(): void {

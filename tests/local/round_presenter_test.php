@@ -31,6 +31,8 @@ namespace mod_playercross\local;
  * Requires database access: build_round_result_context() and build_grade_so_far()
  * compute cooldown/gradebook fields via round_service/grade_item, not session state
  * alone (so a cooldown_seconds or grade change always applies immediately).
+ *
+ * @covers \mod_playercross\local\round_presenter
  */
 final class round_presenter_test extends \advanced_testcase {
     /** @var \stdClass Course used by the DB-dependent tests. */
@@ -115,7 +117,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that unrevealed slots stay hidden and revealed ones show the uppercase
      * letter, and that a single-word phrase produces exactly one word group.
      *
-     * @covers \mod_playercross\local\round_presenter::build_phrase_tiles
      * @return void
      */
     public function test_build_phrase_tiles_respects_revealed_slots(): void {
@@ -137,7 +138,6 @@ final class round_presenter_test extends \advanced_testcase {
      * carries none — the number is what lets a student tell which clue would reveal
      * that position before it happens.
      *
-     * @covers \mod_playercross\local\round_presenter::build_phrase_tiles
      * @return void
      */
     public function test_build_phrase_tiles_hidden_tile_carries_slot_number(): void {
@@ -153,7 +153,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that every tile is revealed once the round has finished, regardless of
      * which slots were actually uncovered during play.
      *
-     * @covers \mod_playercross\local\round_presenter::build_phrase_tiles
      * @return void
      */
     public function test_build_phrase_tiles_all_revealed_when_finished(): void {
@@ -173,7 +172,6 @@ final class round_presenter_test extends \advanced_testcase {
      * holding only that word's own tiles — so the template can render a visual gap
      * between words instead of one continuous, spaceless run of letters.
      *
-     * @covers \mod_playercross\local\round_presenter::build_phrase_tiles
      * @return void
      */
     public function test_build_phrase_tiles_groups_by_word(): void {
@@ -206,7 +204,6 @@ final class round_presenter_test extends \advanced_testcase {
      * covers every letter in the round, not just the theme's own (SCOPE.md §20.2
      * v1.7) — none of them revealed while revealedslots is empty.
      *
-     * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
     public function test_build_clue_rows_hides_unresolved_word(): void {
@@ -231,7 +228,6 @@ final class round_presenter_test extends \advanced_testcase {
      * mustache) relies on this to show every clue's answer, not only the ones actually
      * solved during play.
      *
-     * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
     public function test_build_clue_rows_reveals_unresolved_word_when_round_finished(): void {
@@ -249,7 +245,6 @@ final class round_presenter_test extends \advanced_testcase {
      * guessed — including its own tiles, even the letters not shared with the mystery
      * phrase, since the full word is already known once resolved.
      *
-     * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
     public function test_build_clue_rows_reveals_resolved_word(): void {
@@ -270,7 +265,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that an exhausted clue carries a human-readable exhaustedlabel — not just
      * the bare attemptsused count the template used to print directly.
      *
-     * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
     public function test_build_clue_rows_exhausted_label(): void {
@@ -286,7 +280,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * Tests that a clue not (yet) exhausted carries a blank exhaustedlabel.
      *
-     * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
     public function test_build_clue_rows_exhausted_label_blank_when_not_exhausted(): void {
@@ -299,7 +292,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that the clue's phrase is always present in the row — it is the question
      * itself, never gated behind any reveal state.
      *
-     * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
     public function test_build_clue_rows_phrase_always_shown(): void {
@@ -312,7 +304,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that a shared letter already revealed via another clue (or the global
      * hint) shows through in a still-unresolved clue's own tile row.
      *
-     * @covers \mod_playercross\local\round_presenter::build_clue_rows
      * @return void
      */
     public function test_build_clue_rows_shows_cross_revealed_shared_letter(): void {
@@ -328,7 +319,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * Tests that an inactive cooldown produces an empty string.
      *
-     * @covers \mod_playercross\local\round_presenter::build_cooldown_text
      * @return void
      */
     public function test_build_cooldown_text_inactive(): void {
@@ -338,7 +328,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * Tests that an active cooldown produces a non-empty formatted string.
      *
-     * @covers \mod_playercross\local\round_presenter::build_cooldown_text
      * @return void
      */
     public function test_build_cooldown_text_active(): void {
@@ -348,7 +337,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * Tests that a not-yet-finished round has no feedback message.
      *
-     * @covers \mod_playercross\local\round_presenter::build_feedback_message
      * @return void
      */
     public function test_build_feedback_message_not_finished(): void {
@@ -359,7 +347,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that forfeited, timed-out, clues-exhausted, final-guessed and plain-
      * won/lost rounds each produce their own distinct message.
      *
-     * @covers \mod_playercross\local\round_presenter::build_feedback_message
      * @return void
      */
     public function test_build_feedback_message_varies_by_outcome(): void {
@@ -382,7 +369,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that the grading method info line is shown only when grading is enabled
      * and more than one round is possible.
      *
-     * @covers \mod_playercross\local\round_presenter::build_grading_method_info
      * @return void
      */
     public function test_build_grading_method_info_relevance(): void {
@@ -398,7 +384,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * Tests that the grade-so-far summary is absent when there is no gradebook item yet.
      *
-     * @covers \mod_playercross\local\round_presenter::build_grade_so_far
      * @return void
      */
     public function test_build_grade_so_far_no_grade_item(): void {
@@ -414,7 +399,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that the grade-so-far summary surfaces the student's current computed
      * grade once a round has finished, matching what playercross_update_grades() writes.
      *
-     * @covers \mod_playercross\local\round_presenter::build_grade_so_far
      * @return void
      */
     public function test_build_grade_so_far_shows_current_grade(): void {
@@ -493,7 +477,6 @@ final class round_presenter_test extends \advanced_testcase {
      * The lobby shows a PlayerHUD cost hint when a valid item is configured, and
      * disables starting when the user's balance is short of the required quantity.
      *
-     * @covers \mod_playercross\local\round_presenter::build_lobby_context
      * @return void
      */
     public function test_build_lobby_context_shows_hud_cost_when_item_configured(): void {
@@ -514,7 +497,6 @@ final class round_presenter_test extends \advanced_testcase {
      * charges it, so the lobby must not show a cost it won't apply, nor block starting
      * on a PlayerHUD balance the guest doesn't have (it has none at all).
      *
-     * @covers \mod_playercross\local\round_presenter::build_lobby_context
      * @return void
      */
     public function test_build_lobby_context_no_hud_cost_for_guest(): void {
@@ -533,7 +515,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * The lobby allows starting once the user's balance meets the required quantity.
      *
-     * @covers \mod_playercross\local\round_presenter::build_lobby_context
      * @return void
      */
     public function test_build_lobby_context_canstart_true_with_enough_balance(): void {
@@ -559,7 +540,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * The lobby's timer info text is populated only when the activity timer is enabled.
      *
-     * @covers \mod_playercross\local\round_presenter::build_lobby_context
      * @return void
      */
     public function test_build_lobby_context_timer_info_only_when_enabled(): void {
@@ -580,7 +560,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * The lobby always shows the clues-this-round summary, driven by the puzzle state.
      *
-     * @covers \mod_playercross\local\round_presenter::build_lobby_context
      * @return void
      */
     public function test_build_lobby_context_shows_clues_this_round(): void {
@@ -596,7 +575,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * timeleft stays 0 while the round has not started yet, even with a timer configured.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_timeleft_zero_before_round_started(): void {
@@ -614,7 +592,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that the round-panel context merges in a structurally blank result when
      * the round is still active, never exposing the mystery phrase from session state.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_hides_reveal_when_active(): void {
@@ -633,7 +610,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that the round-result context is structurally blank while the round is
      * active, never exposing the mystery phrase sitting in session state.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_result_context
      * @return void
      */
     public function test_build_round_result_context_blank_when_not_finished(): void {
@@ -654,7 +630,6 @@ final class round_presenter_test extends \advanced_testcase {
      * and computes the cooldown from the current instance settings rather than
      * session state.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_result_context
      * @return void
      */
     public function test_build_round_result_context_reveals_when_finished(): void {
@@ -680,7 +655,6 @@ final class round_presenter_test extends \advanced_testcase {
      * immediately — the specific behaviour that motivates computing cooldown from the
      * DB instead of caching it in session state at the moment the round ended.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_result_context
      * @return void
      */
     public function test_cooldown_reflects_a_later_settings_change(): void {
@@ -712,7 +686,6 @@ final class round_presenter_test extends \advanced_testcase {
      * the mystery phrase at all (SCOPE.md §20.2 v1.8) — and withdrawn only once every
      * slot in the round is already revealed.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_global_hint_availability(): void {
@@ -751,7 +724,6 @@ final class round_presenter_test extends \advanced_testcase {
      * only once the button itself is withdrawn at the limit (see
      * test_build_round_panel_context_hint_limit_hides_button()).
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_shows_hints_remaining_count(): void {
@@ -796,7 +768,6 @@ final class round_presenter_test extends \advanced_testcase {
      * student's own hint count reaches it, even though hidden slots remain (slots
      * 7..9 are still unrevealed under the default make_state() override below).
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_hint_limit_hides_button(): void {
@@ -825,7 +796,6 @@ final class round_presenter_test extends \advanced_testcase {
      * The hint button shows the PlayerHUD balance/cost line, and canaffordhint is
      * false, while the user's balance is short of the required quantity.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_hint_button_shows_hud_cost(): void {
@@ -846,7 +816,6 @@ final class round_presenter_test extends \advanced_testcase {
      * charges it, so the round panel must not show a hint cost it won't apply, nor
      * block revealing the hint on a PlayerHUD balance the guest doesn't have.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_no_hint_cost_for_guest(): void {
@@ -865,7 +834,6 @@ final class round_presenter_test extends \advanced_testcase {
     /**
      * canaffordhint becomes true once the user's balance meets the required quantity.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_canaffordhint_true_with_enough_balance(): void {
@@ -893,7 +861,6 @@ final class round_presenter_test extends \advanced_testcase {
      * test_build_round_panel_context_global_hint_availability()), so the cost line
      * has nothing left to attach to.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_hint_button_omits_cost_once_exhausted(): void {
@@ -917,7 +884,6 @@ final class round_presenter_test extends \advanced_testcase {
      * The keyboard's Ç key only shows up when the activity's own word pool actually
      * needs it — many languages never use the letter.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_panel_context
      * @return void
      */
     public function test_build_round_panel_context_showcedilla_reflects_word_pool(): void {
@@ -951,7 +917,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that the round result announces the PlayerHUD item granted for the win,
      * once configured and the round was actually won.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_result_context
      * @return void
      */
     public function test_build_round_result_context_shows_hud_grant_label_on_win(): void {
@@ -971,7 +936,6 @@ final class round_presenter_test extends \advanced_testcase {
      * the state says the round was won and a win-reward item is configured — announcing
      * it would claim something that did not happen.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_result_context
      * @return void
      */
     public function test_build_round_result_context_no_hud_grant_label_for_guest(): void {
@@ -990,7 +954,6 @@ final class round_presenter_test extends \advanced_testcase {
      * Tests that no grant label is shown when the round was lost, even with a
      * win-reward item configured.
      *
-     * @covers \mod_playercross\local\round_presenter::build_round_result_context
      * @return void
      */
     public function test_build_round_result_context_no_hud_grant_label_on_loss(): void {

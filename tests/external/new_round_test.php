@@ -30,6 +30,8 @@ use mod_playercross\local\round_service;
 
 /**
  * Tests for the mod_playercross_new_round web service.
+ *
+ * @covers \mod_playercross\external\new_round
  */
 final class new_round_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -103,7 +105,6 @@ final class new_round_test extends \advanced_testcase {
     /**
      * Tests that a fresh puzzle is available after starting a new round.
      *
-     * @covers \mod_playercross\external\new_round::execute
      * @return void
      */
     public function test_new_round_picks_fresh_puzzle(): void {
@@ -128,7 +129,6 @@ final class new_round_test extends \advanced_testcase {
     /**
      * Tests that reaching max_rounds blocks starting a new round.
      *
-     * @covers \mod_playercross\external\new_round::execute
      * @return void
      */
     public function test_blocked_when_round_limit_reached(): void {
@@ -146,7 +146,6 @@ final class new_round_test extends \advanced_testcase {
     /**
      * Tests that a user without the view capability in the module context is rejected.
      *
-     * @covers \mod_playercross\external\new_round::execute
      * @return void
      */
     public function test_requires_view_capability(): void {

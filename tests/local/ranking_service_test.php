@@ -27,6 +27,8 @@ namespace mod_playercross\local;
 
 /**
  * Tests for ranking_service — requires database.
+ *
+ * @covers \mod_playercross\local\ranking_service
  */
 final class ranking_service_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -80,7 +82,6 @@ final class ranking_service_test extends \advanced_testcase {
     /**
      * An activity with no attempts yields an empty ranking.
      *
-     * @covers \mod_playercross\local\ranking_service::get_ranking
      * @return void
      */
     public function test_get_ranking_is_empty_without_attempts(): void {
@@ -96,7 +97,6 @@ final class ranking_service_test extends \advanced_testcase {
     /**
      * Rows are ordered by total score descending.
      *
-     * @covers \mod_playercross\local\ranking_service::get_ranking
      * @return void
      */
     public function test_get_ranking_orders_by_score_desc(): void {
@@ -120,7 +120,6 @@ final class ranking_service_test extends \advanced_testcase {
      * Only the top 5 users appear in rows; a lower-ranked current user gets an
      * outsider row instead of being silently dropped.
      *
-     * @covers \mod_playercross\local\ranking_service::get_ranking
      * @return void
      */
     public function test_get_ranking_top5_and_outsider_row(): void {
@@ -152,7 +151,6 @@ final class ranking_service_test extends \advanced_testcase {
      * even with attempts of their own — the ranking is student-facing, not a raw attempts
      * dump, so a teacher previewing the activity must not pollute it.
      *
-     * @covers \mod_playercross\local\ranking_service::get_ranking
      * @return void
      */
     public function test_get_ranking_excludes_users_who_can_manage_the_activity(): void {
@@ -175,7 +173,6 @@ final class ranking_service_test extends \advanced_testcase {
      * With SEPARATEGROUPS, the ranking only includes members of the current
      * user's own group, never students from a different group.
      *
-     * @covers \mod_playercross\local\ranking_service::get_ranking
      * @return void
      */
     public function test_get_ranking_separategroups_filters_by_group_membership(): void {
@@ -235,7 +232,6 @@ final class ranking_service_test extends \advanced_testcase {
      * aggregate correctly across groups, unlike the single-group case above where a
      * bulk query and a one-group loop are indistinguishable.
      *
-     * @covers \mod_playercross\local\ranking_service::get_ranking
      * @return void
      */
     public function test_get_ranking_separategroups_unions_members_across_users_own_groups(): void {

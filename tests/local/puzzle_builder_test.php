@@ -28,6 +28,8 @@ namespace mod_playercross\local;
 /**
  * Tests for puzzle_builder — the highest-risk class in the plugin (SCOPE.md §14),
  * since it has no equivalent logic in mod_playerwords to copy from. Requires database.
+ *
+ * @covers \mod_playercross\local\puzzle_builder
  */
 final class puzzle_builder_test extends \advanced_testcase {
     /** @var \stdClass Course used to host test instances. */
@@ -51,7 +53,6 @@ final class puzzle_builder_test extends \advanced_testcase {
      * and no letter outside it, leaves no slot always-revealed and introduces no extra
      * slots beyond the theme's own — regardless of the order ties are broken in.
      *
-     * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
      */
     public function test_build_round_full_slot_coverage(): void {
@@ -81,7 +82,6 @@ final class puzzle_builder_test extends \advanced_testcase {
      * theme's own, so resolving one such clue cross-reveals that letter directly in
      * the other, without going through the mystery phrase.
      *
-     * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
      */
     public function test_build_round_shares_slot_for_letter_exclusive_to_clues(): void {
@@ -127,7 +127,6 @@ final class puzzle_builder_test extends \advanced_testcase {
      * be marked always-revealed instead of blocking generation — the graceful
      * degradation rule from SCOPE.md §4.
      *
-     * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
      */
     public function test_build_round_graceful_degradation(): void {
@@ -165,7 +164,6 @@ final class puzzle_builder_test extends \advanced_testcase {
      * instead of being marked always-revealed — the teacher-configurable opt-out from
      * the graceful degradation rule (SCOPE.md §4.4, v1.10).
      *
-     * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
      */
     public function test_build_round_graceful_degradation_can_be_disabled(): void {
@@ -195,7 +193,6 @@ final class puzzle_builder_test extends \advanced_testcase {
      * array across every word (no entry for the gaps between them) — not the word
      * itself, which becomes the concept caption instead, shown openly and never tiled.
      *
-     * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
      */
     public function test_build_round_theme_phrase_comes_from_hint(): void {
@@ -233,7 +230,6 @@ final class puzzle_builder_test extends \advanced_testcase {
      * would otherwise never survive past this method — see select_clues() and
      * build_round()'s own themehint field.
      *
-     * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
      */
     public function test_build_round_preserves_original_accented_spelling(): void {
@@ -268,7 +264,6 @@ final class puzzle_builder_test extends \advanced_testcase {
     /**
      * A pool smaller than num_clues + 1 approved words must never start a round.
      *
-     * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
      */
     public function test_build_round_hard_failure_on_insufficient_pool(): void {
@@ -292,7 +287,6 @@ final class puzzle_builder_test extends \advanced_testcase {
      * number across independent calls — the determinism every student in the course
      * relies on to see the same puzzle.
      *
-     * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
      */
     public function test_build_round_shared_wordmode_is_deterministic(): void {
@@ -320,7 +314,6 @@ final class puzzle_builder_test extends \advanced_testcase {
      * repeated builds over an identical pool always select the same clues in the same
      * order, never an arbitrary one.
      *
-     * @covers \mod_playercross\local\puzzle_builder::build_round
      * @return void
      */
     public function test_build_round_greedy_tie_break_is_deterministic(): void {

@@ -27,6 +27,8 @@ namespace mod_playercross\local;
 
 /**
  * Tests for attempts_history_service — requires database.
+ *
+ * @covers \mod_playercross\local\attempts_history_service
  */
 final class attempts_history_service_test extends \advanced_testcase {
     /** @var \stdClass Course used to host test instances. */
@@ -55,7 +57,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * get_history() only returns the given user's own attempts, most recent first —
      * the sole security boundary the "my attempts" page relies on.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_history
      * @return void
      */
     public function test_get_history_is_scoped_to_the_given_user(): void {
@@ -90,7 +91,6 @@ final class attempts_history_service_test extends \advanced_testcase {
     /**
      * An activity with no attempts at all yields an empty history and no grade.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_history
      * @return void
      */
     public function test_get_history_is_empty_without_any_attempts(): void {
@@ -111,7 +111,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * instance's configured grading method — the whole point of this service is to
      * never duplicate that aggregation logic.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_history
      * @return void
      */
     public function test_get_history_grade_matches_calculate_user_grade(): void {
@@ -145,7 +144,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * concept was recorded for it (e.g. a manually added word inserted outside the
      * generator's own concept-always-set convention).
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_history
      * @return void
      */
     public function test_get_history_row_falls_back_to_word_when_no_concept(): void {
@@ -175,7 +173,6 @@ final class attempts_history_service_test extends \advanced_testcase {
     /**
      * Time used is formatted as m:ss for display.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_history
      * @return void
      */
     public function test_get_history_row_formats_time_used(): void {
@@ -194,7 +191,6 @@ final class attempts_history_service_test extends \advanced_testcase {
     /**
      * get_history() reports no grade summary when the activity has no numeric grade.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_history
      * @return void
      */
     public function test_get_history_hides_grade_when_ungraded(): void {
@@ -215,7 +211,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * get_all_history() paginates and sorts, and an unknown sort key falls back to date —
      * SORTABLE_COLUMNS is an allow-list, not a pass-through of client input into SQL.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_all_history
      * @return void
      */
     public function test_get_all_history_paginates_and_falls_back_on_unknown_sort(): void {
@@ -258,7 +253,6 @@ final class attempts_history_service_test extends \advanced_testcase {
     /**
      * get_all_history() filters to a single student when a userid is given.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_all_history
      * @return void
      */
     public function test_get_all_history_filters_by_student(): void {
@@ -293,7 +287,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * Sorting by score ascending puts the lowest-scoring row first — SORTABLE_COLUMNS
      * actually reorders the query, not just accepts the key without effect.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_all_history
      * @return void
      */
     public function test_get_all_history_sorts_by_score_ascending(): void {
@@ -332,7 +325,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * get_all_history() returns every student's finished attempts, most recent
      * first by default, with each student's own full name attached to their row.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_all_history
      * @return void
      */
     public function test_get_all_history_includes_every_student_most_recent_first(): void {
@@ -369,8 +361,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * the all-students report and from the filter dropdown — a teacher previewing the
      * activity should not be tracked as a player in a student-facing report.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_all_history
-     * @covers \mod_playercross\local\attempts_history_service::get_players_for_filter
      * @return void
      */
     public function test_manager_attempts_are_excluded_from_report(): void {
@@ -427,7 +417,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * by default) must not see another group's students in the all-students report —
      * mirroring the restriction ranking_service::get_ranking() already applies.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_all_history
      * @return void
      */
     public function test_get_all_history_separategroups_restricts_to_viewers_own_group(): void {
@@ -476,7 +465,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * directly via the studentid parameter must still return nothing — the group
      * scope is enforced as an additional SQL condition, not just a UI-level filter.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_all_history
      * @return void
      */
     public function test_get_all_history_separategroups_studentid_filter_cannot_bypass_group_scope(): void {
@@ -519,7 +507,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * The filter dropdown itself must not offer a student from another group either —
      * otherwise the UI would advertise an id the report then (correctly) refuses.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_players_for_filter
      * @return void
      */
     public function test_get_players_for_filter_separategroups_excludes_other_group(): void {
@@ -557,7 +544,6 @@ final class attempts_history_service_test extends \advanced_testcase {
      * despite SEPARATEGROUPS — the standard Moodle override for a report-viewing
      * role, mirrored from the fix's own recommendation rather than left unhandled.
      *
-     * @covers \mod_playercross\local\attempts_history_service::get_all_history
      * @return void
      */
     public function test_get_all_history_accessallgroups_overrides_separategroups(): void {

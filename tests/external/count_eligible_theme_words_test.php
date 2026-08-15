@@ -29,6 +29,8 @@ use core_external\external_api;
 
 /**
  * Tests for the mod_playercross_count_eligible_theme_words web service.
+ *
+ * @covers \mod_playercross\external\count_eligible_theme_words
  */
 final class count_eligible_theme_words_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -116,7 +118,6 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
      * Counts only approved hints whose total letter count falls within the given
      * range, and thememaxlength=0 means no upper bound.
      *
-     * @covers \mod_playercross\external\count_eligible_theme_words::execute
      * @return void
      */
     public function test_counts_approved_hints_within_range(): void {
@@ -134,7 +135,6 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
     /**
      * A hint whose letter count exceeds a real (non-zero) thememaxlength is excluded.
      *
-     * @covers \mod_playercross\external\count_eligible_theme_words::execute
      * @return void
      */
     public function test_excludes_hints_over_max_length_when_set(): void {
@@ -150,7 +150,6 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
     /**
      * Pending (unapproved) words are never counted, regardless of hint length.
      *
-     * @covers \mod_playercross\external\count_eligible_theme_words::execute
      * @return void
      */
     public function test_excludes_unapproved_words(): void {
@@ -167,7 +166,6 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
      * The count is scoped to its own activity instance — a matching hint in another
      * instance must never leak into this one's count.
      *
-     * @covers \mod_playercross\external\count_eligible_theme_words::execute
      * @return void
      */
     public function test_is_scoped_to_its_own_instance(): void {
@@ -184,7 +182,6 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
     /**
      * A user without mod/playercross:managewords (e.g. a student) is rejected.
      *
-     * @covers \mod_playercross\external\count_eligible_theme_words::execute
      * @return void
      */
     public function test_requires_managewords_capability(): void {

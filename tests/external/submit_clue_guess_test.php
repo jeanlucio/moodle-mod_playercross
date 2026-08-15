@@ -34,6 +34,9 @@ use mod_playercross\local\round_service;
  * The invariant under test (SCOPE.md §7): no response ever reveals the mystery
  * phrase, nor an unresolved clue's word, before the round has actually finished
  * server-side.
+ *
+ * @covers \mod_playercross\external\submit_clue_guess
+ * @covers \mod_playercross\external\submit_final_guess
  */
 final class submit_clue_guess_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -128,7 +131,6 @@ final class submit_clue_guess_test extends \advanced_testcase {
     /**
      * An unresolved clue's word is never present in the panel response.
      *
-     * @covers \mod_playercross\external\submit_clue_guess::execute
      * @return void
      */
     public function test_wrong_guess_never_leaks_the_clue_word(): void {
@@ -160,7 +162,6 @@ final class submit_clue_guess_test extends \advanced_testcase {
      * player-facing "Pista resolvida!" message auto-dismisses instead of piling up —
      * see round_service::submit_clue_guess() and amd/src/game.js::notify().
      *
-     * @covers \mod_playercross\external\submit_clue_guess::execute
      * @return void
      */
     public function test_ordinary_resolved_clue_is_flagged_as_a_toast(): void {
@@ -196,8 +197,6 @@ final class submit_clue_guess_test extends \advanced_testcase {
      * and finish the round — as a side effect of the last clue, defeating the very
      * thing this test means to check.
      *
-     * @covers \mod_playercross\external\submit_clue_guess::execute
-     * @covers \mod_playercross\external\submit_final_guess::execute
      * @return void
      */
     public function test_resolving_every_clue_reveals_theme_word_only_at_the_end(): void {
@@ -229,7 +228,6 @@ final class submit_clue_guess_test extends \advanced_testcase {
     /**
      * A student outside the course cannot submit a guess.
      *
-     * @covers \mod_playercross\external\submit_clue_guess::execute
      * @return void
      */
     public function test_outsider_cannot_submit_guess(): void {
@@ -250,7 +248,6 @@ final class submit_clue_guess_test extends \advanced_testcase {
      * there before the student ever clicks anything). The round must not finish and no
      * clue may resolve.
      *
-     * @covers \mod_playercross\external\submit_clue_guess::execute
      * @return void
      */
     public function test_rejects_clue_guess_when_round_not_started_bypassing_hud_cost(): void {
@@ -284,7 +281,6 @@ final class submit_clue_guess_test extends \advanced_testcase {
      * through mod_playercross_submit_clue_guess after the round's own deadline has
      * passed. The server, not the client, must be the one enforcing the time limit.
      *
-     * @covers \mod_playercross\external\submit_clue_guess::execute
      * @return void
      */
     public function test_rejects_clue_guess_once_deadline_has_passed(): void {

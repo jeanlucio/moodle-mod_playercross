@@ -27,6 +27,8 @@ namespace mod_playercross\local;
 
 /**
  * Tests for word_normalizer — pure logic, no database required.
+ *
+ * @covers \mod_playercross\local\word_normalizer
  */
 final class word_normalizer_test extends \basic_testcase {
     /**
@@ -50,7 +52,6 @@ final class word_normalizer_test extends \basic_testcase {
     /**
      * Tests that normalize produces the expected lowercase accent-free string.
      *
-     * @covers \mod_playercross\local\word_normalizer::normalize
      * @dataProvider normalize_provider
      * @param string $input    Raw input string.
      * @param string $expected Expected normalized string.
@@ -81,7 +82,6 @@ final class word_normalizer_test extends \basic_testcase {
     /**
      * Tests that is_valid_charset accepts only strings made up of letters.
      *
-     * @covers \mod_playercross\local\word_normalizer::is_valid_charset
      * @dataProvider is_valid_charset_provider
      * @param string $word Word to check.
      * @param bool $expected Expected result.
@@ -111,7 +111,6 @@ final class word_normalizer_test extends \basic_testcase {
      * which is exactly why puzzle_builder::cipher_slots() relies on this method
      * instead of a plain byte split).
      *
-     * @covers \mod_playercross\local\word_normalizer::chars
      * @dataProvider chars_provider
      * @param string $normalizedword Already-normalized word.
      * @param string[] $expected Expected character list.
@@ -126,7 +125,6 @@ final class word_normalizer_test extends \basic_testcase {
      * yields a multi-byte fragment — the exact invariant cipher_slots() depends on
      * to assign one slot number per distinct letter.
      *
-     * @covers \mod_playercross\local\word_normalizer::chars
      * @return void
      */
     public function test_chars_after_normalize_never_splits_multibyte_sequences(): void {

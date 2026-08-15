@@ -30,6 +30,8 @@ namespace mod_playercross\local;
 
 /**
  * Tests for hud_service.
+ *
+ * @covers \mod_playercross\local\hud_service
  */
 final class hud_service_test extends \advanced_testcase {
     #[\Override]
@@ -120,7 +122,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that null is returned when no playerhud block exists in the course.
      *
-     * @covers \mod_playercross\local\hud_service::get_block_instance_id
      * @return void
      */
     public function test_get_block_instance_id_returns_null_when_absent(): void {
@@ -131,7 +132,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that the correct block instance ID is returned when one exists.
      *
-     * @covers \mod_playercross\local\hud_service::get_block_instance_id
      * @return void
      */
     public function test_get_block_instance_id_finds_block(): void {
@@ -143,7 +143,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that a block in a different course is not returned.
      *
-     * @covers \mod_playercross\local\hud_service::get_block_instance_id
      * @return void
      */
     public function test_get_block_instance_id_ignores_other_course(): void {
@@ -157,7 +156,6 @@ final class hud_service_test extends \advanced_testcase {
      * Tests that is_installed reflects whether the block_playerhud plugin is present on
      * this site, independently of any course having added a block instance.
      *
-     * @covers \mod_playercross\local\hud_service::is_installed
      * @return void
      */
     public function test_is_installed_matches_class_presence(): void {
@@ -169,7 +167,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that is_available_for_course is true once a block instance exists.
      *
-     * @covers \mod_playercross\local\hud_service::is_available_for_course
      * @return void
      */
     public function test_is_available_for_course_true_with_block_instance(): void {
@@ -183,7 +180,6 @@ final class hud_service_test extends \advanced_testcase {
      * Tests that is_available_for_course is false when the course has no block instance,
      * even though the block plugin itself is installed.
      *
-     * @covers \mod_playercross\local\hud_service::is_available_for_course
      * @return void
      */
     public function test_is_available_for_course_false_without_block_instance(): void {
@@ -195,7 +191,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that is_available_for_course ignores a block instance living in another course.
      *
-     * @covers \mod_playercross\local\hud_service::is_available_for_course
      * @return void
      */
     public function test_is_available_for_course_ignores_other_course(): void {
@@ -209,7 +204,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that get_item_name returns the item name formatted for display.
      *
-     * @covers \mod_playercross\local\hud_service::get_item_name
      * @return void
      */
     public function test_get_item_name(): void {
@@ -223,7 +217,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that get_item_name returns an empty string for item id zero.
      *
-     * @covers \mod_playercross\local\hud_service::get_item_name
      * @return void
      */
     public function test_get_item_name_zero_returns_empty(): void {
@@ -235,7 +228,6 @@ final class hud_service_test extends \advanced_testcase {
      * Tests that get_item_name returns an empty string for an item belonging to a different
      * block instance — the cross-course leak this delegation to external_items prevents.
      *
-     * @covers \mod_playercross\local\hud_service::get_item_name
      * @return void
      */
     public function test_get_item_name_empty_for_other_instance_item(): void {
@@ -252,7 +244,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that get_items_for_block returns only enabled items sorted by name.
      *
-     * @covers \mod_playercross\local\hud_service::get_items_for_block
      * @return void
      */
     public function test_get_items_for_block(): void {
@@ -284,7 +275,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that get_xp_for_items resolves every requested item's XP in one pass.
      *
-     * @covers \mod_playercross\local\hud_service::get_xp_for_items
      * @return void
      */
     public function test_get_xp_for_items_resolves_every_item(): void {
@@ -305,7 +295,6 @@ final class hud_service_test extends \advanced_testcase {
      * belongs_to_instance(), preserved by filtering on blockinstanceid in the bulk
      * query rather than trusting the caller's item id list alone.
      *
-     * @covers \mod_playercross\local\hud_service::get_xp_for_items
      * @return void
      */
     public function test_get_xp_for_items_omits_item_from_other_instance(): void {
@@ -327,7 +316,6 @@ final class hud_service_test extends \advanced_testcase {
      * An empty item id list short-circuits to an empty map without querying the
      * database — get_in_or_equal() on an empty array would otherwise throw.
      *
-     * @covers \mod_playercross\local\hud_service::get_xp_for_items
      * @return void
      */
     public function test_get_xp_for_items_empty_list_returns_empty_map(): void {
@@ -343,7 +331,6 @@ final class hud_service_test extends \advanced_testcase {
      * the same de-duplication the N+1 loop this method replaces got "for free" by
      * calling get_xp() independently for each instance sharing the same item.
      *
-     * @covers \mod_playercross\local\hud_service::get_xp_for_items
      * @return void
      */
     public function test_get_xp_for_items_deduplicates_repeated_ids(): void {
@@ -360,7 +347,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that consume_items returns false when the user has fewer items than requested.
      *
-     * @covers \mod_playercross\local\hud_service::consume_items
      * @return void
      */
     public function test_consume_items_insufficient(): void {
@@ -380,7 +366,6 @@ final class hud_service_test extends \advanced_testcase {
      * different block instance — a foreign or deleted item can never be restocked, so the cost
      * is dispensed rather than locking the student out forever.
      *
-     * @covers \mod_playercross\local\hud_service::consume_items
      * @return void
      */
     public function test_consume_items_waived_for_other_instance_item(): void {
@@ -399,7 +384,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that consume_items marks the exact quantity as consumed and returns true.
      *
-     * @covers \mod_playercross\local\hud_service::consume_items
      * @return void
      */
     public function test_consume_items_success(): void {
@@ -426,7 +410,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that consume_items follows FIFO order (oldest entries consumed first).
      *
-     * @covers \mod_playercross\local\hud_service::consume_items
      * @return void
      */
     public function test_consume_items_fifo(): void {
@@ -450,7 +433,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that consume_items with qty zero always returns true without touching the inventory.
      *
-     * @covers \mod_playercross\local\hud_service::consume_items
      * @return void
      */
     public function test_consume_items_zero_qty_short_circuits(): void {
@@ -466,7 +448,6 @@ final class hud_service_test extends \advanced_testcase {
      * Tests that grant_items creates one inventory row per unit, tagged with the
      * 'playercross' source, and awards the item's XP multiplied by the quantity.
      *
-     * @covers \mod_playercross\local\hud_service::grant_items
      * @return void
      */
     public function test_grant_items_creates_inventory_and_awards_xp(): void {
@@ -498,7 +479,6 @@ final class hud_service_test extends \advanced_testcase {
      * caller flags the source as unbounded — the same anti-farming outcome
      * block_playerhud itself applies to its own infinite drops.
      *
-     * @covers \mod_playercross\local\hud_service::grant_items
      * @return void
      */
     public function test_grant_items_suppresses_xp_when_flagged(): void {
@@ -523,7 +503,6 @@ final class hud_service_test extends \advanced_testcase {
      * Tests that a zero-XP item never changes the player's XP, regardless of the
      * suppressxp flag — there is nothing to withhold or award either way.
      *
-     * @covers \mod_playercross\local\hud_service::grant_items
      * @return void
      */
     public function test_grant_items_zero_xp_item_awards_nothing(): void {
@@ -546,7 +525,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that granting a non-existent item is a silent no-op.
      *
-     * @covers \mod_playercross\local\hud_service::grant_items
      * @return void
      */
     public function test_grant_items_invalid_item_noop(): void {
@@ -565,7 +543,6 @@ final class hud_service_test extends \advanced_testcase {
      * Tests that granting an item belonging to a different block instance is a no-op — the
      * cross-course leak this delegation to external_items prevents.
      *
-     * @covers \mod_playercross\local\hud_service::grant_items
      * @return void
      */
     public function test_grant_items_other_instance_item_noop(): void {
@@ -586,7 +563,6 @@ final class hud_service_test extends \advanced_testcase {
     /**
      * Tests that grant_items with qty zero is a no-op.
      *
-     * @covers \mod_playercross\local\hud_service::grant_items
      * @return void
      */
     public function test_grant_items_zero_qty_short_circuits(): void {

@@ -33,6 +33,9 @@ use mod_playercross\local\round_service;
  *
  * The invariant under test (SCOPE.md §7): a wrong direct guess never reveals the
  * mystery phrase, and no unresolved clue's word leaks either.
+ *
+ * @covers \mod_playercross\external\submit_final_guess
+ * @covers \mod_playercross\external\submit_clue_guess
  */
 final class submit_final_guess_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -142,7 +145,6 @@ final class submit_final_guess_test extends \advanced_testcase {
     /**
      * A wrong direct guess never reveals the mystery phrase or any clue word.
      *
-     * @covers \mod_playercross\external\submit_final_guess::execute
      * @return void
      */
     public function test_wrong_final_guess_never_leaks_theme_word(): void {
@@ -176,7 +178,6 @@ final class submit_final_guess_test extends \advanced_testcase {
      * player just demonstrated they know the whole phrase, so nothing is left blank
      * pending the still-unsolved clues.
      *
-     * @covers \mod_playercross\external\submit_final_guess::execute
      * @return void
      */
     public function test_correct_final_guess_alone_does_not_win_or_reveal_theme_word(): void {
@@ -210,8 +211,6 @@ final class submit_final_guess_test extends \advanced_testcase {
      * A correct direct guess, followed by resolving every remaining clue, wins the
      * round and reveals the mystery phrase only in that final response.
      *
-     * @covers \mod_playercross\external\submit_final_guess::execute
-     * @covers \mod_playercross\external\submit_clue_guess::execute
      * @return void
      */
     public function test_final_guess_then_all_clues_wins_and_reveals_theme_word(): void {
@@ -247,8 +246,6 @@ final class submit_final_guess_test extends \advanced_testcase {
      * visitor to a course shares the same account, so nothing here could be safely
      * attributed to one specific person.
      *
-     * @covers \mod_playercross\external\submit_final_guess::execute
-     * @covers \mod_playercross\external\submit_clue_guess::execute
      * @return void
      */
     public function test_guest_can_win_demo_without_persisting(): void {
@@ -324,7 +321,6 @@ final class submit_final_guess_test extends \advanced_testcase {
      * sitting in session (view.php's GET-time ensure_round_state() call puts it there
      * before the student ever clicks anything). The round must not finish.
      *
-     * @covers \mod_playercross\external\submit_final_guess::execute
      * @return void
      */
     public function test_rejects_final_guess_when_round_not_started_bypassing_hud_cost(): void {

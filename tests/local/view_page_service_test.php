@@ -33,6 +33,8 @@ use context_module;
  * This is the orchestration entry point used by view.php on every GET: it decides
  * between showing the lobby, a round in progress, a finished round, or a
  * restriction notice (cooldown/round limit).
+ *
+ * @covers \mod_playercross\local\view_page_service
  */
 final class view_page_service_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -83,7 +85,6 @@ final class view_page_service_test extends \advanced_testcase {
     /**
      * A fresh visit builds a puzzle and shows the lobby, without starting the timer.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_shows_lobby_for_fresh_round(): void {
@@ -103,7 +104,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The puzzle built on a fresh visit is persisted to session, so a second call
      * sees the same round instead of building another puzzle.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_persists_picked_puzzle_across_calls(): void {
@@ -126,7 +126,6 @@ final class view_page_service_test extends \advanced_testcase {
      * a real cooldown from the attempt that was just recorded, instead of building
      * a fresh puzzle.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_reflects_finished_round_and_computes_cooldown(): void {
@@ -159,7 +158,6 @@ final class view_page_service_test extends \advanced_testcase {
      * hidden in the lobby (nothing to forfeit yet), shown once the round starts, and
      * hidden again once it finishes.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_shows_forfeit_only_during_active_round(): void {
@@ -187,7 +185,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The template context always carries the attempt-history toolbar URL and the
      * how-to-play help content shown in the in-game modal, regardless of round state.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_includes_toolbar_urls(): void {
@@ -207,7 +204,6 @@ final class view_page_service_test extends \advanced_testcase {
      * A student — who cannot manage the activity — never sees the manage-words or
      * report toolbar links.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_hides_manager_toolbar_for_student(): void {
@@ -222,7 +218,6 @@ final class view_page_service_test extends \advanced_testcase {
     /**
      * Whoever can manage the activity sees the manage-words and report toolbar links.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_shows_manager_toolbar_for_teacher(): void {
@@ -248,7 +243,6 @@ final class view_page_service_test extends \advanced_testcase {
      * the manage-words one — the two are independently grantable per-activity
      * capabilities now, not a single course-wide "can add this activity" right.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_shows_report_but_not_managewords_for_noneditingteacher(): void {
@@ -269,7 +263,6 @@ final class view_page_service_test extends \advanced_testcase {
      * A student — who cannot manage the activity — never sees the inactive-words
      * warning, even when the pool genuinely has an inactive word.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_hides_inactive_words_for_non_manager(): void {
@@ -288,7 +281,6 @@ final class view_page_service_test extends \advanced_testcase {
      * Whoever can manage the activity sees the inactive-words warning, naming the
      * word and its exclusion reason, alongside the active-word count.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_shows_inactive_words_for_manager(): void {
@@ -316,7 +308,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The active-word count is shown to a manager even when the pool has no
      * inactive words at all — it is a standing reassurance, not tied to a warning.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_shows_active_count_without_any_inactive_words(): void {
@@ -337,7 +328,6 @@ final class view_page_service_test extends \advanced_testcase {
     /**
      * The ranking toolbar link reflects the activity's show_ranking setting.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_hides_ranking_link_when_disabled(): void {
@@ -352,7 +342,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The help modal shows the PlayerHUD explanation as soon as any of the round cost,
      * hint cost, or win-reward settings is configured.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_shows_hud_help_when_win_reward_configured(): void {
@@ -369,7 +358,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The help modal explains the "both required" win condition by default, matching
      * the activity's own default setting.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_wincondition_help_defaults_to_both(): void {
@@ -385,7 +373,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The help modal switches to the "mystery-phrase only" explanation when the
      * activity is configured with that win condition.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_wincondition_help_reflects_finalonly_setting(): void {
@@ -403,7 +390,6 @@ final class view_page_service_test extends \advanced_testcase {
      * happen: "both required" win condition combined with a limited number of
      * attempts per clue.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_shows_clue_loss_warning_when_relevant(): void {
@@ -423,7 +409,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The help modal hides the automatic-loss warning when clue attempts are
      * unlimited, since a clue can then never run out of attempts.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_hides_clue_loss_warning_when_attempts_unlimited(): void {
@@ -443,7 +428,6 @@ final class view_page_service_test extends \advanced_testcase {
      * When the round limit is reached before a puzzle is even built, the
      * restriction notice is surfaced instead of a fresh theme.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_shows_restriction_notice_when_round_limit_reached(): void {
@@ -466,7 +450,6 @@ final class view_page_service_test extends \advanced_testcase {
      * site-wide preference so it is never repeated — including on the very same
      * lobby, matching intro_service's own contract.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_flags_autoshow_intro_once_on_lobby(): void {
@@ -486,7 +469,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The auto-show flag is site-wide, not per-activity: a user who already saw
      * the intro on one activity must not see it again on a second, different one.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_autoshow_intro_does_not_repeat_across_activities(): void {
@@ -504,7 +486,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The auto-show flag is still surfaced on the finished-round branch of
      * build_page_data, not only on the fresh-lobby branch.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_flags_autoshow_intro_on_finished_round_branch(): void {
@@ -535,7 +516,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The auto-show flag is still surfaced on the round-restriction branch of
      * build_page_data (round limit already reached before a puzzle is even built).
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_flags_autoshow_intro_on_restriction_branch(): void {
@@ -554,7 +534,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The help modal content always carries the review hint pointing back to the
      * toolbar help icon, regardless of round state.
      *
-     * @covers \mod_playercross\local\view_page_service::build_page_data
      * @return void
      */
     public function test_build_page_data_includes_review_hint_in_help_context(): void {

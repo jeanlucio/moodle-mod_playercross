@@ -34,6 +34,8 @@ use mod_playercross\local\intro_service;
 
 /**
  * Tests for the Privacy API provider.
+ *
+ * @covers \mod_playercross\privacy\provider
  */
 final class provider_test extends \core_privacy\tests\provider_testcase {
     #[\Override]
@@ -57,7 +59,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * Tests that get_metadata declares both playercross tables and the site-wide
      * "seen intro" user preference.
      *
-     * @covers \mod_playercross\privacy\provider::get_metadata
      * @return void
      */
     public function test_get_metadata(): void {
@@ -79,7 +80,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * catalogue/config columns to carve out), so a strict schema diff is the right
      * tool here rather than a declared-vs-exported comparison.
      *
-     * @covers \mod_playercross\privacy\provider::get_metadata
      * @return void
      */
     public function test_get_metadata_playercross_attempts_fields_match_schema(): void {
@@ -111,8 +111,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * silently drifting (the addedby column is deliberately not exported itself, since
      * the export is already scoped by it — that column is checked separately).
      *
-     * @covers \mod_playercross\privacy\provider::get_metadata
-     * @covers \mod_playercross\privacy\provider::export_user_data
      * @return void
      */
     public function test_playercross_words_export_keys_are_all_declared_in_metadata(): void {
@@ -160,7 +158,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * column added to install.xml without updating either list fails this test,
      * instead of silently falling through undeclared and unexplained.
      *
-     * @covers \mod_playercross\privacy\provider::get_metadata
      * @return void
      */
     public function test_playercross_words_every_column_is_declared_or_documented(): void {
@@ -207,7 +204,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
      * A user who never had the intro preference set exports no preference data.
      *
-     * @covers \mod_playercross\privacy\provider::export_user_preferences
      * @return void
      */
     public function test_export_user_preferences_no_pref(): void {
@@ -223,7 +219,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * A user who has seen the intro exports exactly that one preference, under the
      * mod_playercross component.
      *
-     * @covers \mod_playercross\privacy\provider::export_user_preferences
      * @return void
      */
     public function test_export_user_preferences_seen(): void {
@@ -243,7 +238,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
      * Tests that get_contexts_for_userid finds the context via attempts.
      *
-     * @covers \mod_playercross\privacy\provider::get_contexts_for_userid
      * @return void
      */
     public function test_get_contexts_for_userid_by_attempts(): void {
@@ -264,7 +258,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
      * Tests that get_contexts_for_userid finds the context via added words.
      *
-     * @covers \mod_playercross\privacy\provider::get_contexts_for_userid
      * @return void
      */
     public function test_get_contexts_for_userid_by_words_added(): void {
@@ -286,7 +279,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
      * Tests that get_users_in_context returns both attempt users and word authors.
      *
-     * @covers \mod_playercross\privacy\provider::get_users_in_context
      * @return void
      */
     public function test_get_users_in_context(): void {
@@ -313,7 +305,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
      * Tests that get_users_in_context is a silent no-op for a non-module context.
      *
-     * @covers \mod_playercross\privacy\provider::get_users_in_context
      * @return void
      */
     public function test_get_users_in_context_ignores_non_module_context(): void {
@@ -331,7 +322,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * page module whose row happens to carry the same numeric instance id as a real
      * playercross activity is never mistaken for it.
      *
-     * @covers \mod_playercross\privacy\provider::get_users_in_context
      * @return void
      */
     public function test_get_users_in_context_ignores_colliding_instance_id_from_other_module_type(): void {
@@ -360,7 +350,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * as a real playercross activity must not appear in the contextlist of a user who
      * only ever interacted with the playercross activity itself.
      *
-     * @covers \mod_playercross\privacy\provider::get_contexts_for_userid
      * @return void
      */
     public function test_get_contexts_for_userid_ignores_colliding_instance_id_from_other_module_type(): void {
@@ -388,7 +377,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
      * Tests that export_user_data writes both attempts and added-word data for the user.
      *
-     * @covers \mod_playercross\privacy\provider::export_user_data
      * @return void
      */
     public function test_export_user_data(): void {
@@ -424,7 +412,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
      * Tests that export_user_data is a no-op for an empty approved contextlist.
      *
-     * @covers \mod_playercross\privacy\provider::export_user_data
      * @return void
      */
     public function test_export_user_data_empty_contextlist_is_noop(): void {
@@ -440,7 +427,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * Tests that delete_data_for_user removes only that user's attempts and
      * anonymises their words, for a single context.
      *
-     * @covers \mod_playercross\privacy\provider::delete_data_for_user
      * @return void
      */
     public function test_delete_data_for_user(): void {
@@ -472,7 +458,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * Tests that delete_data_for_user removes only that user's attempts and
      * anonymises their words, across every context in the approved list.
      *
-     * @covers \mod_playercross\privacy\provider::delete_data_for_user
      * @return void
      */
     public function test_delete_data_for_user_across_multiple_contexts(): void {
@@ -506,7 +491,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     /**
      * Tests that delete_data_for_users removes data for the listed users only.
      *
-     * @covers \mod_playercross\privacy\provider::delete_data_for_users
      * @return void
      */
     public function test_delete_data_for_users(): void {
@@ -534,7 +518,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * anonymises every word author within that context only, leaving another
      * activity's data untouched.
      *
-     * @covers \mod_playercross\privacy\provider::delete_data_for_all_users_in_context
      * @return void
      */
     public function test_delete_data_for_all_users_in_context(): void {
@@ -569,7 +552,6 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
      * Tests that delete_data_for_all_users_in_context is a silent no-op for a
      * non-module context.
      *
-     * @covers \mod_playercross\privacy\provider::delete_data_for_all_users_in_context
      * @return void
      */
     public function test_delete_data_for_all_users_in_context_ignores_non_module_context(): void {

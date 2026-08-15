@@ -31,6 +31,8 @@ use mod_playercross\event\round_started;
 /**
  * Tests for round_service — the single source of truth for every round transition.
  * Requires database.
+ *
+ * @covers \mod_playercross\local\round_service
  */
 final class round_service_test extends \advanced_testcase {
     /** @var \stdClass Course used to host test instances. */
@@ -75,7 +77,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * load_state() returns the default (empty) shape when nothing was ever saved.
      *
-     * @covers \mod_playercross\local\round_service::load_state
      * @return void
      */
     public function test_load_state_returns_defaults(): void {
@@ -92,7 +93,6 @@ final class round_service_test extends \advanced_testcase {
      * round-wide, per-position map, SCOPE.md §20.2 v1.7) — instead of returning it
      * as-is and letting round_presenter fatal on it the next time it is rendered.
      *
-     * @covers \mod_playercross\local\round_service::load_state
      * @return void
      */
     public function test_load_state_discards_structurally_stale_state(): void {
@@ -148,7 +148,6 @@ final class round_service_test extends \advanced_testcase {
      * are already the current, correctly-sized shape, but themehint and originalword
      * are simply absent, the way a session saved by the previous code version would be.
      *
-     * @covers \mod_playercross\local\round_service::load_state
      * @return void
      */
     public function test_load_state_discards_state_missing_reveal_spelling_fields(): void {
@@ -201,7 +200,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * ensure_round_state() builds a real puzzle from the approved pool.
      *
-     * @covers \mod_playercross\local\round_service::ensure_round_state
      * @return void
      */
     public function test_ensure_round_state_builds_puzzle(): void {
@@ -223,7 +221,6 @@ final class round_service_test extends \advanced_testcase {
      * round stays unfinished and no attempt is counted, so a repeat with start_round()
      * first still works normally.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_submit_clue_guess_rejected_when_round_not_started(): void {
@@ -259,7 +256,6 @@ final class round_service_test extends \advanced_testcase {
      * test_submit_clue_guess_rejected_when_round_not_started(), for a direct guess of
      * the mystery phrase.
      *
-     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_submit_final_guess_rejected_when_round_not_started(): void {
@@ -293,7 +289,6 @@ final class round_service_test extends \advanced_testcase {
      * which has its own configurable PlayerHUD cost, equally skippable before
      * start_round() without this guard.
      *
-     * @covers \mod_playercross\local\round_service::reveal_hint
      * @return void
      */
     public function test_reveal_hint_rejected_when_round_not_started(): void {
@@ -325,7 +320,6 @@ final class round_service_test extends \advanced_testcase {
      * max_hints_per_round is reached, further calls are rejected with a warning
      * instead of revealing another letter or incrementing the counter further.
      *
-     * @covers \mod_playercross\local\round_service::reveal_hint
      * @return void
      */
     public function test_reveal_hint_stops_at_configured_limit(): void {
@@ -375,7 +369,6 @@ final class round_service_test extends \advanced_testcase {
      * (resolve_fully_revealed_clues()) and — since both PLAYERCROSS_WINCONDITION_BOTH
      * conditions are then met — finishing the round on the 5th.
      *
-     * @covers \mod_playercross\local\round_service::reveal_hint
      * @return void
      */
     public function test_reveal_hint_alone_can_finish_and_win_the_round(): void {
@@ -415,7 +408,6 @@ final class round_service_test extends \advanced_testcase {
      * A wrong clue guess increments its attempt counter without resolving it or
      * revealing any theme letters.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_submit_clue_guess_wrong_increments_attempts(): void {
@@ -450,7 +442,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * A correct clue guess resolves it and reveals every theme slot it covers.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_submit_clue_guess_correct_resolves_and_reveals_slots(): void {
@@ -497,7 +488,6 @@ final class round_service_test extends \advanced_testcase {
      * reveal_uncovered_slots is also disabled so the one theme letter neither of the
      * two selected clues covers is not simply given away for free at round start.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_resolving_all_clues_alone_does_not_finish_round(): void {
@@ -542,7 +532,6 @@ final class round_service_test extends \advanced_testcase {
      * demonstrated they know the whole phrase, so the grid must reflect that right away
      * rather than only once every clue is also solved.
      *
-     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_submit_final_guess_correct_alone_does_not_finish_round(): void {
@@ -581,7 +570,6 @@ final class round_service_test extends \advanced_testcase {
      * nothing left to type. This asserts it is auto-resolved instead, so the round can
      * still finish once every other clue is solved too.
      *
-     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_final_guess_auto_resolves_a_clue_made_entirely_of_shared_letters(): void {
@@ -617,7 +605,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * A wrong direct guess of the mystery phrase leaves the round open.
      *
-     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_submit_final_guess_wrong_keeps_round_open(): void {
@@ -652,8 +639,6 @@ final class round_service_test extends \advanced_testcase {
      * incidentally covered), leaving nothing left for the submit_final_guess() call
      * this test actually means to exercise.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
-     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_clues_then_final_guess_finishes_and_wins_round(): void {
@@ -705,8 +690,6 @@ final class round_service_test extends \advanced_testcase {
      * Guessing the mystery phrase first, then resolving every remaining clue, finishes
      * and wins the round, recording the earlier correct guess as finalguessed.
      *
-     * @covers \mod_playercross\local\round_service::submit_final_guess
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_final_guess_then_clues_finishes_and_wins_round(): void {
@@ -750,7 +733,6 @@ final class round_service_test extends \advanced_testcase {
      * makes winning mathematically impossible from then on, so the round ends
      * immediately as a loss instead of being left open with no way forward.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_clue_exhaustion_ends_round_as_loss_under_both(): void {
@@ -794,7 +776,6 @@ final class round_service_test extends \advanced_testcase {
      * PLAYERCROSS_WINCONDITION_FINALONLY: a clue running out of attempts never ends
      * the round by itself — the mystery phrase alone can still win it.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_clue_exhaustion_does_not_end_round_under_finalonly(): void {
@@ -831,7 +812,6 @@ final class round_service_test extends \advanced_testcase {
      * PLAYERCROSS_WINCONDITION_FINALONLY that alone is enough to finish the round —
      * exactly the outcome this test means to rule out.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_finalonly_resolving_all_clues_does_not_finish_round(): void {
@@ -873,7 +853,6 @@ final class round_service_test extends \advanced_testcase {
      * PLAYERCROSS_WINCONDITION_FINALONLY: a correct direct guess wins the round
      * immediately, even with every clue still pending.
      *
-     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_finalonly_final_guess_wins_round_immediately(): void {
@@ -907,7 +886,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * Forfeiting ends the round as a loss without resolving remaining clues.
      *
-     * @covers \mod_playercross\local\round_service::forfeit
      * @return void
      */
     public function test_forfeit_ends_round_as_loss(): void {
@@ -937,7 +915,6 @@ final class round_service_test extends \advanced_testcase {
      * — otherwise a student could burn one of their max_rounds, and trigger the
      * cooldown, on a round they never actually played.
      *
-     * @covers \mod_playercross\local\round_service::forfeit
      * @return void
      */
     public function test_forfeit_rejected_when_round_not_started(): void {
@@ -962,7 +939,6 @@ final class round_service_test extends \advanced_testcase {
      * A timeout call before the configured deadline (minus tolerance) is rejected —
      * the client's own countdown reaching zero is never trusted on its own.
      *
-     * @covers \mod_playercross\local\round_service::timeout
      * @return void
      */
     public function test_timeout_rejected_before_deadline(): void {
@@ -995,7 +971,6 @@ final class round_service_test extends \advanced_testcase {
      * it first sees timeleft > 0) would otherwise keep scoring indefinitely past the
      * activity's configured time limit.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
      * @return void
      */
     public function test_submit_clue_guess_closes_round_once_deadline_has_passed(): void {
@@ -1037,7 +1012,6 @@ final class round_service_test extends \advanced_testcase {
      * Same regression as test_submit_clue_guess_closes_round_once_deadline_has_passed(),
      * for a direct guess of the mystery phrase.
      *
-     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_submit_final_guess_closes_round_once_deadline_has_passed(): void {
@@ -1074,7 +1048,6 @@ final class round_service_test extends \advanced_testcase {
      * Same regression as test_submit_clue_guess_closes_round_once_deadline_has_passed(),
      * for revealing a hint.
      *
-     * @covers \mod_playercross\local\round_service::reveal_hint
      * @return void
      */
     public function test_reveal_hint_closes_round_once_deadline_has_passed(): void {
@@ -1107,7 +1080,6 @@ final class round_service_test extends \advanced_testcase {
      * unstarted or still-within-deadline round untouched, and close a genuinely
      * expired one exactly the way timeout() would.
      *
-     * @covers \mod_playercross\local\round_service::close_if_expired
      * @return void
      */
     public function test_close_if_expired_only_closes_a_genuinely_expired_round(): void {
@@ -1140,7 +1112,6 @@ final class round_service_test extends \advanced_testcase {
      * past and would otherwise pass unconditionally, defeating the anti-forgery
      * tolerance window it documents.
      *
-     * @covers \mod_playercross\local\round_service::timeout
      * @return void
      */
     public function test_timeout_rejected_when_round_not_started(): void {
@@ -1170,7 +1141,6 @@ final class round_service_test extends \advanced_testcase {
      * new_round() resets state to defaults, so the next ensure_round_state() builds a
      * completely fresh puzzle.
      *
-     * @covers \mod_playercross\local\round_service::new_round
      * @return void
      */
     public function test_new_round_resets_state(): void {
@@ -1192,8 +1162,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * count_rounds_played() and compute_cooldown_until() reflect real attempt rows.
      *
-     * @covers \mod_playercross\local\round_service::count_rounds_played
-     * @covers \mod_playercross\local\round_service::compute_cooldown_until
      * @return void
      */
     public function test_count_rounds_and_cooldown(): void {
@@ -1211,7 +1179,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * ensure_round_state() fires round_started exactly once when a fresh puzzle is built.
      *
-     * @covers \mod_playercross\local\round_service::ensure_round_state
      * @return void
      */
     public function test_ensure_round_state_fires_round_started_event(): void {
@@ -1235,8 +1202,6 @@ final class round_service_test extends \advanced_testcase {
      * Winning a round — resolving every clue, then guessing the mystery phrase — fires
      * round_completed exactly once, with the outcome recorded in its "other" payload.
      *
-     * @covers \mod_playercross\local\round_service::submit_clue_guess
-     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_winning_the_round_fires_round_completed_event(): void {
@@ -1279,7 +1244,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * Tests that the round-count restriction is enforced once max_rounds is reached.
      *
-     * @covers \mod_playercross\local\round_service::get_round_restriction_notice
      * @return void
      */
     public function test_restriction_notice_max_rounds_reached(): void {
@@ -1293,7 +1257,6 @@ final class round_service_test extends \advanced_testcase {
      * Tests that a still-active cooldown is also reported via the same restriction
      * notice, not just the max_rounds branch.
      *
-     * @covers \mod_playercross\local\round_service::get_round_restriction_notice
      * @return void
      */
     public function test_restriction_notice_cooldown_active(): void {
@@ -1306,7 +1269,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * Tests that no restriction applies when limits are disabled and no attempts exist.
      *
-     * @covers \mod_playercross\local\round_service::get_round_restriction_notice
      * @return void
      */
     public function test_restriction_notice_none_when_unrestricted(): void {
@@ -1325,7 +1287,6 @@ final class round_service_test extends \advanced_testcase {
      * would build a puzzle and (once finished) insert an attempt row past max_rounds,
      * ignoring the cooldown entirely.
      *
-     * @covers \mod_playercross\local\round_service::ensure_round_state
      * @return void
      */
     public function test_ensure_round_state_refuses_new_puzzle_when_restricted(): void {
@@ -1352,7 +1313,6 @@ final class round_service_test extends \advanced_testcase {
      * ensure_round_state() already checked the restriction (it only checks when a NEW
      * puzzle is picked, not when an already-armed one is reused).
      *
-     * @covers \mod_playercross\local\round_service::start_round
      * @return void
      */
     public function test_start_round_revalidates_restriction_for_a_puzzle_armed_before_the_limit_hit(): void {
@@ -1384,7 +1344,6 @@ final class round_service_test extends \advanced_testcase {
      * restriction inside its lock immediately before inserting, and skip the attempt
      * row entirely when it is now restricted — not just skip it in start_round().
      *
-     * @covers \mod_playercross\local\round_service::forfeit
      * @return void
      */
     public function test_finish_round_revalidates_restriction_inside_lock_before_inserting(): void {
@@ -1418,7 +1377,6 @@ final class round_service_test extends \advanced_testcase {
      * also stop the second session from granting an item it never earned a counted
      * round for.
      *
-     * @covers \mod_playercross\local\round_service::submit_final_guess
      * @return void
      */
     public function test_finish_round_revalidates_restriction_inside_lock_before_granting_item(): void {
@@ -1459,7 +1417,6 @@ final class round_service_test extends \advanced_testcase {
      * Tests that no cooldown applies when the setting is disabled, even with a recent
      * attempt.
      *
-     * @covers \mod_playercross\local\round_service::compute_cooldown_until
      * @return void
      */
     public function test_compute_cooldown_until_disabled(): void {
@@ -1472,7 +1429,6 @@ final class round_service_test extends \advanced_testcase {
     /**
      * Tests that a cooldown already expired by elapsed time returns 0.
      *
-     * @covers \mod_playercross\local\round_service::compute_cooldown_until
      * @return void
      */
     public function test_compute_cooldown_until_expired_by_time(): void {
@@ -1490,7 +1446,6 @@ final class round_service_test extends \advanced_testcase {
      * finished, the same way mod_quiz's inter-attempt delay always uses its current
      * setting.
      *
-     * @covers \mod_playercross\local\round_service::compute_cooldown_until
      * @return void
      */
     public function test_compute_cooldown_until_reflects_a_later_settings_change(): void {
@@ -1569,7 +1524,6 @@ final class round_service_test extends \advanced_testcase {
      * together with its XP — a finite round limit is the same "bounded source" case
      * block_playerhud itself allows XP for on its own drops.
      *
-     * @covers \mod_playercross\local\round_service::finish_round
      * @return void
      */
     public function test_win_grants_item_with_xp_when_bounded(): void {
@@ -1612,7 +1566,6 @@ final class round_service_test extends \advanced_testcase {
      * withholds its XP — the anti-farming safeguard needed to match PlayerHUD's own
      * "infinite drop gives no XP" rule.
      *
-     * @covers \mod_playercross\local\round_service::finish_round
      * @return void
      */
     public function test_win_grants_item_without_xp_when_unlimited(): void {
@@ -1654,7 +1607,6 @@ final class round_service_test extends \advanced_testcase {
      * Tests that forfeiting a round never grants the win item, regardless of
      * configuration — the reward is exclusive to a genuine win.
      *
-     * @covers \mod_playercross\local\round_service::finish_round
      * @return void
      */
     public function test_forfeit_does_not_grant_item(): void {
@@ -1687,7 +1639,6 @@ final class round_service_test extends \advanced_testcase {
      * round_presenter::build_hud_cost_info(), which already hides the cost badge in
      * this same case.
      *
-     * @covers \mod_playercross\local\round_service::start_round
      * @return void
      */
     public function test_start_round_waives_cost_when_item_deleted(): void {
@@ -1719,7 +1670,6 @@ final class round_service_test extends \advanced_testcase {
      * block instance too, proving the rejection is about this specific item's
      * ownership, not merely "no PlayerHUD available in this course".
      *
-     * @covers \mod_playercross\local\round_service::start_round
      * @return void
      */
     public function test_start_round_waives_cost_when_item_belongs_to_other_course(): void {
@@ -1751,7 +1701,6 @@ final class round_service_test extends \advanced_testcase {
      * A hint cost pointing at a PlayerHUD item that no longer exists is waived, same
      * rationale as test_start_round_waives_cost_when_item_deleted().
      *
-     * @covers \mod_playercross\local\round_service::reveal_hint
      * @return void
      */
     public function test_reveal_hint_waives_cost_when_item_deleted(): void {
@@ -1785,7 +1734,6 @@ final class round_service_test extends \advanced_testcase {
      * deliberately not waived here — only a deleted item (permanently unobtainable)
      * gets that treatment.
      *
-     * @covers \mod_playercross\local\round_service::start_round
      * @return void
      */
     public function test_start_round_still_blocks_when_item_disabled_and_insufficient(): void {
@@ -1820,7 +1768,6 @@ final class round_service_test extends \advanced_testcase {
      * insufficient() above proves a regular student is still blocked by the same kind of
      * configuration, so this is a guest-specific waiver, not a general bypass.
      *
-     * @covers \mod_playercross\local\round_service::start_round
      * @return void
      */
     public function test_start_round_guest_never_charges(): void {
@@ -1854,7 +1801,6 @@ final class round_service_test extends \advanced_testcase {
      * even when a real cost item is configured and the guest's balance would otherwise
      * block it.
      *
-     * @covers \mod_playercross\local\round_service::reveal_hint
      * @return void
      */
     public function test_reveal_hint_guest_never_charges(): void {
@@ -1892,7 +1838,6 @@ final class round_service_test extends \advanced_testcase {
      * gradebook — every guest visitor to a course shares the same account, so none of
      * this could be safely attributed to one specific person.
      *
-     * @covers \mod_playercross\local\round_service::finish_round
      * @return void
      */
     public function test_finish_round_guest_never_persists(): void {

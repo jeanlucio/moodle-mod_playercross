@@ -27,6 +27,8 @@ namespace mod_playercross\local;
 
 /**
  * Tests for gameplay_service's scoring formulas — no database access needed.
+ *
+ * @covers \mod_playercross\local\gameplay_service
  */
 final class gameplay_service_test extends \basic_testcase {
     /**
@@ -43,7 +45,6 @@ final class gameplay_service_test extends \basic_testcase {
     /**
      * Each clue is worth an even share of the round's grade.
      *
-     * @covers \mod_playercross\local\gameplay_service::max_points_per_clue
      * @return void
      */
     public function test_max_points_per_clue_splits_grade_evenly(): void {
@@ -54,7 +55,6 @@ final class gameplay_service_test extends \basic_testcase {
     /**
      * With zero clues there is nothing to split the grade across.
      *
-     * @covers \mod_playercross\local\gameplay_service::max_points_per_clue
      * @return void
      */
     public function test_max_points_per_clue_zero_clues_returns_zero(): void {
@@ -67,7 +67,6 @@ final class gameplay_service_test extends \basic_testcase {
      * credit regardless of attempts used — there is no natural denominator to decay
      * against.
      *
-     * @covers \mod_playercross\local\gameplay_service::calculate_clue_points
      * @return void
      */
     public function test_calculate_clue_points_unlimited_always_full_credit(): void {
@@ -80,7 +79,6 @@ final class gameplay_service_test extends \basic_testcase {
      * The first two attempts on a clue always earn full credit, mirroring the same
      * plateau PlayerWords uses for its whole round.
      *
-     * @covers \mod_playercross\local\gameplay_service::calculate_clue_points
      * @return void
      */
     public function test_calculate_clue_points_full_credit_within_first_two_attempts(): void {
@@ -92,7 +90,6 @@ final class gameplay_service_test extends \basic_testcase {
     /**
      * Beyond the second attempt, points decrease linearly down to the last allowed attempt.
      *
-     * @covers \mod_playercross\local\gameplay_service::calculate_clue_points
      * @return void
      */
     public function test_calculate_clue_points_decreases_linearly_after_second_attempt(): void {
@@ -107,7 +104,6 @@ final class gameplay_service_test extends \basic_testcase {
      * Guessing the mystery phrase before resolving any clue earns the full grade as a
      * bonus — equivalent to having resolved every clue at full credit.
      *
-     * @covers \mod_playercross\local\gameplay_service::calculate_final_guess_bonus
      * @return void
      */
     public function test_final_guess_bonus_is_full_grade_when_nothing_resolved(): void {
@@ -119,7 +115,6 @@ final class gameplay_service_test extends \basic_testcase {
      * The bonus shrinks as more clues are already resolved, reaching zero once every
      * clue has already been credited.
      *
-     * @covers \mod_playercross\local\gameplay_service::calculate_final_guess_bonus
      * @return void
      */
     public function test_final_guess_bonus_shrinks_with_resolved_clues(): void {
@@ -131,7 +126,6 @@ final class gameplay_service_test extends \basic_testcase {
     /**
      * The session key combines cmid and userid uniquely.
      *
-     * @covers \mod_playercross\local\gameplay_service::build_session_key
      * @return void
      */
     public function test_build_session_key(): void {
