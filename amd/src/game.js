@@ -41,6 +41,15 @@
  * before anything could be submitted, since no per-row button was visible to suggest
  * otherwise.
  *
+ * Submitting any one row (or revealing a hint) re-renders the *whole* panel from the
+ * server's response — the only state the server knows about. Whatever the player had
+ * typed into every other still-open row, correct or not, is client-only and would
+ * otherwise vanish the instant that fresh HTML replaces the old. snapshotInProgressGuesses/
+ * restoreInProgressGuesses close that gap by capturing every row before the request and
+ * writing it back into the matching boxes afterwards — real usability testing surfaced
+ * this as guesses "disappearing" when several rows were typed ahead before submitting any
+ * one of them.
+ *
  * Long-pressing a keyboard key with accent variants (A, E, I, O, U — see
  * initAccentLongPress/ACCENT_VARIANTS) opens a popup to type the accented form
  * instead, mirroring a phone's own native long-press-for-diacritics keyboard.
@@ -389,6 +398,84 @@ const restoreFinalGuess = (guess) => {
 };
 
 /**
+ * Snapshots every guess row's currently typed content right before a submission (clue
+ * guess, final guess, or hint reveal) triggers a full panel re-render. Every row that is
+ * *not* the one being submitted has no way to send its own in-progress typing along with
+ * that request — without this snapshot, the fresh panel HTML silently replaces it with
+ * blank boxes, discarding whatever the player had already typed there, right or wrong.
+ * Read at the very start of the caller, before the AJAX call, since nothing else touches
+ * these boxes while that request is in flight.
+ *
+ * Stored as one raw character array per row/word-group — never joined into a single
+ * string. A partially-filled row (unlike the row actually being submitted, its boxes
+ * carry no "required" validation) can have blank positions anywhere in the middle;
+ * joining would silently drop those blanks and shift every later letter into the wrong
+ * box once restored. distributeIntoWraps() already takes chars by array, so this needs
+ * no format conversion of its own.
+ *
+ * @returns {{clues: Map<number, string[]>, theme: ?string[][]}}
+ */
+const snapshotInProgressGuesses = () => {
+    const clues = new Map();
+    document.querySelectorAll('.mod-playercross-clue-form[data-clue-id]').forEach((form) => {
+        const tilesContainer = form.querySelector('.mod-playercross-clue-tiles');
+        if (tilesContainer) {
+            clues.set(Number(form.dataset.clueId), getTileWraps(tilesContainer).map(readTileWrap));
+        }
+    });
+    const themeContainer = document.querySelector('.mod-playercross-theme');
+    const theme = themeContainer
+        ? Array.from(themeContainer.querySelectorAll('.mod-playercross-word-group'))
+            .map((group) => getTileWraps(group).map(readTileWrap))
+        : null;
+    return {clues, theme};
+};
+
+/**
+ * Restores every *other* row's snapshotted in-progress guess (see
+ * snapshotInProgressGuesses) into the freshly re-rendered panel, after a different row's
+ * submission replaced the whole stage. Skips whichever row the caller already restored
+ * itself — submitClueGuess/submitFinalGuess only do that on a wrong guess, and with their
+ * own extra focus/shake side effects, so this never duplicates that. A no-op per row if
+ * it no longer has an editable form (resolved, exhausted, or the round just finished) or
+ * its snapshot was entirely blank.
+ *
+ * @param {{clues: Map<number, string[]>, theme: ?string[][]}} snapshot From snapshotInProgressGuesses().
+ * @param {?number} skipClueId Clue id already restored by the caller, if any.
+ * @param {boolean} skipTheme Whether the theme row was already restored by the caller.
+ */
+const restoreInProgressGuesses = (snapshot, skipClueId, skipTheme) => {
+    snapshot.clues.forEach((chars, clueid) => {
+        if (clueid === skipClueId || chars.every((char) => char === '')) {
+            return;
+        }
+        const tilesContainer = document.querySelector(`.mod-playercross-clue-tiles[data-clue-tiles="${clueid}"]`);
+        if (tilesContainer) {
+            distributeIntoWraps(tilesContainer, chars);
+        }
+    });
+    if (skipTheme || !snapshot.theme) {
+        return;
+    }
+    const themeContainer = document.querySelector('.mod-playercross-theme');
+    if (!themeContainer) {
+        return;
+    }
+    Array.from(themeContainer.querySelectorAll('.mod-playercross-word-group')).forEach((group, i) => {
+        const chars = snapshot.theme[i];
+        if (chars && !chars.every((char) => char === '')) {
+            distributeIntoWraps(group, chars);
+        }
+    });
+
+    // The panel re-render already auto-focused a row and evaluated the Enviar key's
+    // pulse before this restore ran (see applyPanelSideEffects) — if the row that landed
+    // the auto-focus is also one this function just filled back in, that earlier check is
+    // now stale.
+    refreshEnterReadiness();
+};
+
+/**
  * Returns every editable box within the same guess form as the given box, in position
  * order — spans every word group for the mystery phrase, so typing carries straight
  * from the last letter of one word into the first letter of the next.
@@ -613,6 +700,7 @@ const flashWrongClue = (clueid) => {
  * @param {number} timertotal Total seconds configured for the round (0 = no timer).
  */
 const submitClueGuess = async(cmid, clueid, guess, timertotal) => {
+    const snapshot = snapshotInProgressGuesses();
     let payload;
     try {
         payload = await Ajax.call([{
@@ -632,6 +720,7 @@ const submitClueGuess = async(cmid, clueid, guess, timertotal) => {
         restoreClueGuess(clueid, guess);
         flashWrongClue(clueid);
     }
+    restoreInProgressGuesses(snapshot, clueid, false);
 };
 
 /**
@@ -643,6 +732,7 @@ const submitClueGuess = async(cmid, clueid, guess, timertotal) => {
  * @param {number} timertotal Total seconds configured for the round (0 = no timer).
  */
 const submitFinalGuess = async(cmid, guess, timertotal) => {
+    const snapshot = snapshotInProgressGuesses();
     let payload;
     try {
         payload = await Ajax.call([{
@@ -658,6 +748,7 @@ const submitFinalGuess = async(cmid, guess, timertotal) => {
     if (!payload.correct) {
         restoreFinalGuess(guess);
     }
+    restoreInProgressGuesses(snapshot, null, true);
 };
 
 /**
@@ -669,6 +760,7 @@ const submitFinalGuess = async(cmid, guess, timertotal) => {
  * @param {number} timertotal Total seconds configured for the round (0 = no timer).
  */
 const revealHint = async(cmid, timertotal) => {
+    const snapshot = snapshotInProgressGuesses();
     let payload;
     try {
         payload = await Ajax.call([{methodname: 'mod_playercross_reveal_hint', args: {cmid}}])[0];
@@ -678,6 +770,7 @@ const revealHint = async(cmid, timertotal) => {
     }
     notify(payload.notification, payload.notificationtype, payload.toast);
     await showRoundPanel(payload.panel, cmid, timertotal);
+    restoreInProgressGuesses(snapshot, null, false);
 };
 
 /**
