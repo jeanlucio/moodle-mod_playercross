@@ -254,13 +254,17 @@ const startCountdown = (until, cmid) => {
  * @param {HTMLElement} button Help toolbar button, source of the modal title.
  * @param {HTMLElement} content Hidden container holding the pre-rendered help body.
  */
-const openHelpModal = (button, content) => {
-    Modal.create({
-        title: button.dataset.title,
-        body: content.innerHTML,
-        show: true,
-        removeOnClose: true,
-    }).catch(Notification.exception);
+const openHelpModal = async(button, content) => {
+    try {
+        await Modal.create({
+            title: button.dataset.title,
+            body: content.innerHTML,
+            show: true,
+            removeOnClose: true,
+        });
+    } catch (error) {
+        Notification.exception(error);
+    }
 };
 
 /**
@@ -294,22 +298,24 @@ const initForfeit = (cmid) => {
     if (!button) {
         return;
     }
-    button.addEventListener('click', () => {
-        Promise.all([
-            ModalSaveCancel.create({
-                title: button.dataset.title,
-                body: button.dataset.confirm,
-                removeOnClose: true,
-            }),
-            getString('yes', 'core'),
-        ]).then(([modal, yesStr]) => {
+    button.addEventListener('click', async() => {
+        try {
+            const [modal, yesStr] = await Promise.all([
+                ModalSaveCancel.create({
+                    title: button.dataset.title,
+                    body: button.dataset.confirm,
+                    removeOnClose: true,
+                }),
+                getString('yes', 'core'),
+            ]);
             modal.setSaveButtonText(yesStr);
             modal.getRoot().on(ModalEvents.save, () => {
                 endRound(cmid, 'forfeit');
             });
             modal.show();
-            return;
-        }).catch(Notification.exception);
+        } catch (error) {
+            Notification.exception(error);
+        }
     });
 };
 
@@ -1104,22 +1110,24 @@ const wireStageDelegation = (cmid, timertotal) => {
                 await revealHint(cmid, timertotal);
                 return;
             }
-            Promise.all([
-                ModalSaveCancel.create({
-                    title: hintButton.dataset.hudConfirmTitle,
-                    body: hintButton.dataset.hudConfirmBody,
-                    removeOnClose: true,
-                }),
-                getString('yes', 'core'),
-            ]).then(([modal, yesStr]) => {
+            try {
+                const [modal, yesStr] = await Promise.all([
+                    ModalSaveCancel.create({
+                        title: hintButton.dataset.hudConfirmTitle,
+                        body: hintButton.dataset.hudConfirmBody,
+                        removeOnClose: true,
+                    }),
+                    getString('yes', 'core'),
+                ]);
                 modal.setSaveButtonText(yesStr);
                 if (hintButton.dataset.hudConfirmInsufficient) {
                     modal.setButtonDisabled('save', true);
                 }
                 modal.getRoot().on(ModalEvents.save, () => revealHint(cmid, timertotal));
                 modal.show();
-                return;
-            }).catch(Notification.exception);
+            } catch (error) {
+                Notification.exception(error);
+            }
             return;
         }
 
