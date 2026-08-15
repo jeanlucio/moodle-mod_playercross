@@ -217,6 +217,32 @@ final class ai_word_generator_test extends \basic_testcase {
     }
 
     /**
+     * Regression test for the security audit finding (ported from mod_playerwords,
+     * which the same bug was found and fixed in first): the AI response is
+     * untrusted input, and nothing about the prompt guarantees a short reply — a
+     * term longer than the word column (char(100)) used to reach add_ai_word()
+     * unchecked and abort with a raw dml_write_exception. is_valid_term() must
+     * reject it before generate_and_save() ever tries to save it.
+     *
+     * @return void
+     */
+    public function test_is_valid_term_rejects_term_longer_than_word_column(): void {
+        $toolong = str_repeat('a', words_repository::WORD_COLUMN_MAX_LENGTH + 1);
+        $this->assertFalse($this->is_valid_term($toolong));
+    }
+
+    /**
+     * A term exactly at the word column length is still accepted — only strictly
+     * longer terms are rejected.
+     *
+     * @return void
+     */
+    public function test_is_valid_term_accepts_term_at_word_column_limit(): void {
+        $atlimit = str_repeat('a', words_repository::WORD_COLUMN_MAX_LENGTH);
+        $this->assertTrue($this->is_valid_term($atlimit));
+    }
+
+    /**
      * The prompt lists existing pool words as terms to avoid when any are given.
      *
      * @return void

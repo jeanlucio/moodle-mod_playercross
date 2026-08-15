@@ -41,6 +41,14 @@ class words_repository {
     const MANAGE_PERPAGE = 30;
 
     /**
+     * @var int Max length of playercross_words.word (db/install.xml char(100)). Public:
+     * also checked by ai_word_generator::generate_and_save() before calling add_ai_word().
+     * Glossary and AI-sourced words must be checked against this before insert — unlike
+     * the manual add path (managewords.php), neither source is bounded by a form maxlength.
+     */
+    public const WORD_COLUMN_MAX_LENGTH = 100;
+
+    /**
      * Splits a glossary concept into individual candidate words, ignoring given stopwords.
      *
      * Single-word concepts are returned as-is. For multi-word concepts each
@@ -465,6 +473,15 @@ class words_repository {
             $words = self::extract_candidate_words($concept, (string)($instance->stopwords ?? ''));
 
             foreach ($words as $word) {
+                // Glossary content is never bounded by a form maxlength the way the
+                // manual add path is (managewords.php) — a token longer than the
+                // word column would otherwise abort the whole sync (and, since
+                // playercross_add_instance()/update_instance() call this on every
+                // save, block saving the activity itself) with a raw dml_write_exception.
+                if (core_text::strlen($word) > self::WORD_COLUMN_MAX_LENGTH) {
+                    continue;
+                }
+
                 $key = core_text::strtolower($word);
                 if (isset($existingmap[$key])) {
                     if ($existingmap[$key] !== true) {

@@ -722,6 +722,36 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test for the security audit finding (ported from mod_playerwords,
+     * which the same bug was found and fixed in first): an unmoderated glossary
+     * concept (any student with mod/glossary:write can create one) longer than the
+     * word column (char(100)) used to abort the whole sync with a raw
+     * dml_write_exception — and since playercross_add_instance()/update_instance()
+     * call sync_glossary_words() on every save, that also blocked the teacher from
+     * saving the activity's settings at all while the offending entry existed. The
+     * oversized token must now be silently skipped instead, leaving every other
+     * candidate word imported normally.
+     *
+     * @return void
+     */
+    public function test_sync_glossary_words_skips_token_longer_than_word_column(): void {
+        global $DB;
+        $toolong = str_repeat('a', words_repository::WORD_COLUMN_MAX_LENGTH + 1);
+        [$glossary] = $this->make_glossary_entry($toolong, 'definicao qualquer');
+        $this->make_glossary_entry('planeta', 'corpo celeste que orbita uma estrela');
+        $instance = $this->make_full_instance(['glossaryid' => 0]);
+
+        $imported = words_repository::sync_glossary_words($instance);
+
+        // Only the well-sized word was imported; the oversized one never reached
+        // insert_record() (proven by count, since a fatal DB error would have
+        // aborted the whole sync instead of returning a count at all).
+        $this->assertSame(1, $imported);
+        $this->assertFalse($DB->record_exists('playercross_words', ['playercrossid' => $instance->id, 'word' => $toolong]));
+        $this->assertTrue($DB->record_exists('playercross_words', ['playercrossid' => $instance->id, 'word' => 'planeta']));
+    }
+
+    /**
      * Regression test for the sanitization-order bug: a glossary definition whose
      * markup arrives entity-encoded (exactly how the Moodle editor stores an escaped
      * `<img src=x onerror=...>` typed literally into a FORMAT_HTML field) must not

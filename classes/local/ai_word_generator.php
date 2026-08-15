@@ -65,8 +65,9 @@ class ai_word_generator {
     /**
      * Generates words using the AI provider and saves them as pending approval.
      *
-     * Only single-word, purely alphabetic terms within the activity's configured
-     * length bounds are saved. Multi-word phrases and numeric tokens are skipped.
+     * Only single-word, purely alphabetic terms that fit the word column are saved.
+     * Multi-word phrases, numeric tokens and terms longer than the database column
+     * are skipped.
      * A term matching a word the activity already owns (any source, any approval
      * status) is skipped too — the prompt asks the AI to avoid the activity's
      * existing words, and this is the actual enforcement of that, independent of
@@ -140,13 +141,22 @@ class ai_word_generator {
      * Checks whether a candidate term from the AI response is safe to save.
      *
      * The AI response is untrusted input: only a single-token, purely alphabetic
-     * term is accepted. Multi-word phrases, numbers and punctuation are rejected.
+     * term that fits the word column is accepted. Multi-word phrases, numbers,
+     * punctuation and terms longer than the database column are rejected — the
+     * length check exists because nothing about the prompt guarantees a short
+     * reply, and a term past the column length would otherwise abort
+     * add_ai_word() with a raw dml_write_exception (see the equivalent
+     * glossary-sync check in words_repository::sync_glossary_words()).
      *
      * @param string $term Trimmed candidate term.
      * @return bool
      */
     protected static function is_valid_term(string $term): bool {
         if ($term === '') {
+            return false;
+        }
+
+        if (core_text::strlen($term) > words_repository::WORD_COLUMN_MAX_LENGTH) {
             return false;
         }
 
