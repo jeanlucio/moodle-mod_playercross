@@ -348,9 +348,19 @@ function playercross_delete_instance(int $id): bool {
  * Return the features this module supports.
  *
  * @param string $feature FEATURE_xx constant for requested feature.
- * @return mixed True if module supports feature, null if doesn't know.
+ * @return mixed True if module supports feature, a purpose string for
+ *     FEATURE_MOD_PURPOSE/FEATURE_MOD_OTHERPURPOSE, null if doesn't know.
  */
 function playercross_supports(string $feature): mixed {
+    // FEATURE_MOD_OTHERPURPOSE only exists from Moodle 5.1 onwards (MDL-85598); this
+    // plugin also targets Moodle 4.5, where referencing the undefined constant as a
+    // switch case label would still be a fatal error, guard or not — checked ahead of
+    // the switch instead. Lets the activity chooser list this activity under both its
+    // primary purpose (interactive content) and this secondary one (assessment).
+    if (defined('FEATURE_MOD_OTHERPURPOSE') && $feature === FEATURE_MOD_OTHERPURPOSE) {
+        return MOD_PURPOSE_ASSESSMENT;
+    }
+
     switch ($feature) {
         case FEATURE_GROUPS:
             return true;
