@@ -29,10 +29,10 @@ namespace mod_playercross\local;
  * Tests for ai_word_generator — no database or network access needed.
  *
  * The AI provider always returns raw, untrusted text. These tests exercise
- * parse_words() (response-shape parsing) and is_valid_term() (the safety
- * filter applied before anything is saved to the word pool) directly via
- * reflection, since both are intentionally kept protected: they are internal
- * parsing helpers, not part of the class's public contract.
+ * parse_words() (response-shape parsing) and is_valid_term()/is_valid_hint()
+ * (the safety filters applied before anything is saved to the word pool)
+ * directly via reflection, since all three are intentionally kept protected:
+ * they are internal parsing helpers, not part of the class's public contract.
  *
  * @covers \mod_playercross\local\ai_word_generator
  */
@@ -59,6 +59,18 @@ final class ai_word_generator_test extends \basic_testcase {
         $method = new \ReflectionMethod(ai_word_generator::class, 'is_valid_term');
         $method->setAccessible(true);
         return $method->invoke(null, $term);
+    }
+
+    /**
+     * Invokes the protected static is_valid_hint() method.
+     *
+     * @param string $hint Candidate hint.
+     * @return bool
+     */
+    private function is_valid_hint(string $hint): bool {
+        $method = new \ReflectionMethod(ai_word_generator::class, 'is_valid_hint');
+        $method->setAccessible(true);
+        return $method->invoke(null, $hint);
     }
 
     /**
@@ -240,6 +252,28 @@ final class ai_word_generator_test extends \basic_testcase {
     public function test_is_valid_term_accepts_term_at_word_column_limit(): void {
         $atlimit = str_repeat('a', words_repository::WORD_COLUMN_MAX_LENGTH);
         $this->assertTrue($this->is_valid_term($atlimit));
+    }
+
+    /**
+     * A non-blank hint is accepted.
+     *
+     * @return void
+     */
+    public function test_is_valid_hint_accepts_non_blank_text(): void {
+        $this->assertTrue($this->is_valid_hint('Corpo celeste que orbita uma estrela.'));
+    }
+
+    /**
+     * An empty hint is rejected — the AI response is untrusted text, and the prompt
+     * asking for a hint on every item is an instruction, not a guarantee. Unlike
+     * mod_playerwords (where the hint is an optional assist), a PlayerCross clue's
+     * hint is always shown to the student as the clue's own question, so a blank one
+     * must never reach add_ai_word().
+     *
+     * @return void
+     */
+    public function test_is_valid_hint_rejects_empty_string(): void {
+        $this->assertFalse($this->is_valid_hint(''));
     }
 
     /**

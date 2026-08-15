@@ -88,7 +88,14 @@ class words_repository {
     }
 
     /**
-     * Returns approved words eligible as clues: matching the instance's configured length range.
+     * Returns approved words eligible as clues: matching the instance's configured
+     * length range and carrying a non-blank hint — a clue's own phrase (its hint) is
+     * always shown to the player as the question itself (see round_play.mustache), so
+     * a word saved with a blank hint (manualhint is optional on the manage-words form,
+     * add_manual_word()/update_word() accept an empty string) would otherwise become an
+     * unplayable clue with nothing to ask. Mirrors the same blank-hint guard
+     * get_theme_candidate_words() already applies for its own reason (the theme's hint
+     * is the mystery phrase itself, so a blank one has no words to normalize).
      *
      * @param \stdClass $instance Activity instance.
      * @return array
@@ -115,6 +122,9 @@ class words_repository {
                 continue;
             }
             if (!word_normalizer::is_valid_charset($word)) {
+                continue;
+            }
+            if (trim((string)$record->hint) === '') {
                 continue;
             }
             $candidates[] = $record;
@@ -365,7 +375,8 @@ class words_repository {
      * @param int $instanceid Activity instance id.
      * @param int $userid User id.
      * @param string $word Word text.
-     * @param string $hint Optional hint.
+     * @param string $hint Clue hint — required by the caller (managewords.php), never
+     *     blank in practice, but not re-validated here; this layer trusts its caller.
      * @return void
      */
     public static function add_manual_word(int $instanceid, int $userid, string $word, string $hint): void {
@@ -470,6 +481,25 @@ class words_repository {
                 ENT_QUOTES | ENT_HTML5,
                 'UTF-8'
             )));
+            if ($hint === '') {
+                // A glossary entry saved with a blank (or markup-only, once sanitised)
+                // definition would otherwise sync in as a clue with nothing to ask the
+                // student — its hint is shown verbatim as the clue's own phrase
+                // (round_play.mustache). Never write a blank hint, but also never let
+                // this silently delete a word that already had a real one: the orphan
+                // removal below (for a concept the current glossary content no longer
+                // produces at all) would otherwise sweep it up too, since skipping the
+                // whole entry never re-confirms it as still present. Marking any
+                // already-existing match as confirmed protects it from that, without
+                // inserting anything new or touching its stored hint.
+                foreach (self::extract_candidate_words($concept, (string)($instance->stopwords ?? '')) as $word) {
+                    $key = core_text::strtolower($word);
+                    if (isset($existingmap[$key]) && $existingmap[$key] !== true) {
+                        $existingmap[$key] = true;
+                    }
+                }
+                continue;
+            }
             $words = self::extract_candidate_words($concept, (string)($instance->stopwords ?? ''));
 
             foreach ($words as $word) {
@@ -623,7 +653,8 @@ class words_repository {
      * @param int $instanceid Activity instance id.
      * @param int $userid User id.
      * @param string $word Word text.
-     * @param string $hint Optional hint or definition.
+     * @param string $hint Clue hint or definition — the caller (ai_word_generator::
+     *     generate_and_save()) already rejects any AI-returned item with a blank one.
      * @return void
      */
     public static function add_ai_word(int $instanceid, int $userid, string $word, string $hint): void {

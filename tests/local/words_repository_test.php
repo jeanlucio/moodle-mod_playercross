@@ -213,6 +213,30 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * A word saved with a blank hint is never a clue candidate — a clue's own phrase
+     * (its hint) is always shown to the player as the question itself, so a blank one
+     * would render as a clue with nothing to ask. manualhint is optional on the
+     * manage-words form (add_manual_word()/update_word() both accept an empty string),
+     * so this is reachable through ordinary admin use, not just direct DB tampering —
+     * the test generator itself defaults hint to the word when none is given, which is
+     * exactly why this gap went untested until now.
+     *
+     * @return void
+     */
+    public function test_get_candidate_words_excludes_blank_hint(): void {
+        global $DB;
+        $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        $blank = $this->modgenerator->create_word($instance->id, 'teste');
+        $DB->set_field('playercross_words', 'hint', '', ['id' => $blank->id]);
+        $this->modgenerator->create_word($instance->id, 'gato');
+
+        $cluecandidates = words_repository::get_candidate_words($instance);
+
+        $this->assertCount(1, $cluecandidates);
+        $this->assertSame('gato', reset($cluecandidates)->word);
+    }
+
+    /**
      * pick_theme_word() returns null instead of throwing when the theme-candidate pool
      * is empty — the caller (ensure_round_state()) relies on this to degrade instead of
      * fataling for a misconfigured or under-stocked activity.
@@ -837,6 +861,49 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * A glossary entry saved with a blank definition is never imported as a clue: its
+     * hint is shown verbatim to the student as the clue's own phrase
+     * (round_play.mustache), so a blank one would be an unplayable clue with nothing
+     * to ask. Mirrors the same guard get_candidate_words() applies defensively for
+     * words already in the pool — this one stops the word from being written at all.
+     *
+     * @return void
+     */
+    public function test_sync_glossary_words_skips_blank_definition(): void {
+        global $DB;
+        [$glossary] = $this->make_glossary_entry('teste', '');
+        $this->make_glossary_entry('planeta', 'corpo celeste que orbita uma estrela');
+        $instance = $this->make_full_instance(['glossaryid' => 0]);
+
+        $imported = words_repository::sync_glossary_words($instance);
+
+        $this->assertSame(1, $imported);
+        $this->assertFalse($DB->record_exists('playercross_words', ['playercrossid' => $instance->id, 'word' => 'teste']));
+        $this->assertTrue($DB->record_exists('playercross_words', ['playercrossid' => $instance->id, 'word' => 'planeta']));
+    }
+
+    /**
+     * A later resync must not blank out a word's already-imported hint just because
+     * the glossary entry's own definition was since edited down to empty — the
+     * existing row is left untouched rather than overwritten with nothing to ask.
+     *
+     * @return void
+     */
+    public function test_sync_glossary_words_does_not_blank_existing_hint_on_resync(): void {
+        global $DB;
+        [$glossary, $entry] = $this->make_glossary_entry('planeta', 'corpo celeste que orbita uma estrela');
+        $instance = $this->make_full_instance(['glossaryid' => $glossary->id]);
+        words_repository::sync_glossary_words($instance);
+
+        $DB->set_field('glossary_entries', 'definition', '', ['id' => $entry->id]);
+        $imported = words_repository::sync_glossary_words($instance);
+
+        $this->assertSame(0, $imported);
+        $record = $DB->get_record('playercross_words', ['playercrossid' => $instance->id, 'word' => 'planeta'], '*', MUST_EXIST);
+        $this->assertSame('corpo celeste que orbita uma estrela', $record->hint);
+    }
+
+    /**
      * Regression test for the sanitization-order bug: a glossary definition whose
      * markup arrives entity-encoded (exactly how the Moodle editor stores an escaped
      * `<img src=x onerror=...>` typed literally into a FORMAT_HTML field) must not
@@ -845,17 +912,25 @@ final class words_repository_test extends \advanced_testcase {
      * strip_tags() was meant to remove; content_to_text() converts HTML to plain text
      * instead, so no tag survives regardless of encoding.
      *
+     * The payload carries real text alongside the malicious markup (unlike a
+     * markup-only payload, which strip_tags() would legitimately reduce to an empty
+     * hint, and the blank-hint guard from test_sync_glossary_words_skips_blank_definition()
+     * would then correctly skip importing altogether) — this test is specifically
+     * about what survives sanitization, not about the blank-hint guard, so the
+     * payload needs a real word left over for the import to even happen.
+     *
      * @return void
      */
     public function test_sync_glossary_words_strips_entity_encoded_markup_from_hint(): void {
         global $DB;
-        $payload = '&lt;img src=x onerror=alert(document.domain)&gt;';
+        $payload = 'Corpo celeste. &lt;img src=x onerror=alert(document.domain)&gt;';
         [$glossary] = $this->make_glossary_entry('planeta', $payload);
         $instance = $this->make_full_instance(['glossaryid' => $glossary->id]);
 
         words_repository::sync_glossary_words($instance);
 
         $record = $DB->get_record('playercross_words', ['playercrossid' => $instance->id], '*', MUST_EXIST);
+        $this->assertStringContainsString('Corpo celeste', $record->hint);
         $this->assertStringNotContainsString('<img', $record->hint);
         $this->assertStringNotContainsString('onerror', $record->hint);
     }

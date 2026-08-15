@@ -74,6 +74,9 @@ if (optional_param('addword', 0, PARAM_BOOL)) {
     if ($manualword === '') {
         $notification = get_string('error_manualwordrequired', 'mod_playercross');
         $notificationtype = 'warning';
+    } else if ($manualhint === '') {
+        $notification = get_string('error_manualhintrequired', 'mod_playercross');
+        $notificationtype = 'warning';
     } else if (!word_normalizer::is_valid_charset($manualword)) {
         $notification = get_string('error_manualwordinvalidchars', 'mod_playercross');
         $notificationtype = 'warning';
@@ -104,6 +107,10 @@ if (optional_param('saveword', 0, PARAM_BOOL)) {
 
     if ($manualword === '') {
         $notification = get_string('error_manualwordrequired', 'mod_playercross');
+        $notificationtype = 'warning';
+        $editwordid = $wordid;
+    } else if ($manualhint === '') {
+        $notification = get_string('error_manualhintrequired', 'mod_playercross');
         $notificationtype = 'warning';
         $editwordid = $wordid;
     } else if (!word_normalizer::is_valid_charset($manualword)) {

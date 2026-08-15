@@ -116,7 +116,7 @@ class ai_word_generator {
             $term = trim($item['term'] ?? '');
             $hint = trim(strip_tags($item['hint'] ?? ''));
 
-            if (!self::is_valid_term($term)) {
+            if (!self::is_valid_term($term) || !self::is_valid_hint($hint)) {
                 continue;
             }
 
@@ -166,6 +166,22 @@ class ai_word_generator {
         }
 
         return (bool)preg_match('/^[\p{L}]+$/u', $term);
+    }
+
+    /**
+     * Checks whether a candidate hint from the AI response is safe to save.
+     *
+     * The prompt already asks the AI for a hint on every item, but the response is
+     * untrusted text, not a guarantee — a term without one would be saved as a clue
+     * with nothing to ask the student: its hint is shown verbatim as the clue's own
+     * phrase (see round_play.mustache), never optional the way it is in the
+     * mod_playerwords activity this class was ported from.
+     *
+     * @param string $hint Trimmed, tag-stripped candidate hint.
+     * @return bool
+     */
+    protected static function is_valid_hint(string $hint): bool {
+        return $hint !== '';
     }
 
     /**
