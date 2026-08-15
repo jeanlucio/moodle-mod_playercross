@@ -144,6 +144,39 @@ final class new_round_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that a round in progress cannot be discarded through the web service without
+     * being recorded, closing the gap where a student could call
+     * mod_playercross_new_round directly to abandon a losing round unrecorded.
+     *
+     * @return void
+     */
+    public function test_blocked_while_round_in_progress(): void {
+        global $DB;
+
+        $instance = $this->make_instance(['max_rounds' => 0, 'cooldown_amount' => 0]);
+        $this->setUser($this->student);
+
+        $state = round_service::load_state($instance->cmid, $this->student->id);
+        $state = round_service::ensure_round_state($state, $instance, $instance->cmid, $this->student->id);
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
+        round_service::save_state($instance->cmid, $this->student->id, $state);
+
+        $result = $this->call_new_round($instance->cmid);
+
+        $this->assertFalse($result['error']);
+        $this->assertFalse($result['data']['hastheme']);
+        $this->assertNotEmpty($result['data']['notification']);
+
+        // The in-progress round must still be there, untouched: not reset, and no
+        // attempt row inserted (PlayerCross only inserts one when the round actually
+        // finishes — see round_service's class docblock).
+        $state = round_service::load_state($instance->cmid, $this->student->id);
+        $this->assertFalse($state['finished']);
+        $this->assertTrue($state['roundstarted']);
+        $this->assertSame(0, $DB->count_records('playercross_attempts', ['userid' => $this->student->id]));
+    }
+
+    /**
      * Tests that a user without the view capability in the module context is rejected.
      *
      * @return void

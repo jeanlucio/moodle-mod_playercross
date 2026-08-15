@@ -239,6 +239,7 @@ $string['reveal_uncovered_slots_help'] = 'Quando uma letra da frase-mistério n�
 $string['revealthemewordlabel'] = 'A frase-mistério era:';
 $string['roundfinished'] = 'Esta rodada já foi encerrada.';
 $string['roundforfeited'] = 'Você desistiu da rodada.';
+$string['roundinprogress'] = 'Finalize ou desista da rodada atual antes de iniciar uma nova.';
 $string['roundlimitreached'] = 'Você atingiu o máximo de {$a} rodadas para esta atividade.';
 $string['roundnotstarted'] = 'Inicie a rodada antes de enviar um palpite.';
 $string['roundnottimedout'] = 'O cronômetro ainda não se esgotou.';
