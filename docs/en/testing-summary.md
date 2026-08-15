@@ -29,11 +29,11 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `puzzle_builder_test.php` | 9 |
 | `ranking_service_test.php` | 8 |
 | `round_presenter_test.php` | 39 |
-| `round_service_test.php` | 44 |
+| `round_service_test.php` | 45 |
 | `view_page_service_test.php` | 23 |
 | `word_normalizer_test.php` | 29 |
-| `words_repository_test.php` | 53 |
-| **Subtotal** | **271** |
+| `words_repository_test.php` | 58 |
+| **Subtotal** | **277** |
 
 ### Web Services Tests (`tests/external/`)
 
@@ -50,7 +50,7 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `submit_final_guess_test.php` | 5 |
 | **Subtotal** | **47** |
 
-| **Grand Total** | **361** |
+| **Grand Total** | **367** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross

@@ -26,7 +26,7 @@ The activity integrates with the course **Glossary** (words and definitions are 
 
 Designed around **retrieval practice** and **spaced repetition**, with an added layer of **associative learning** — the student must hold several concepts in mind at once and notice how they connect through shared letters.
 
-📚 **[Full documentation](https://jeanlucio.github.io/moodle-mod_playercross/)** — features, educational purpose, the PlayerGames ecosystem, usage guide, grading & ranking model, the full 361-case PHPUnit suite (81% line coverage) plus a 34-scenario Behat suite, and security details.
+📚 **[Full documentation](https://jeanlucio.github.io/moodle-mod_playercross/)** — features, educational purpose, the PlayerGames ecosystem, usage guide, grading & ranking model, the full 367-case PHPUnit suite (81% line coverage) plus a 34-scenario Behat suite, and security details.
 
 ### 🔒 Third-party Service Disclosure
 
@@ -98,7 +98,7 @@ A atividade integra-se com o **Glossário** do curso (palavras e definições s�
 
 Baseado na **prática de recuperação** e na **repetição espaçada**, com uma camada adicional de **aprendizagem associativa** — o estudante precisa manter vários conceitos em mente ao mesmo tempo e perceber como se conectam por meio de letras compartilhadas.
 
-📚 **[Documentação completa](https://jeanlucio.github.io/moodle-mod_playercross/pt.html)** — funcionalidades, finalidade educacional, ecossistema PlayerGames, guia de uso, modelo de nota e ranking, a suíte completa de 361 testes PHPUnit (81% de cobertura de linhas) mais uma suíte Behat de 34 cenários, e detalhes de segurança.
+📚 **[Documentação completa](https://jeanlucio.github.io/moodle-mod_playercross/pt.html)** — funcionalidades, finalidade educacional, ecossistema PlayerGames, guia de uso, modelo de nota e ranking, a suíte completa de 367 testes PHPUnit (81% de cobertura de linhas) mais uma suíte Behat de 34 cenários, e detalhes de segurança.
 
 ### 🔒 Divulgação de Serviço de Terceiros
 
