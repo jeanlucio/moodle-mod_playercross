@@ -42,6 +42,7 @@ jobs:
       matrix:
         include:
           - {moodle-branch: 'MOODLE_502_STABLE', php: '8.3', database: 'pgsql', runchecks: 'all'}
+          - {moodle-branch: 'MOODLE_502_STABLE', php: '8.3', database: 'pgsql', runchecks: 'all', noplayerhud: 'true'}
           - {moodle-branch: 'MOODLE_502_STABLE', php: '8.4', database: 'mariadb'}
           - {moodle-branch: 'MOODLE_501_STABLE', php: '8.3', database: 'pgsql'}
           - {moodle-branch: 'MOODLE_501_STABLE', php: '8.2', database: 'mariadb'}
@@ -74,7 +75,9 @@ jobs:
 
       - name: Install moodle-plugin-ci
         run: |
-          moodle-plugin-ci add-plugin jeanlucio/moodle-block_playerhud
+          if [ "${{ matrix.noplayerhud }}" != "true" ]; then
+            moodle-plugin-ci add-plugin jeanlucio/moodle-block_playerhud
+          fi
           moodle-plugin-ci install --plugin ./plugin --db-host=127.0.0.1
         env:
           DB: ${{ matrix.database }}
@@ -117,9 +120,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci phpunit --fail-on-warning
 
+      # Several Behat scenarios (e.g. settings.feature's "add the PlayerHUD block") require
+      # block_playerhud to genuinely be installed and would fail outright, not skip, on the
+      # noplayerhud leg — this leg only exists to exercise PHPUnit's block_playerhud-absent
+      # fallback path (hud_service's neutral-value guards), not to run Behat without the block.
       - name: Behat tests
         id: behat
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.noplayerhud != 'true' }}
         run: moodle-plugin-ci behat --profile chrome --scss-deprecations
 
       - name: Upload Behat Faildump
