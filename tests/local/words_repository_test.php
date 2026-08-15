@@ -185,6 +185,46 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test ported from mod_playerwords: an unapproved word is never a clue
+     * candidate, regardless of otherwise fitting the length range.
+     *
+     * @return void
+     */
+    public function test_get_candidate_words_excludes_unapproved(): void {
+        global $DB;
+        $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        $pending = $this->modgenerator->create_word($instance->id, 'gato');
+        $DB->set_field('playercross_words', 'approved', 0, ['id' => $pending->id]);
+
+        $this->assertSame([], words_repository::get_candidate_words($instance));
+    }
+
+    /**
+     * Regression test ported from mod_playerwords: a word containing non-letter
+     * characters is never a clue candidate.
+     *
+     * @return void
+     */
+    public function test_get_candidate_words_excludes_non_letter_chars(): void {
+        $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        $this->modgenerator->create_word($instance->id, 'ga to');
+
+        $this->assertSame([], words_repository::get_candidate_words($instance));
+    }
+
+    /**
+     * pick_theme_word() returns null instead of throwing when the theme-candidate pool
+     * is empty — the caller (ensure_round_state()) relies on this to degrade instead of
+     * fataling for a misconfigured or under-stocked activity.
+     *
+     * @return void
+     */
+    public function test_pick_theme_word_returns_null_when_empty(): void {
+        $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
+        $this->assertNull(words_repository::pick_theme_word($instance));
+    }
+
+    /**
      * PLAYERCROSS_WORDMODE_SHARED must be deterministic across independent calls for
      * the same round number.
      *
@@ -207,6 +247,29 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * PLAYERCROSS_WORDMODE_SHARED cycles through the candidate pool as completedround
+     * advances, wrapping back to the same theme word once the round count exceeds the
+     * pool size — not just deterministic for a single fixed round number.
+     *
+     * @return void
+     */
+    public function test_pick_theme_word_shared_cycles(): void {
+        $instance = $this->modgenerator->create_instance([
+            'course' => $this->course->id,
+            'theme_min_length' => 6,
+            'wordmode' => PLAYERCROSS_WORDMODE_SHARED,
+        ]);
+        $this->modgenerator->create_word($instance->id, 'floresta');
+        $this->modgenerator->create_word($instance->id, 'escritor');
+        $this->modgenerator->create_word($instance->id, 'lanterna');
+
+        $round0 = words_repository::pick_theme_word($instance, 0);
+        $round3 = words_repository::pick_theme_word($instance, 3);
+        $this->assertNotNull($round0);
+        $this->assertSame($round0->word, $round3->word);
+    }
+
+    /**
      * In random mode, an excluded theme id is avoided while an alternative exists.
      *
      * @return void
@@ -226,6 +289,28 @@ final class words_repository_test extends \advanced_testcase {
             $this->assertNotNull($word);
             $this->assertSame('escritor', $word->word);
         }
+    }
+
+    /**
+     * In random mode, the excluded theme id is allowed back in when it is the only
+     * candidate left — refusing it would leave the round with no theme word at all,
+     * blocking play entirely instead of just repeating the last one.
+     *
+     * @return void
+     */
+    public function test_pick_theme_word_random_allows_excluded_id_when_it_is_the_only_candidate(): void {
+        global $DB;
+        $instance = $this->modgenerator->create_instance([
+            'course' => $this->course->id,
+            'theme_min_length' => 6,
+        ]);
+        $this->modgenerator->create_word($instance->id, 'floresta');
+        $excludeid = (int)$DB->get_field('playercross_words', 'id', ['word' => 'floresta'], MUST_EXIST);
+
+        $word = words_repository::pick_theme_word($instance, 0, $excludeid);
+
+        $this->assertNotNull($word);
+        $this->assertSame('floresta', $word->word);
     }
 
     /**

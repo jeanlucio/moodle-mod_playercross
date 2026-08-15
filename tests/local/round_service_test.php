@@ -284,6 +284,32 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test ported from mod_playerwords: reveal_hint() is rejected once the
+     * round is already finished, instead of silently revealing further tiles for a
+     * round that no longer counts.
+     *
+     * @return void
+     */
+    public function test_reveal_hint_rejected_when_already_finished(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+        [$state] = round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
+        $this->assertTrue($state['finished']);
+        $revealedbefore = $state['revealedslots'];
+
+        [$state, $notification] = round_service::reveal_hint($state, $instance, $cm->cmid, $this->user->id);
+
+        $this->assertNotEmpty($notification);
+        $this->assertSame($revealedbefore, $state['revealedslots']);
+    }
+
+    /**
      * Regression test for the round-cost bypass: same as
      * test_submit_clue_guess_rejected_when_round_not_started(), for revealing a hint —
      * which has its own configurable PlayerHUD cost, equally skippable before
