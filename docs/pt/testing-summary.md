@@ -14,26 +14,26 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 | `lib_grant_potential_test.php` | 6 |
 | `lib_reset_userdata_test.php` | 4 |
 | `completion/custom_completion_test.php` | 6 |
-| `privacy/provider_test.php` | 14 |
-| **Subtotal** | **41** |
+| `privacy/provider_test.php` | 16 |
+| **Subtotal** | **43** |
 
 ### Testes de Lógica de Negócio (`tests/local/`)
 
 | Arquivo de teste | Casos |
 |-----------------|------:|
-| `ai_word_generator_test.php` | 12 |
-| `attempts_history_service_test.php` | 11 |
+| `ai_word_generator_test.php` | 14 |
+| `attempts_history_service_test.php` | 12 |
 | `gameplay_service_test.php` | 8 |
-| `hud_service_test.php` | 26 |
+| `hud_service_test.php` | 27 |
 | `intro_service_test.php` | 5 |
 | `puzzle_builder_test.php` | 9 |
-| `ranking_service_test.php` | 6 |
+| `ranking_service_test.php` | 8 |
 | `round_presenter_test.php` | 39 |
 | `round_service_test.php` | 44 |
 | `view_page_service_test.php` | 23 |
 | `word_normalizer_test.php` | 29 |
-| `words_repository_test.php` | 51 |
-| **Subtotal** | **263** |
+| `words_repository_test.php` | 53 |
+| **Subtotal** | **271** |
 
 ### Testes de Web Services (`tests/external/`)
 
@@ -43,14 +43,14 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 | `count_eligible_words_test.php` | 5 |
 | `count_glossary_candidates_test.php` | 4 |
 | `end_round_test.php` | 4 |
-| `new_round_test.php` | 3 |
+| `new_round_test.php` | 5 |
 | `reveal_hint_test.php` | 7 |
 | `start_round_test.php` | 7 |
 | `submit_clue_guess_test.php` | 5 |
 | `submit_final_guess_test.php` | 5 |
-| **Subtotal** | **45** |
+| **Subtotal** | **47** |
 
-| **Total Geral** | **349** |
+| **Total Geral** | **361** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross
