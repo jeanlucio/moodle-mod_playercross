@@ -34,15 +34,17 @@
  * browser behaviour), so a single wrong letter can be fixed without retyping the rest.
  * A guess is assembled at submit time by reading every tile in a row, in order: a
  * locked span's own letter, or a box's typed value (see buildClueGuess/
- * buildFinalGuess). A guess is confirmed via the keyboard's own Enviar key, a physical
- * Enter key, or the row's own submit button (each row's <form> carries one, see
- * round_play.mustache/round_panel.mustache) — that last one stays hidden (.pc-row-submit,
- * still tab-reachable) until every one of the row's own boxes is filled, at which point
- * refreshRowReadiness reveals it right where the player is already looking. Usability
- * testing showed players otherwise assumed every row had to be completed before
- * anything could be submitted, since nothing on screen suggested a single row could be
- * checked on its own; an earlier fix pulsed the shared keyboard key instead, but that cue
- * sits far from the row itself and was replaced by this one.
+ * buildFinalGuess). A guess is confirmed via a physical Enter key or the row's own
+ * submit button (each row's <form> carries one, see round_play.mustache/
+ * round_panel.mustache) — that button stays hidden (.pc-row-submit, still tab-reachable)
+ * until every one of the row's own boxes is filled, at which point refreshRowReadiness
+ * reveals it right where the player is already looking. Usability testing showed
+ * players otherwise assumed every row had to be completed before anything could be
+ * submitted, since nothing on screen suggested a single row could be checked on its
+ * own; earlier fixes tried a submit key on the shared virtual keyboard (plain, then
+ * pulsing) before settling on this per-row button — the on-screen keyboard itself has
+ * no Enter/submit key of its own any more, matching the original game this plugin is
+ * based on (see .plans/PlayerCross.jpeg): only letters and Backspace.
  *
  * Submitting any one row (or revealing a hint) re-renders the *whole* panel from the
  * server's response — the only state the server knows about. Whatever the player had
@@ -841,15 +843,6 @@ const handleKeyboardKey = (key) => {
             prev.value = '';
             prev.focus();
             refreshRowReadiness(form);
-        }
-        return;
-    }
-    if (key === 'ENTER') {
-        const form = activeInput.closest('form');
-        if (form?.requestSubmit) {
-            form.requestSubmit();
-        } else {
-            form?.submit();
         }
         return;
     }

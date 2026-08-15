@@ -435,8 +435,6 @@ class round_presenter {
             'forfeitlabel' => get_string('forfeitbutton', 'mod_playercross'),
             'forfeitconfirm' => get_string('forfeitconfirm', 'mod_playercross'),
             'keyboardlabel' => get_string('keyboard_label', 'mod_playercross'),
-            'keyboardenterlabel' => get_string('keyboard_enter', 'mod_playercross'),
-            'keyboardentertext' => get_string('keyboard_enter_text', 'mod_playercross'),
             'keyboardbackspacelabel' => get_string('keyboard_backspace', 'mod_playercross'),
             'showcedilla' => words_repository::has_cedilla_word((int)$instance->id),
         ] + self::build_global_hint_context($instance, $state, $userid, $roundfinished)

@@ -96,5 +96,5 @@ Feature: PlayerCross PlayerHUD integration
     And I am on the "Cross HudWin" "playercross activity" page
     And I click on "Start round" "button"
     And I fill the PlayerCross mystery phrase tiles with "escola"
-    And I click on "[data-key=\"ENTER\"]" "css_element"
+    And I press enter
     Then I should see "You received 1× Trophy!"

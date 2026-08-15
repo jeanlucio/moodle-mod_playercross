@@ -248,8 +248,6 @@ class submit_clue_guess extends external_api {
             'canfinalguess'      => new external_value(PARAM_BOOL, 'Whether a final guess can still be submitted'),
             'submitfinalguess'   => new external_value(PARAM_TEXT, 'Submit final guess button label'),
             'keyboardlabel' => new external_value(PARAM_TEXT, 'Virtual keyboard accessible group label'),
-            'keyboardenterlabel' => new external_value(PARAM_TEXT, 'Virtual keyboard submit key accessible label'),
-            'keyboardentertext' => new external_value(PARAM_TEXT, 'Virtual keyboard submit key visible text'),
             'keyboardbackspacelabel' => new external_value(
                 PARAM_TEXT,
                 'Virtual keyboard backspace key accessible label'

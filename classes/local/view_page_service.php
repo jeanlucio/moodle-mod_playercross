@@ -220,11 +220,7 @@ class view_page_service {
             'legendrevealedlabel' => get_string('help_legend_revealed', 'mod_playercross'),
             'legendhiddenlabel' => get_string('help_legend_hidden', 'mod_playercross'),
             'cluestext' => get_string('help_clues', 'mod_playercross'),
-            'submittext' => get_string(
-                'help_submit',
-                'mod_playercross',
-                get_string('keyboard_enter_text', 'mod_playercross')
-            ),
+            'submittext' => get_string('help_submit', 'mod_playercross'),
             'hinttext' => get_string('help_hint', 'mod_playercross'),
             'finalguesstext' => get_string('help_finalguess', 'mod_playercross'),
             'winconditiontext' => get_string($winconditionstring, 'mod_playercross'),

@@ -527,10 +527,6 @@
     border-color: #0dcaf0;
 }
 
-.path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-enter {
-    font-size: 0.8rem;
-}
-
 .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-backspace {
     font-size: 0.95rem;
 }
@@ -749,10 +745,6 @@
 
     .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-wide {
         min-width: 3rem;
-    }
-
-    .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-enter {
-        font-size: 0.65rem;
     }
 
     .path-mod-playercross .mod-playercross-keyboard .pc-key.pc-key-backspace {

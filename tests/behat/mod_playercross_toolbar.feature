@@ -75,7 +75,7 @@ Feature: PlayerCross toolbar and modals
     When I click on "Start round" "button"
     Then "#playercross-forfeit-button" "css_element" should be visible
     When I fill the PlayerCross mystery phrase tiles with "escola"
-    And I click on "[data-key=\"ENTER\"]" "css_element"
+    And I press enter
     Then "#playercross-forfeit-button" "css_element" should not be visible
 
   Scenario: The help modal shows the optional paragraphs when they are all relevant
@@ -138,5 +138,5 @@ Feature: PlayerCross toolbar and modals
     When I click on "[data-action=\"cancel\"]" "css_element"
     Then "#playercross-round-play" "css_element" should exist
     When I fill PlayerCross clue "1" tiles with "livro"
-    And I click on "[data-key=\"ENTER\"]" "css_element"
+    And I press enter
     Then "li.mod-playercross-clue.is-resolved" "css_element" should exist

@@ -31,7 +31,7 @@ Feature: PlayerCross teacher-facing settings behaviour
     And I am on the "Cross Freeze" "playercross activity" page
     And I click on "Start round" "button"
     And I fill the PlayerCross mystery phrase tiles with "escola"
-    And I click on "[data-key=\"ENTER\"]" "css_element"
+    And I press enter
     And I should see "You solved the mystery phrase directly!"
     And I log in as "teacher1"
     And I am on the "Cross Freeze" "playercross activity editing" page

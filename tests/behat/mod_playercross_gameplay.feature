@@ -32,7 +32,7 @@ Feature: PlayerCross core gameplay loop
     And I click on "Start round" "button"
     And "#playercross-timer-wrapper" "css_element" should be visible
     When I fill the PlayerCross mystery phrase tiles with "escola"
-    And I click on "[data-key=\"ENTER\"]" "css_element"
+    And I press enter
     Then I should see "You solved the mystery phrase directly!"
     And I should see "The mystery phrase was:"
     And I should see "ESCOLA"
@@ -50,7 +50,7 @@ Feature: PlayerCross core gameplay loop
     And I am on the "Cross Clue" "playercross activity" page
     And I click on "Start round" "button"
     When I fill PlayerCross clue "1" tiles with "livro"
-    And I click on "[data-key=\"ENTER\"]" "css_element"
+    And I press enter
     Then "li.mod-playercross-clue.is-resolved" "css_element" should exist
 
   Scenario: Student forfeits an active round with a confirmation dialog
@@ -95,7 +95,7 @@ Feature: PlayerCross core gameplay loop
     And I am on the "Cross Limit" "playercross activity" page
     And I click on "Start round" "button"
     And I fill the PlayerCross mystery phrase tiles with "escola"
-    And I click on "[data-key=\"ENTER\"]" "css_element"
+    And I press enter
     Then I should see "You solved the mystery phrase directly!"
     And I should see "Rounds played: 1 / 1."
     And "#playercross-new-round-button" "css_element" should not exist
@@ -113,7 +113,7 @@ Feature: PlayerCross core gameplay loop
     And I am on the "Cross Cooldown" "playercross activity" page
     And I click on "Start round" "button"
     And I fill the PlayerCross mystery phrase tiles with "escola"
-    And I click on "[data-key=\"ENTER\"]" "css_element"
+    And I press enter
     Then I should see "Next round in"
     And "#playercross-cooldown-countdown" "css_element" should exist
     And "#playercross-new-round-button" "css_element" should not exist
