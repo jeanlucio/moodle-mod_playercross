@@ -47,7 +47,7 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `new_round_test.php` | 5 |
 | `reveal_hint_test.php` | 8 |
 | `start_round_test.php` | 7 |
-| `submit_clue_guess_test.php` | 7 |
+| `submit_term_guess_test.php` | 7 |
 | `submit_final_guess_test.php` | 5 |
 | **Subtotal** | **52** |
 

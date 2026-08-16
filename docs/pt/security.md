@@ -7,7 +7,7 @@
 * Validação do conjunto de caracteres do palpite — só letras Unicode são aceitas
 * Palavras geradas por IA são tratadas como entrada não confiável: só termos de um único token, alfabéticos, dentro do intervalo de comprimento configurado são salvos, e entram pendentes de aprovação do professor
 * O estado de sessão da rodada é isolado por instância de atividade e por usuário — um id de palavra ou chave de sessão de uma atividade nunca é aceito por outra
-* Um palpite errado de pista ou de frase-mistério nunca vaza a palavra correta; a palavra-tema só é revelada quando a rodada realmente termina
+* Um palpite errado de termo ou de frase-mistério nunca vaza a palavra correta; a palavra-tema só é revelada quando a rodada realmente termina
 * Compatível com a External API do Moodle
 * API de Privacidade totalmente implementada (LGPD/GDPR)
 

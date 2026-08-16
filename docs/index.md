@@ -17,8 +17,8 @@ lang: en
 [![Open Issues](https://img.shields.io/github/issues/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/issues)
 
 **PlayerCross** is a deduction crossword-style vocabulary activity for Moodle. Each round draws a
-**mystery phrase** and a set of **clues** built from related course concepts; resolving a clue
-reveals the letters it shares with every other pending clue and with the mystery phrase itself.
+**mystery phrase** and a set of **terms** built from related course concepts; resolving a term
+reveals the letters it shares with every other pending term and with the mystery phrase itself.
 
 Use the sidebar to jump to any section on this page.
 

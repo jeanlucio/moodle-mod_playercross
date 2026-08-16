@@ -7,7 +7,7 @@
 * Guess charset validation — only Unicode letters accepted
 * AI-generated words are treated as untrusted input: only single-token, alphabetic terms within the configured length bounds are saved, and they enter pending teacher approval
 * Session round state is isolated per activity instance and per user — a word id or session key from one activity is never accepted by another
-* A wrong clue guess or a wrong mystery-phrase guess never leaks the correct word; the theme word is only ever revealed once the round has actually finished
+* A wrong term guess or a wrong mystery-phrase guess never leaks the correct word; the theme word is only ever revealed once the round has actually finished
 * Moodle External API compliant
 * Privacy API fully implemented (GDPR/LGPD)
 

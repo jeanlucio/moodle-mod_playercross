@@ -18,9 +18,9 @@
 
 ## English
 
-**PlayerCross** is a deduction crossword-style vocabulary activity for Moodle. Each round draws a **mystery phrase** (a course concept's own hint) and a set of **clues** (other concepts whose words share letters with it). Solving a clue reveals its shared letters everywhere they occur — in every pending clue and in the mystery phrase itself.
+**PlayerCross** is a deduction crossword-style vocabulary activity for Moodle. Each round draws a **mystery phrase** (a course concept's own clue) and a set of **terms** (other concepts whose words share letters with it). Solving a term reveals its shared letters everywhere they occur — in every pending term and in the mystery phrase itself.
 
-The activity integrates with the course **Glossary** (words and definitions are imported automatically), can generate word candidates through **AI**, and integrates with the **PlayerHUD** gamification block (items can be required to start a round or to reveal a clue's hint, and an item can be granted for each round won).
+The activity integrates with the course **Glossary** (words and definitions are imported automatically), can generate word candidates through **AI**, and integrates with the **PlayerHUD** gamification block (items can be required to start a round or to reveal a term's hint, and an item can be granted for each round won).
 
 Designed around **retrieval practice** and **spaced repetition**, with an added layer of **associative learning** — the student must hold several concepts in mind at once and notice how they connect through shared letters.
 
@@ -90,9 +90,9 @@ Maintained by [Jean Lúcio](https://github.com/jeanlucio).
 
 ## Português
 
-O **PlayerCross** é uma atividade de palavras cruzadas por dedução para o Moodle. Cada rodada sorteia uma **frase-mistério** (a própria dica de um conceito do curso) e um conjunto de **pistas** (outros conceitos cujas palavras compartilham letras com ela). Resolver uma pista revela suas letras compartilhadas em todo lugar onde ocorrem — em todas as pistas pendentes e na própria frase-mistério.
+O **PlayerCross** é uma atividade de palavras cruzadas por dedução para o Moodle. Cada rodada sorteia uma **frase-mistério** (a própria pista de um conceito do curso) e um conjunto de **termos** (outros conceitos cujas palavras compartilham letras com ela). Resolver um termo revela suas letras compartilhadas em todo lugar onde ocorrem — em todos os termos pendentes e na própria frase-mistério.
 
-A atividade integra-se com o **Glossário** do curso (palavras e definições são importadas automaticamente), pode gerar candidatas a palavra por **IA**, e integra-se com o bloco de gamificação **PlayerHUD** (itens podem ser exigidos para iniciar uma rodada ou revelar a dica de uma pista, e um item pode ser concedido a cada rodada vencida).
+A atividade integra-se com o **Glossário** do curso (palavras e definições são importadas automaticamente), pode gerar candidatas a palavra por **IA**, e integra-se com o bloco de gamificação **PlayerHUD** (itens podem ser exigidos para iniciar uma rodada ou revelar a dica de um termo, e um item pode ser concedido a cada rodada vencida).
 
 Baseado na **prática de recuperação** e na **repetição espaçada**, com uma camada adicional de **aprendizagem associativa** — o estudante precisa manter vários conceitos em mente ao mesmo tempo e perceber como se conectam por meio de letras compartilhadas.
 

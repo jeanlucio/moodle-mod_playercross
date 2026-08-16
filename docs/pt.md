@@ -17,9 +17,9 @@ lang: pt
 [![Open Issues](https://img.shields.io/github/issues/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/issues)
 
 O **PlayerCross** é uma atividade de palavras cruzadas por dedução para o Moodle. Cada rodada
-sorteia uma **frase-mistério** e um conjunto de **pistas** montado a partir de conceitos
-relacionados do curso; resolver uma pista revela as letras que ela compartilha com toda outra
-pista pendente e com a própria frase-mistério.
+sorteia uma **frase-mistério** e um conjunto de **termos** montado a partir de conceitos
+relacionados do curso; resolver um termo revela as letras que ele compartilha com todo outro
+termo pendente e com a própria frase-mistério.
 
 Use a barra lateral para pular direto a qualquer seção desta página.
 
