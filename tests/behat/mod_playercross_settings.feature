@@ -52,7 +52,7 @@ Feature: PlayerCross teacher-facing settings behaviour
     And I am on the "Cross Manage" "playercross activity" page
     And I click on "a.pc-toolbar-btn[title=\"Manage words\"]" "css_element"
     When I set the field "playercross-manualword" to "escola"
-    And I set the field "playercross-manualhint" to "A place to keep notes and school exercises."
+    And I set the field "playercross-manualclue" to "A place to keep notes and school exercises."
     And I click on "Add word" "button"
     Then I should see "This word already exists in this activity's word pool."
 
@@ -64,7 +64,7 @@ Feature: PlayerCross teacher-facing settings behaviour
     And I am on the "Cross InvalidChars" "playercross activity" page
     And I click on "a.pc-toolbar-btn[title=\"Manage words\"]" "css_element"
     When I set the field "playercross-manualword" to "test123"
-    And I set the field "playercross-manualhint" to "A word the game cannot accept."
+    And I set the field "playercross-manualclue" to "A word the game cannot accept."
     And I click on "Add word" "button"
     Then I should see "Word must contain letters only"
 
