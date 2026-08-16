@@ -35,11 +35,11 @@ Feature: PlayerCross PlayerHUD integration
       | livro  |
     And I log in as "student1"
     And I am on the "Cross HudLobby" "playercross activity" page
-    Then I should see "You have 0× Gold Key. Costs 2×."
+    Then I should see "Costs 2× Gold Key (you have 0)."
     And the "#playercross-start-round-button" element should be disabled in PlayerCross
     When "student1" has 2 PlayerCross PlayerHUD item "Gold Key" in course "C1"
     And I reload the page
-    Then I should see "You have 2× Gold Key. Costs 2×."
+    Then I should see "Costs 2× Gold Key (you have 2)."
     And I click on "Start round" "button"
     And "#playercross-round-play" "css_element" should exist
 
@@ -57,7 +57,7 @@ Feature: PlayerCross PlayerHUD integration
     And I am on the "Cross HudHint" "playercross activity" page
     And I click on "Start round" "button"
     When I click on "#playercross-global-hint-button" "css_element"
-    Then I should see "You have 0× Magnifying Glass. Costs 1×."
+    Then I should see "Costs 1× Magnifying Glass (you have 0)."
     And the "[data-action=save]" element should be disabled in PlayerCross
     When I click on "[data-action=\"cancel\"]" "css_element"
     And "student1" has 1 PlayerCross PlayerHUD item "Magnifying Glass" in course "C1"
