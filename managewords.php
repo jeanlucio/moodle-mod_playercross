@@ -292,6 +292,7 @@ $templatecontext = [
     'aigeneratetopic'        => get_string('aigeneratetopic', 'mod_playercross'),
     'aigeneratecount'        => get_string('aigeneratecount', 'mod_playercross'),
     'aigeneratebutton'       => get_string('aigeneratebutton', 'mod_playercross'),
+    'aigenerating'           => get_string('aigenerating', 'mod_playercross'),
     'recentwordslabel'       => get_string('recentwordslabel', 'mod_playercross'),
     'nowordsyet'             => get_string('nowordsyet', 'mod_playercross'),
     'wordcolumnlabel'        => get_string('wordcolumnlabel', 'mod_playercross'),

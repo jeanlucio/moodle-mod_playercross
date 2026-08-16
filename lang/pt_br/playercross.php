@@ -34,6 +34,7 @@ $string['aigeneratedsaved'] = '{$a} palavra(s) gerada(s) e salva(s) para revisã
 $string['aigenerateerror'] = 'Falha na geração de palavras. Verifique as configurações de IA na administração do site.';
 $string['aigeneratetitle'] = 'Gerar palavras com IA';
 $string['aigeneratetopic'] = 'Tema';
+$string['aigenerating'] = 'Gerando com IA…';
 $string['aiusage'] = 'Geração de palavras - {$a}';
 $string['approvedstatus'] = 'Aprovada';
 $string['attemptsreport_empty'] = 'Nenhum estudante concluiu uma rodada ainda.';

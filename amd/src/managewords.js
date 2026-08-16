@@ -197,6 +197,29 @@ define(['core/modal_save_cancel', 'core/modal_events', 'core/str'], function(Mod
         });
     };
 
+    /**
+     * Disables the AI-generate button and swaps its label to a spinner + "Generating…"
+     * the moment the form is actually submitted (native browser validation on the
+     * required topic field has already passed by the time 'submit' fires, so this never
+     * shows on a blocked, invalid submission). The button never needs to be restored:
+     * this form does a real page reload, not an AJAX call, so the whole page — button
+     * included — is replaced once the server responds.
+     */
+    const initAiGenerate = () => {
+        const form = document.getElementById('playercross-ai-generate-form');
+        const btn = document.getElementById('playercross-ai-generate-btn');
+        if (!form || !btn) {
+            return;
+        }
+
+        form.addEventListener('submit', () => {
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>` +
+                btn.dataset.generatinglabel;
+        });
+    };
+
     return {
         /**
          * Entry point called by managewords.php via $PAGE->requires->js_call_amd().
@@ -205,6 +228,7 @@ define(['core/modal_save_cancel', 'core/modal_events', 'core/str'], function(Mod
             initSelectAll();
             initBulkActions();
             initSingleDelete();
+            initAiGenerate();
             updateBulkButtons();
         },
     };

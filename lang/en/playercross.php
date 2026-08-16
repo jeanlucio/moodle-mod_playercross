@@ -34,6 +34,7 @@ $string['aigeneratedsaved'] = '{$a} word(s) generated and pending review.';
 $string['aigenerateerror'] = 'Word generation failed. Check the AI settings in site administration.';
 $string['aigeneratetitle'] = 'Generate words with AI';
 $string['aigeneratetopic'] = 'Topic';
+$string['aigenerating'] = 'Generating with AI…';
 $string['aiusage'] = 'Word generation - {$a}';
 $string['approvedstatus'] = 'Approved';
 $string['attemptsreport_empty'] = 'No student has finished a round yet.';

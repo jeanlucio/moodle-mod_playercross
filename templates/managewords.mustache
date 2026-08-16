@@ -38,6 +38,7 @@
         "aigeneratetopic": "Topic",
         "aigeneratecount": "Number of words",
         "aigeneratebutton": "Generate with AI",
+        "aigenerating": "Generating with AI…",
         "recentwordslabel": "Word pool",
         "nowordsyet": "No words have been added yet.",
         "wordcolumnlabel": "Word",
@@ -210,7 +211,11 @@
 <div class="card mb-3">
     <div class="card-body">
         <h3 class="h5">{{aigeneratetitle}}</h3>
-        <form method="post" action="{{{config.wwwroot}}}/mod/playercross/managewords.php">
+        <form
+            id="playercross-ai-generate-form"
+            method="post"
+            action="{{{config.wwwroot}}}/mod/playercross/managewords.php"
+        >
             <input type="hidden" name="id" value="{{cmid}}">
             <input type="hidden" name="generateai" value="1">
             <input type="hidden" name="sesskey" value="{{sesskey}}">
@@ -237,7 +242,12 @@
                 max="20"
             >
 
-            <button type="submit" class="btn btn-outline-primary mt-2">{{aigeneratebutton}}</button>
+            <button
+                type="submit"
+                id="playercross-ai-generate-btn"
+                class="btn btn-outline-primary mt-2"
+                data-generatinglabel="{{aigenerating}}"
+            >{{aigeneratebutton}}</button>
         </form>
     </div>
 </div>
