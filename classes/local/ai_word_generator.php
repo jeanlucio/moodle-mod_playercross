@@ -114,9 +114,9 @@ class ai_word_generator {
             }
 
             $term = trim($item['term'] ?? '');
-            $hint = trim(strip_tags($item['hint'] ?? ''));
+            $clue = trim(strip_tags($item['clue'] ?? ''));
 
-            if (!self::is_valid_term($term) || !self::is_valid_hint($hint)) {
+            if (!self::is_valid_term($term) || !self::is_valid_clue($clue)) {
                 continue;
             }
 
@@ -129,7 +129,7 @@ class ai_word_generator {
                 continue;
             }
 
-            words_repository::add_ai_word((int)$instance->id, $userid, $term, $hint);
+            words_repository::add_ai_word((int)$instance->id, $userid, $term, $clue);
             $seen[$key] = true;
             $saved++;
         }
@@ -169,23 +169,23 @@ class ai_word_generator {
     }
 
     /**
-     * Checks whether a candidate hint from the AI response is safe to save.
+     * Checks whether a candidate clue from the AI response is safe to save.
      *
-     * The prompt already asks the AI for a hint on every item, but the response is
-     * untrusted text, not a guarantee — a term without one would be saved as a clue
-     * with nothing to ask the student: its hint is shown verbatim as the clue's own
+     * The prompt already asks the AI for a clue on every item, but the response is
+     * untrusted text, not a guarantee — a term without one would be saved as a term
+     * with nothing to ask the student: its clue is shown verbatim as the term's own
      * phrase (see round_play.mustache), never optional the way it is in the
      * mod_playerwords activity this class was ported from.
      *
-     * @param string $hint Trimmed, tag-stripped candidate hint.
+     * @param string $clue Trimmed, tag-stripped candidate clue.
      * @return bool
      */
-    protected static function is_valid_hint(string $hint): bool {
-        return $hint !== '';
+    protected static function is_valid_clue(string $clue): bool {
+        return $clue !== '';
     }
 
     /**
-     * Builds the prompt asking the AI for single-word terms with hints.
+     * Builds the prompt asking the AI for single-word terms with clues.
      *
      * @param string $topic Subject area or theme.
      * @param string $language Target language name.
@@ -195,7 +195,7 @@ class ai_word_generator {
      */
     protected static function build_prompt(string $topic, string $language, int $count, array $avoidwords = []): string {
         $langname = $language !== '' ? $language : 'English';
-        $example = '{"words":[{"term":"...","hint":"..."}]}';
+        $example = '{"words":[{"term":"...","clue":"..."}]}';
 
         $parts = [
             "You are generating vocabulary words for a deduction crossword game about the topic: \"{$topic}\".",
@@ -205,7 +205,7 @@ class ai_word_generator {
                 . ' or punctuation. Spell it correctly for language: ' . $langname
                 . ', keeping every accent, diacritic or cedilla the word normally takes —'
                 . ' do not strip them.',
-            '- hint: one short clue sentence that helps guess the word without containing the word itself.',
+            '- clue: one short clue sentence that helps guess the word without containing the word itself.',
             'Prefer common, guessable words. Avoid proper nouns and abbreviations.',
         ];
 
@@ -221,13 +221,13 @@ class ai_word_generator {
     }
 
     /**
-     * Parses the AI response into an array of term/hint pairs.
+     * Parses the AI response into an array of term/clue pairs.
      *
      * Strips optional markdown code fences, then decodes the JSON. Accepts a
      * "words" or legacy "concepts" wrapper, or a bare list.
      *
      * @param string $responsetext Raw text returned by the AI provider.
-     * @return array Array of arrays with keys: term, hint.
+     * @return array Array of arrays with keys: term, clue.
      */
     protected static function parse_words(string $responsetext): array {
         $cleaned = preg_replace('/^\x60\x60\x60(?:json)?\s*/im', '', $responsetext);
@@ -256,7 +256,7 @@ class ai_word_generator {
             }
             $items[] = [
                 'term' => (string)($entry['term'] ?? ''),
-                'hint' => (string)($entry['hint'] ?? ($entry['definition'] ?? '')),
+                'clue' => (string)($entry['clue'] ?? ($entry['definition'] ?? '')),
             ];
         }
         return $items;

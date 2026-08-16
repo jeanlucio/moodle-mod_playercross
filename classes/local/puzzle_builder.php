@@ -27,12 +27,12 @@ namespace mod_playercross\local;
 use moodle_exception;
 
 /**
- * Builds a round's puzzle: picks a theme concept, ciphers its own hint's letters into
- * slots — the hint is the mystery phrase to guess; the concept's word itself is shown
- * openly as a caption, never tiled (SCOPE.md §20.2 v1.9) — greedily selects clue words
+ * Builds a round's puzzle: picks a theme concept, ciphers its own clue's letters into
+ * slots — the clue is the mystery phrase to guess; the concept's word itself is shown
+ * openly as a caption, never tiled (SCOPE.md §20.2 v1.9) — greedily selects term words
  * that cover as many of those slots as possible, then extends the slot numbering to
- * every other distinct letter the selected clues bring in, so a solved clue can
- * cross-reveal a shared letter in another clue directly, not only through the mystery
+ * every other distinct letter the selected terms bring in, so a solved term can
+ * cross-reveal a shared letter in another term directly, not only through the mystery
  * phrase.
  *
  * See SCOPE.md §4 and §17 for the full rationale behind the linear (non-spatial) design:
@@ -48,11 +48,11 @@ class puzzle_builder {
      *     used for deterministic theme selection in PLAYERCROSS_WORDMODE_SHARED.
      * @param int $excludethemeid Theme word id to avoid repeating immediately, 0 for none.
      * @return \stdClass Puzzle state: themewordid, themeconcept (caption, always
-     *     shown), themewords (mystery phrase, normalized words), themehint (the same
+     *     shown), themewords (mystery phrase, normalized words), themeclue (the same
      *     phrase, original spelling, reveal-only), themeslots, slotcount,
-     *     clues (wordid, word, originalword, hint, slots — one slot number per character
+     *     terms (wordid, word, originalword, clue, slots — one slot number per character
      *     position, round-wide, not just phrase letters) and alwaysrevealedslots.
-     * @throws moodle_exception If the approved pool cannot support num_clues clues, or has
+     * @throws moodle_exception If the approved pool cannot support num_terms terms, or has
      *     no word eligible as the theme concept.
      */
     public static function build_round(
@@ -62,55 +62,55 @@ class puzzle_builder {
     ): \stdClass {
         global $DB;
 
-        $numclues = (int)$instance->num_clues;
+        $numterms = (int)$instance->num_terms;
 
         $totalapproved = $DB->count_records('playercross_words', [
             'playercrossid' => $instance->id,
             'approved' => 1,
         ]);
-        if ($totalapproved < $numclues + 1) {
-            throw new moodle_exception('error_insufficientpool', 'mod_playercross', '', $numclues + 1);
+        if ($totalapproved < $numterms + 1) {
+            throw new moodle_exception('error_insufficientpool', 'mod_playercross', '', $numterms + 1);
         }
 
         $themeword = words_repository::pick_theme_word($instance, $completedround, $excludethemeid);
         if ($themeword === null) {
-            throw new moodle_exception('error_insufficientpool', 'mod_playercross', '', $numclues + 1);
+            throw new moodle_exception('error_insufficientpool', 'mod_playercross', '', $numterms + 1);
         }
 
-        $themewords = word_normalizer::normalize_phrase((string)$themeword->hint);
+        $themewords = word_normalizer::normalize_phrase((string)$themeword->clue);
         [$themeslots, $themeslotsbyletter] = self::cipher_phrase_slots($themewords);
 
-        $cluecandidates = array_values(array_filter(
+        $termcandidates = array_values(array_filter(
             words_repository::get_candidate_words($instance),
             fn($candidate) => (int)$candidate->id !== (int)$themeword->id
         ));
 
-        // Clue selection still greedily maximizes coverage of the mystery phrase's own
+        // Term selection still greedily maximizes coverage of the mystery phrase's own
         // letters only (themeslotsbyletter) — the goal of the selection step is still
-        // to pick clues that help crack it, not merely to pick clues that share
+        // to pick terms that help crack it, not merely to pick terms that share
         // letters with each other.
-        [$selectedclues] = self::select_clues(
-            $cluecandidates,
+        [$selectedterms] = self::select_terms(
+            $termcandidates,
             $themeslotsbyletter,
-            $numclues,
+            $numterms,
             (int)$instance->id
         );
 
-        // Once clues are selected, every distinct letter across the whole round (the
-        // mystery phrase plus every selected clue, not just the phrase) gets its own
-        // slot number, so a solved clue can cross-reveal a shared letter directly in
-        // another clue too — not only via the mystery phrase (SCOPE.md §20.2 v1.7).
-        $slotsbyletter = self::expand_slots_by_letter($themeslotsbyletter, $selectedclues);
+        // Once terms are selected, every distinct letter across the whole round (the
+        // mystery phrase plus every selected term, not just the phrase) gets its own
+        // slot number, so a solved term can cross-reveal a shared letter directly in
+        // another term too — not only via the mystery phrase (SCOPE.md §20.2 v1.7).
+        $slotsbyletter = self::expand_slots_by_letter($themeslotsbyletter, $selectedterms);
 
         $coveredslots = [];
-        foreach ($selectedclues as $clue) {
-            $clue->slots = self::word_slot_positions($clue->word, $slotsbyletter);
-            $coveredslots = array_merge($coveredslots, $clue->slots);
+        foreach ($selectedterms as $term) {
+            $term->slots = self::word_slot_positions($term->word, $slotsbyletter);
+            $coveredslots = array_merge($coveredslots, $term->slots);
         }
         $coveredslots = array_values(array_unique($coveredslots));
 
         // Teacher-configurable (SCOPE.md §4.4): with the setting on (default), a mystery-
-        // phrase letter no selected clue can ever reveal for free is shown from the start
+        // phrase letter no selected term can ever reveal for free is shown from the start
         // instead of sitting behind a mandatory paid hint. With it off, that letter stays
         // hidden like any other slot.
         $alwaysrevealedslots = [];
@@ -131,10 +131,10 @@ class puzzle_builder {
             // Kept only for the post-round reveal (round_presenter::build_round_result_
             // context()) — every other use (slot cipher, guess comparison) stays on the
             // normalized themewords above, since matching is accent-insensitive.
-            'themehint' => trim((string)$themeword->hint),
+            'themeclue' => trim((string)$themeword->clue),
             'themeslots' => $themeslots,
             'slotcount' => count($slotsbyletter),
-            'clues' => $selectedclues,
+            'terms' => $selectedterms,
             'alwaysrevealedslots' => $alwaysrevealedslots,
         ];
     }
@@ -172,7 +172,7 @@ class puzzle_builder {
     /**
      * Returns the distinct theme slot numbers a word's letters would reveal.
      *
-     * @param string $normalizedword Already-normalized clue word.
+     * @param string $normalizedword Already-normalized term word.
      * @param int[] $slotsbyletter Letter => slot number map from the theme word (string keys).
      * @return int[] Distinct slot numbers, unsorted.
      */
@@ -188,21 +188,21 @@ class puzzle_builder {
 
     /**
      * Extends the theme's own letter => slot map with any additional letters
-     * introduced by the selected clue words, so every letter in the round — not just
+     * introduced by the selected term words, so every letter in the round — not just
      * the mystery phrase's own — ends up with a slot number. New letters are numbered
-     * in order of first appearance across the selected clues, continuing straight
+     * in order of first appearance across the selected terms, continuing straight
      * after the theme's own highest slot number.
      *
      * @param array $themeslotsbyletter Letter => slot number map for the theme word alone.
-     * @param \stdClass[] $selectedclues Selected clues, each with a normalized ->word.
-     * @return array Letter => slot number map covering the theme plus every selected clue.
+     * @param \stdClass[] $selectedterms Selected terms, each with a normalized ->word.
+     * @return array Letter => slot number map covering the theme plus every selected term.
      */
-    private static function expand_slots_by_letter(array $themeslotsbyletter, array $selectedclues): array {
+    private static function expand_slots_by_letter(array $themeslotsbyletter, array $selectedterms): array {
         $slotsbyletter = $themeslotsbyletter;
         $nextslot = count($slotsbyletter) + 1;
 
-        foreach ($selectedclues as $clue) {
-            foreach (word_normalizer::chars($clue->word) as $char) {
+        foreach ($selectedterms as $term) {
+            foreach (word_normalizer::chars($term->word) as $char) {
                 if (!isset($slotsbyletter[$char])) {
                     $slotsbyletter[$char] = $nextslot++;
                 }
@@ -228,43 +228,43 @@ class puzzle_builder {
     }
 
     /**
-     * Greedily selects up to $numclues words, each step picking the candidate that
-     * reveals the most theme slots not yet covered by an already-selected clue.
+     * Greedily selects up to $numterms words, each step picking the candidate that
+     * reveals the most theme slots not yet covered by an already-selected term.
      *
      * Ties are broken deterministically via crc32, the same mechanism used elsewhere
      * in the ecosystem for reproducible pseudo-random ordering (see
-     * words_repository::pick_theme_word()). If the clue pool is smaller than
-     * $numclues, fewer clues are simply returned — only the total approved pool size
+     * words_repository::pick_theme_word()). If the term pool is smaller than
+     * $numterms, fewer terms are simply returned — only the total approved pool size
      * is a hard failure (checked earlier in build_round()), not the length-filtered
-     * clue pool. Selection is scored purely against the theme's own letters (not the
+     * term pool. Selection is scored purely against the theme's own letters (not the
      * round-wide slot map, which does not exist yet at this point) — the goal here is
-     * still to pick clues that help crack the mystery phrase.
+     * still to pick terms that help crack the mystery phrase.
      *
-     * @param array $cluecandidates Candidate word records (id, word, hint, concept).
+     * @param array $termcandidates Candidate word records (id, word, clue, concept).
      * @param int[] $slotsbyletter Letter => slot number map from the theme word (string keys).
-     * @param int $numclues Maximum number of clues to select.
+     * @param int $numterms Maximum number of terms to select.
      * @param int $instanceid Activity instance id, used to seed the tie-break order.
-     * @return array{0: \stdClass[]} Selected clues (wordid, word, originalword, hint), their
+     * @return array{0: \stdClass[]} Selected terms (wordid, word, originalword, clue), their
      *     own ->slots not yet assigned — see build_round(), which fills it in once the
      *     round-wide slot map exists.
      */
-    private static function select_clues(
-        array $cluecandidates,
+    private static function select_terms(
+        array $termcandidates,
         array $slotsbyletter,
-        int $numclues,
+        int $numterms,
         int $instanceid
     ): array {
         $pool = [];
-        foreach ($cluecandidates as $candidate) {
+        foreach ($termcandidates as $candidate) {
             $normalizedword = word_normalizer::normalize($candidate->word);
             $pool[] = (object)[
                 'wordid' => (int)$candidate->id,
                 'word' => $normalizedword,
-                // Kept only for the post-round reveal (round_presenter::build_clue_rows())
+                // Kept only for the post-round reveal (round_presenter::build_term_rows())
                 // — every other use (slot matching, guess comparison) stays on the
                 // normalized ->word above, since matching is accent-insensitive.
                 'originalword' => trim((string)$candidate->word),
-                'hint' => (string)($candidate->hint ?? ''),
+                'clue' => (string)($candidate->clue ?? ''),
                 'coverage' => self::word_slot_coverage($normalizedword, $slotsbyletter),
             ];
         }
@@ -272,7 +272,7 @@ class puzzle_builder {
         $selected = [];
         $covered = [];
 
-        while (count($selected) < $numclues && $pool !== []) {
+        while (count($selected) < $numterms && $pool !== []) {
             $bestkey = null;
             $bestnewcount = -1;
             $besttiebreak = null;
@@ -293,7 +293,7 @@ class puzzle_builder {
                 'wordid' => $chosen->wordid,
                 'word' => $chosen->word,
                 'originalword' => $chosen->originalword,
-                'hint' => $chosen->hint,
+                'clue' => $chosen->clue,
             ];
             $covered = array_values(array_unique(array_merge($covered, $chosen->coverage)));
         }

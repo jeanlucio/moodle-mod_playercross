@@ -44,7 +44,7 @@
         "columns": [
             {"key": "student", "label": "Student", "alignend": false, "url": "https://example.com/mod/playercross/attemptsreport.php?sort=student", "active": false, "arrow": ""},
             {"key": "theme", "label": "Mystery phrase", "alignend": false, "url": "https://example.com/mod/playercross/attemptsreport.php?sort=theme", "active": false, "arrow": ""},
-            {"key": "clues", "label": "Clues", "alignend": true, "url": "https://example.com/mod/playercross/attemptsreport.php?sort=clues", "active": false, "arrow": ""},
+            {"key": "terms", "label": "Terms", "alignend": true, "url": "https://example.com/mod/playercross/attemptsreport.php?sort=terms", "active": false, "arrow": ""},
             {"key": "attempts", "label": "Attempts", "alignend": true, "url": "https://example.com/mod/playercross/attemptsreport.php?sort=attempts", "active": false, "arrow": ""},
             {"key": "time", "label": "Time", "alignend": true, "url": "https://example.com/mod/playercross/attemptsreport.php?sort=time", "active": false, "arrow": ""},
             {"key": "score", "label": "Score", "alignend": true, "url": "https://example.com/mod/playercross/attemptsreport.php?sort=score", "active": false, "arrow": ""},
@@ -54,8 +54,8 @@
             {
                 "student": "Ana Silva",
                 "themeword": "Escola",
-                "cluesresolved": 3,
-                "cluestotal": 3,
+                "termsresolved": 3,
+                "termstotal": 3,
                 "finalguessed": false,
                 "attemptsused": 5,
                 "timeused": "1:24",
@@ -110,7 +110,7 @@
                         <tr>
                             <td>{{student}}</td>
                             <td>{{themeword}}</td>
-                            <td class="text-end">{{cluesresolved}}/{{cluestotal}}</td>
+                            <td class="text-end">{{termsresolved}}/{{termstotal}}</td>
                             <td class="text-end">{{attemptsused}}</td>
                             <td class="text-end">{{timeused}}</td>
                             <td class="text-end">{{score}}</td>

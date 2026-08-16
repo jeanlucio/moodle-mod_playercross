@@ -115,7 +115,7 @@ class end_round extends external_api {
                 VALUE_DEFAULT,
                 false
             ),
-            'panel'            => submit_clue_guess::panel_structure(),
+            'panel'            => submit_term_guess::panel_structure(),
         ]);
     }
 }

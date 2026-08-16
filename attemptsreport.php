@@ -63,7 +63,7 @@ $players = attempts_history_service::get_players_for_filter($cm, $instance, $con
 $columns = [
     ['key' => 'student', 'label' => get_string('myattempts_student', 'mod_playercross'), 'alignend' => false],
     ['key' => 'theme', 'label' => get_string('myattempts_theme', 'mod_playercross'), 'alignend' => false],
-    ['key' => 'clues', 'label' => get_string('myattempts_clues', 'mod_playercross'), 'alignend' => true],
+    ['key' => 'terms', 'label' => get_string('myattempts_terms', 'mod_playercross'), 'alignend' => true],
     ['key' => 'attempts', 'label' => get_string('myattempts_attempts', 'mod_playercross'), 'alignend' => true],
     ['key' => 'time', 'label' => get_string('myattempts_time', 'mod_playercross'), 'alignend' => true],
     ['key' => 'score', 'label' => get_string('myattempts_score', 'mod_playercross'), 'alignend' => true],

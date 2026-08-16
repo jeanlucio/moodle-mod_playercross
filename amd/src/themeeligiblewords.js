@@ -21,8 +21,8 @@
  * creation there is no pool yet to count. Re-queries
  * mod_playercross_count_eligible_theme_words whenever the theme minimum/maximum
  * length fields change, so a teacher narrowing the range sees immediately how many
- * approved hints would still qualify as the mystery phrase, before saving — the same
- * mechanism amd/src/eligiblewords.js already provides for the clue-word length range.
+ * approved clues would still qualify as the mystery phrase, before saving — the same
+ * mechanism amd/src/eligiblewords.js already provides for the term-word length range.
  *
  * @module     mod_playercross/themeeligiblewords
  * @copyright  2026 Jean Lúcio

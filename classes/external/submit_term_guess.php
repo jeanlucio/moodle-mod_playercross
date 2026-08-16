@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * External function: submit a guess for one clue.
+ * External function: submit a guess for one term.
  *
  * @package    mod_playercross
  * @copyright  2026 Jean Lúcio
@@ -34,14 +34,14 @@ use mod_playercross\local\round_presenter;
 use mod_playercross\local\round_service;
 
 /**
- * Validates a clue guess and returns the fully updated round panel.
+ * Validates a term guess and returns the fully updated round panel.
  *
  * The whole panel is re-rendered server-side after every guess (not just the affected
- * clue) because a single correct guess can reveal shared letters across every other
- * pending clue and the mystery phrase at once — there is no meaningful "just patch one
+ * term) because a single correct guess can reveal shared letters across every other
+ * pending term and the mystery phrase at once — there is no meaningful "just patch one
  * row" shape for this mechanic, unlike a single Wordle-style grid.
  */
-class submit_clue_guess extends external_api {
+class submit_term_guess extends external_api {
     /**
      * Returns parameter definitions for execute().
      *
@@ -50,29 +50,29 @@ class submit_clue_guess extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'cmid'   => new external_value(PARAM_INT, 'Course module id'),
-            'clueid' => new external_value(PARAM_INT, 'Clue word id'),
+            'termid' => new external_value(PARAM_INT, 'Term word id'),
             'guess'  => new external_value(PARAM_TEXT, 'Player guess text'),
         ]);
     }
 
     /**
-     * Validates a clue guess and returns the updated round panel.
+     * Validates a term guess and returns the updated round panel.
      *
      * @param int $cmid Course module id.
-     * @param int $clueid Clue word id.
+     * @param int $termid Term word id.
      * @param string $guess Player guess.
      * @return array
      */
-    public static function execute(int $cmid, int $clueid, string $guess): array {
+    public static function execute(int $cmid, int $termid, string $guess): array {
         global $DB, $USER;
 
         [
             'cmid'   => $cmid,
-            'clueid' => $clueid,
+            'termid' => $termid,
             'guess'  => $guess,
         ] = self::validate_parameters(
             self::execute_parameters(),
-            ['cmid' => $cmid, 'clueid' => $clueid, 'guess' => $guess]
+            ['cmid' => $cmid, 'termid' => $termid, 'guess' => $guess]
         );
 
         $cm = get_coursemodule_from_id('playercross', $cmid, 0, false, MUST_EXIST);
@@ -86,12 +86,12 @@ class submit_clue_guess extends external_api {
         $state = round_service::load_state($cmid, $userid);
         $state = round_service::ensure_round_state($state, $instance, $cmid, $userid);
 
-        [$state, $resolved, $notification, $notificationtype, $toast] = round_service::submit_clue_guess(
+        [$state, $resolved, $notification, $notificationtype, $toast] = round_service::submit_term_guess(
             $state,
             $instance,
             $cmid,
             $userid,
-            $clueid,
+            $termid,
             $guess
         );
 
@@ -114,7 +114,7 @@ class submit_clue_guess extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-            'resolved'         => new external_value(PARAM_BOOL, 'Whether this specific clue was resolved'),
+            'resolved'         => new external_value(PARAM_BOOL, 'Whether this specific term was resolved'),
             'finished'         => new external_value(PARAM_BOOL, 'Whether the round has ended'),
             'notification'     => new external_value(PARAM_TEXT, 'User-facing feedback message', VALUE_DEFAULT, ''),
             'notificationtype' => new external_value(
@@ -149,7 +149,7 @@ class submit_clue_guess extends external_api {
             'feedbackmessage'        => new external_value(PARAM_TEXT, 'End-of-round flavour message'),
             'revealthemeword'        => new external_value(PARAM_TEXT, 'The mystery phrase, empty until finished'),
             'revealthemewordlabel'   => new external_value(PARAM_TEXT, 'Label for the revealed mystery phrase'),
-            'resultclueslabel'       => new external_value(PARAM_TEXT, 'Heading label for the per-clue recap list'),
+            'resulttermslabel'       => new external_value(PARAM_TEXT, 'Heading label for the per-term recap list'),
             'scoreachieved'          => new external_value(PARAM_TEXT, 'Score achieved, formatted to 2 decimals'),
             'scoreachievedlabel'     => new external_value(PARAM_TEXT, 'Label for the achieved score'),
             'cooldownuntil'          => new external_value(PARAM_INT, 'Cooldown expiry epoch, 0 if inactive'),
@@ -212,38 +212,38 @@ class submit_clue_guess extends external_api {
                 PARAM_TEXT,
                 'Mystery phrase text once themesolved, empty otherwise'
             ),
-            'clues' => new external_multiple_structure(
+            'terms' => new external_multiple_structure(
                 new external_single_structure([
-                    'clueid'       => new external_value(PARAM_INT, 'Clue word id'),
-                    'phrase'       => new external_value(PARAM_TEXT, 'Clue phrase, always shown'),
-                    'resolved'     => new external_value(PARAM_BOOL, 'Whether this clue is resolved'),
-                    'exhausted'    => new external_value(PARAM_BOOL, 'Whether attempts ran out for this clue'),
-                    'attemptsused' => new external_value(PARAM_INT, 'Attempts used on this clue'),
+                    'termid'       => new external_value(PARAM_INT, 'Term word id'),
+                    'phrase'       => new external_value(PARAM_TEXT, 'Term phrase, always shown'),
+                    'resolved'     => new external_value(PARAM_BOOL, 'Whether this term is resolved'),
+                    'exhausted'    => new external_value(PARAM_BOOL, 'Whether attempts ran out for this term'),
+                    'attemptsused' => new external_value(PARAM_INT, 'Attempts used on this term'),
                     'exhaustedlabel' => new external_value(
                         PARAM_TEXT,
                         'Human-readable "no success after N attempts" label, empty unless exhausted'
                     ),
                     'revealword'   => new external_value(
                         PARAM_TEXT,
-                        'This clue\'s word, empty unless resolved or the round finished'
+                        'This term\'s word, empty unless resolved or the round finished'
                     ),
                     'tiles' => new external_multiple_structure(
                         $tilestructure,
-                        'This clue\'s own letter-by-letter tile row'
+                        'This term\'s own letter-by-letter tile row'
                     ),
                     'canguess' => new external_value(PARAM_BOOL, 'Whether a guess can still be submitted'),
                 ]),
-                'Clue rows'
+                'Term rows'
             ),
-            'cluesresolved'      => new external_value(PARAM_INT, 'Clues resolved so far'),
-            'cluestotal'         => new external_value(PARAM_INT, 'Total clues in this round'),
-            'cluesprogresslabel' => new external_value(PARAM_TEXT, 'Clues resolved / total label'),
+            'termsresolved'      => new external_value(PARAM_INT, 'Terms resolved so far'),
+            'termstotal'         => new external_value(PARAM_INT, 'Total terms in this round'),
+            'termsprogresslabel' => new external_value(PARAM_TEXT, 'Terms resolved / total label'),
             'timerenabled'       => new external_value(PARAM_BOOL, 'Whether the timer is enabled'),
             'timerlabel'         => new external_value(PARAM_TEXT, 'Timer label'),
             'timeleft'           => new external_value(PARAM_INT, 'Seconds remaining, 0 if timer is disabled'),
             'roundfinished'      => new external_value(PARAM_BOOL, 'Whether the round has ended'),
-            'guesslabel'         => new external_value(PARAM_TEXT, 'Accessible label for a clue answer field'),
-            'submitclueguess'    => new external_value(PARAM_TEXT, 'Submit clue guess button label'),
+            'guesslabel'         => new external_value(PARAM_TEXT, 'Accessible label for a term answer field'),
+            'submittermguess'    => new external_value(PARAM_TEXT, 'Submit term guess button label'),
             'showglobalhint'     => new external_value(PARAM_BOOL, 'Whether the round-wide hint action is available'),
             'globalhintlabel'    => new external_value(PARAM_TEXT, 'Round-wide hint button label'),
             'showhintsremaining' => new external_value(PARAM_BOOL, 'Whether the hint button shows a remaining count'),

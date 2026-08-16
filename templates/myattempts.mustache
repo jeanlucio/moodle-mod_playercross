@@ -28,7 +28,7 @@
         "gradesummary": "Highest grade: 8.50 / 10.00.",
         "isempty": false,
         "themelabel": "Mystery phrase",
-        "clueslabel": "Clues",
+        "termslabel": "Terms",
         "finalguessedlabel": "Direct guess",
         "attemptslabel": "Attempts",
         "timelabel": "Time",
@@ -40,8 +40,8 @@
         "rows": [
             {
                 "themeword": "Escola",
-                "cluesresolved": 3,
-                "cluestotal": 3,
+                "termsresolved": 3,
+                "termstotal": 3,
                 "finalguessed": false,
                 "attemptsused": 5,
                 "timeused": "1:24",
@@ -69,7 +69,7 @@
                 <thead>
                     <tr>
                         <th scope="col">{{themelabel}}</th>
-                        <th scope="col" class="text-end">{{clueslabel}}</th>
+                        <th scope="col" class="text-end">{{termslabel}}</th>
                         <th scope="col">{{finalguessedlabel}}</th>
                         <th scope="col" class="text-end">{{attemptslabel}}</th>
                         <th scope="col" class="text-end">{{timelabel}}</th>
@@ -81,7 +81,7 @@
                     {{#rows}}
                         <tr>
                             <td>{{themeword}}</td>
-                            <td class="text-end">{{cluesresolved}}/{{cluestotal}}</td>
+                            <td class="text-end">{{termsresolved}}/{{termstotal}}</td>
                             <td>{{#finalguessed}}{{yeslabel}}{{/finalguessed}}{{^finalguessed}}{{nolabel}}{{/finalguessed}}</td>
                             <td class="text-end">{{attemptsused}}</td>
                             <td class="text-end">{{timeused}}</td>

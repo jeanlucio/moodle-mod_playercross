@@ -325,13 +325,13 @@
     font-size: 0.6rem;
 }
 
-.path-mod-playercross .mod-playercross-clues {
+.path-mod-playercross .mod-playercross-terms {
     max-width: 30rem;
     margin-inline: auto;
     padding-inline-start: 0;
 }
 
-.path-mod-playercross .mod-playercross-clue {
+.path-mod-playercross .mod-playercross-term {
     padding: 0.625rem 0.75rem;
     margin-bottom: 0.625rem;
     border: 1px solid var(--gray-300, #dee2e6);
@@ -339,17 +339,17 @@
     background-color: var(--body-bg, #fff);
 }
 
-.path-mod-playercross .mod-playercross-clue.is-active {
+.path-mod-playercross .mod-playercross-term.is-active {
     border-color: var(--warning, #ffc107);
     box-shadow: 0 0 0 2px var(--warning, #ffc107);
 }
 
-.path-mod-playercross .mod-playercross-clue.is-resolved {
+.path-mod-playercross .mod-playercross-term.is-resolved {
     background-color: var(--gray-100, #f8f9fa);
     border-color: var(--primary, #0f6cbf);
 }
 
-.path-mod-playercross .mod-playercross-clue.is-wrong {
+.path-mod-playercross .mod-playercross-term.is-wrong {
     border-color: var(--danger, #dc3545);
     animation: playercross-shake 0.4s;
 }
@@ -378,28 +378,28 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .path-mod-playercross .mod-playercross-clue.is-wrong {
+    .path-mod-playercross .mod-playercross-term.is-wrong {
         animation: none;
     }
 }
 
-.path-mod-playercross .mod-playercross-clue-phrase {
+.path-mod-playercross .mod-playercross-term-phrase {
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
 }
 
-.path-mod-playercross .mod-playercross-clue-answer {
+.path-mod-playercross .mod-playercross-term-answer {
     color: var(--primary, #0f6cbf);
 }
 
-.path-mod-playercross .mod-playercross-clue-form {
+.path-mod-playercross .mod-playercross-term-form {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 0.5rem;
 }
 
-.path-mod-playercross .mod-playercross-clue-tiles {
+.path-mod-playercross .mod-playercross-term-tiles {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
@@ -692,7 +692,7 @@
     .path-mod-playercross .mod-playercross-game {
         padding: 1rem;
         /*
-         * Reserves room below the last clue so the fixed keyboard never overlaps it. The 1rem
+         * Reserves room below the last term so the fixed keyboard never overlaps it. The 1rem
          * fallback applies whenever --pc-keyboard-reserve is unset (no keyboard on this
          * screen) — an unset custom property with no fallback would make the whole declaration
          * invalid at computed-value time and reset padding-bottom to 0, not to the padding

@@ -25,9 +25,9 @@
 defined('MOODLE_INTERNAL') || die();
 
 $functions = [
-    'mod_playercross_submit_clue_guess' => [
-        'classname'     => 'mod_playercross\external\submit_clue_guess',
-        'description'   => 'Submit a guess for one clue of the current PlayerCross round.',
+    'mod_playercross_submit_term_guess' => [
+        'classname'     => 'mod_playercross\external\submit_term_guess',
+        'description'   => 'Submit a guess for one term of the current PlayerCross round.',
         'type'          => 'write',
         'ajax'          => true,
         'capabilities'  => 'mod/playercross:view',
@@ -43,7 +43,7 @@ $functions = [
     ],
     'mod_playercross_reveal_hint' => [
         'classname'     => 'mod_playercross\external\reveal_hint',
-        'description'   => 'Reveal the hint for one clue of the current PlayerCross round.',
+        'description'   => 'Reveal the hint for one term of the current PlayerCross round.',
         'type'          => 'write',
         'ajax'          => true,
         'capabilities'  => 'mod/playercross:view',
@@ -83,7 +83,7 @@ $functions = [
     ],
     'mod_playercross_count_eligible_theme_words' => [
         'classname'     => 'mod_playercross\external\count_eligible_theme_words',
-        'description'   => 'Count approved pool hints eligible as the mystery phrase within a given length range.',
+        'description'   => 'Count approved pool clues eligible as the mystery phrase within a given length range.',
         'type'          => 'read',
         'ajax'          => true,
         'capabilities'  => 'mod/playercross:managewords',

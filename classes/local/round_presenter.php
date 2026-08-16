@@ -31,25 +31,25 @@ use core_text;
  * and by the AJAX partial responses.
  *
  * The security invariant every method here must uphold (SCOPE.md §7): the mystery
- * phrase and any unresolved clue's word text are never included in the returned
+ * phrase and any unresolved term's word text are never included in the returned
  * context unless the round has actually finished server-side — with one narrow
  * exception: once state['finalguesscorrect'] is true, every mystery-phrase slot is
  * already independently revealed letter-by-letter (submit_final_guess() merges
  * themeslots into revealedslots the moment the guess is confirmed correct, and the
  * only other way to reach finalguesscorrect — every slot already incidentally
- * revealed via clues/hints — means the same is already true), so surfacing that same
+ * revealed via terms/hints — means the same is already true), so surfacing that same
  * word as a single string is not a new leak, just a different rendering of
  * information already on screen. build_round_panel_context() relies on this to
  * collapse the phrase's own tile grid into plain text as soon as it is confirmed,
- * mirroring what already happens per-clue, without waiting for the whole round to end.
+ * mirroring what already happens per-term, without waiting for the whole round to end.
  */
 class round_presenter {
     /**
      * Builds the mystery-phrase tile data, grouped by word: one entry per word of the
-     * phrase (the theme concept's own hint, see puzzle_builder), each holding that
+     * phrase (the theme concept's own clue, see puzzle_builder), each holding that
      * word's own per-position tile row — so the template can render a visual gap
      * between words instead of one continuous, spaceless run of letters. Hidden tiles
-     * carry their slot number, so the student can see which clue covers which position
+     * carry their slot number, so the student can see which term covers which position
      * before it is revealed.
      *
      * @param array $state Session state.
@@ -57,7 +57,7 @@ class round_presenter {
      * @return array Array of {tiles: array} word groups.
      */
     public static function build_phrase_tiles(array $state, bool $roundfinished): array {
-        $originalwords = word_normalizer::original_phrase_tokens($state['themehint']);
+        $originalwords = word_normalizer::original_phrase_tokens($state['themeclue']);
 
         $groups = [];
         $position = 0;
@@ -79,8 +79,8 @@ class round_presenter {
     /**
      * Builds one word's per-letter tile row from its own per-position slot array
      * (already computed round-wide by puzzle_builder — see SCOPE.md §20.2 v1.7): every
-     * letter always has a slot number, so a solved clue can cross-reveal a shared
-     * letter directly in another clue, not only through the mystery phrase.
+     * letter always has a slot number, so a solved term can cross-reveal a shared
+     * letter directly in another term, not only through the mystery phrase.
      *
      * A revealed tile shows $originalword's own accented/cedilla'd letter rather than
      * $word's normalized one — matching what round_result.mustache's final "the word
@@ -90,7 +90,7 @@ class round_presenter {
      * the normalized letter rather than risk a misaligned position on the rare word
      * where that assumption does not hold.
      *
-     * @param string $word A word, already normalized (the theme word or a clue's own word).
+     * @param string $word A word, already normalized (the theme word or a term's own word).
      * @param string $originalword The same word in its original spelling (accents kept).
      * @param int[] $slots Per-position slot numbers, parallel to $word's characters.
      * @param array $revealedslots Currently revealed slot numbers.
@@ -128,7 +128,7 @@ class round_presenter {
     }
 
     /**
-     * Builds the per-clue view rows. The clue's own phrase (hint) is always included —
+     * Builds the per-term view rows. The term's own phrase (clue) is always included —
      * it is the question itself, not an optional reveal — while the answer is only
      * shown letter-by-letter through build_word_tiles(), or in full once resolved or
      * the round has finished.
@@ -137,29 +137,29 @@ class round_presenter {
      * @param bool $roundfinished Whether the current round is finished.
      * @return array
      */
-    public static function build_clue_rows(array $state, bool $roundfinished): array {
+    public static function build_term_rows(array $state, bool $roundfinished): array {
         $rows = [];
-        foreach ($state['clues'] as $clue) {
-            $reveal = $roundfinished || $clue['resolved'];
+        foreach ($state['terms'] as $term) {
+            $reveal = $roundfinished || $term['resolved'];
 
             $rows[] = [
-                'clueid'       => (int)$clue['wordid'],
-                'phrase'       => s($clue['hint']),
-                'resolved'     => $clue['resolved'],
-                'exhausted'    => $clue['exhausted'],
-                'attemptsused' => (int)$clue['attemptsused'],
-                'exhaustedlabel' => $clue['exhausted']
-                    ? get_string('clueexhaustedlabel', 'mod_playercross', (int)$clue['attemptsused'])
+                'termid'       => (int)$term['wordid'],
+                'phrase'       => s($term['clue']),
+                'resolved'     => $term['resolved'],
+                'exhausted'    => $term['exhausted'],
+                'attemptsused' => (int)$term['attemptsused'],
+                'exhaustedlabel' => $term['exhausted']
+                    ? get_string('termexhaustedlabel', 'mod_playercross', (int)$term['attemptsused'])
                     : '',
-                'revealword'   => $reveal ? s(core_text::strtoupper($clue['originalword'])) : '',
+                'revealword'   => $reveal ? s(core_text::strtoupper($term['originalword'])) : '',
                 'tiles'        => self::build_word_tiles(
-                    $clue['word'],
-                    $clue['originalword'],
-                    $clue['slots'],
+                    $term['word'],
+                    $term['originalword'],
+                    $term['slots'],
                     $state['revealedslots'],
                     $reveal
                 ),
-                'canguess'     => !$clue['resolved'] && !$clue['exhausted'] && !$roundfinished,
+                'canguess'     => !$term['resolved'] && !$term['exhausted'] && !$roundfinished,
             ];
         }
 
@@ -184,14 +184,14 @@ class round_presenter {
      * Returns the end-of-round flavour message.
      *
      * feedback_finalguessed only fires when it actually tells the player something
-     * feedback_won would not: winning via BOTH always requires every clue resolved
-     * too, so once cluesresolved reaches cluestotal, "you solved every clue" is
+     * feedback_won would not: winning via BOTH always requires every term resolved
+     * too, so once termsresolved reaches termstotal, "you solved every term" is
      * already true regardless of whether the phrase was also guessed directly — showing
      * feedback_finalguessed there would just repeat, in different words, what an
-     * earlier in-round toast (finalguesscorrectneedsclues) already told the player the
-     * moment they guessed it. Reserving it for cluesresolved < cluestotal keeps it to
+     * earlier in-round toast (finalguesscorrectneedsterms) already told the player the
+     * moment they guessed it. Reserving it for termsresolved < termstotal keeps it to
      * the one case where it is genuinely new information: a win under
-     * PLAYERCROSS_WINCONDITION_FINALONLY reached without ever resolving every clue.
+     * PLAYERCROSS_WINCONDITION_FINALONLY reached without ever resolving every term.
      *
      * @param array $state Session state.
      * @return string
@@ -206,10 +206,10 @@ class round_presenter {
         if (!empty($state['timedout'])) {
             return get_string('feedback_timeout', 'mod_playercross');
         }
-        if (!empty($state['cluesexhausted'])) {
-            return get_string('feedback_cluesexhausted', 'mod_playercross');
+        if (!empty($state['termsexhausted'])) {
+            return get_string('feedback_termsexhausted', 'mod_playercross');
         }
-        if (!empty($state['finalguessed']) && (int)$state['cluesresolved'] < (int)$state['cluestotal']) {
+        if (!empty($state['finalguessed']) && (int)$state['termsresolved'] < (int)$state['termstotal']) {
             return get_string('feedback_finalguessed', 'mod_playercross');
         }
         if (!empty($state['won'])) {
@@ -422,7 +422,7 @@ class round_presenter {
         }
 
         return [
-            'cluesthisround' => get_string('cluesthisround', 'mod_playercross', (int)$state['cluestotal']),
+            'termsthisround' => get_string('termsthisround', 'mod_playercross', (int)$state['termstotal']),
             'timerenabled' => ((int)$instance->timer_seconds > 0),
             'lobbytimerinfo' => (
                 (int)$instance->timer_seconds > 0
@@ -438,7 +438,7 @@ class round_presenter {
     }
 
     /**
-     * Builds the active-round panel context: theme tiles, clue rows, final-guess form
+     * Builds the active-round panel context: theme tiles, term rows, final-guess form
      * data, timer, and whichever result context applies.
      *
      * @param \stdClass $instance Activity instance record.
@@ -466,10 +466,10 @@ class round_presenter {
         }
 
         // The phrase's own tile grid/submit form collapses into plain resolved text the
-        // moment it is confirmed correct, exactly like an individual clue does once
+        // moment it is confirmed correct, exactly like an individual term does once
         // resolved — not only once the whole round finishes, which can happen much
-        // later (or not at all) under PLAYERCROSS_WINCONDITION_BOTH with clues still
-        // pending. A lost round (forfeit/timeout/cluesexhausted) still collapses it too,
+        // later (or not at all) under PLAYERCROSS_WINCONDITION_BOTH with terms still
+        // pending. A lost round (forfeit/timeout/termsexhausted) still collapses it too,
         // via the $roundfinished half of the check, even though finalguesscorrect never
         // became true in that case.
         $themesolved = $roundfinished || !empty($state['finalguesscorrect']);
@@ -481,20 +481,20 @@ class round_presenter {
             'themeconcept' => s(core_text::strtoupper($state['themeconcept'])),
             'themesolved' => $themesolved,
             'finalguesscorrect' => !empty($state['finalguesscorrect']),
-            'themedisplayword' => $themesolved ? s(core_text::strtoupper($state['themehint'])) : '',
-            'clues' => self::build_clue_rows($state, $roundfinished),
-            'cluesresolved' => (int)$state['cluesresolved'],
-            'cluestotal' => (int)$state['cluestotal'],
-            'cluesprogresslabel' => get_string('cluesprogress', 'mod_playercross', (object)[
-                'resolved' => (int)$state['cluesresolved'],
-                'total'    => (int)$state['cluestotal'],
+            'themedisplayword' => $themesolved ? s(core_text::strtoupper($state['themeclue'])) : '',
+            'terms' => self::build_term_rows($state, $roundfinished),
+            'termsresolved' => (int)$state['termsresolved'],
+            'termstotal' => (int)$state['termstotal'],
+            'termsprogresslabel' => get_string('termsprogress', 'mod_playercross', (object)[
+                'resolved' => (int)$state['termsresolved'],
+                'total'    => (int)$state['termstotal'],
             ]),
             'timerenabled' => ((int)$instance->timer_seconds > 0),
             'timerlabel' => get_string('timerlabel', 'mod_playercross'),
             'timeleft' => $timeleft,
             'roundfinished' => $roundfinished,
             'guesslabel' => get_string('guesslabel', 'mod_playercross'),
-            'submitclueguess' => get_string('submitclueguess', 'mod_playercross'),
+            'submittermguess' => get_string('submittermguess', 'mod_playercross'),
             'canfinalguess' => !$themesolved,
             'submitfinalguess' => get_string('submitfinalguess', 'mod_playercross'),
             'forfeitlabel' => get_string('forfeitbutton', 'mod_playercross'),
@@ -508,12 +508,12 @@ class round_presenter {
 
     /**
      * Builds the single, round-wide "reveal a letter" hint action — replaces the old
-     * per-clue hint reveal (SCOPE.md §20.2 v1.5): since revealing a letter here writes
-     * to the same revealedslots set a solved clue would, there is nothing left to hint
+     * per-term hint reveal (SCOPE.md §20.2 v1.5): since revealing a letter here writes
+     * to the same revealedslots set a solved term would, there is nothing left to hint
      * once every slot in the round is already revealed. Not restricted to the mystery
-     * phrase's own slots — a letter exclusive to a clue is a valid candidate too, so
+     * phrase's own slots — a letter exclusive to a term is a valid candidate too, so
      * the action stays available even once the whole mystery phrase is revealed, as
-     * long as some clue still has a hidden letter of its own (SCOPE.md §20.2 v1.8).
+     * long as some term still has a hidden letter of its own (SCOPE.md §20.2 v1.8).
      *
      * The guest account never sees a PlayerHUD hint cost, for the same reason
      * build_lobby_context() hides the round-start cost — round_service::reveal_hint()
@@ -586,10 +586,10 @@ class round_presenter {
      * this is the security boundary AJAX callers rely on: the mystery phrase is never
      * populated in the returned array until the round has actually finished server-side.
      *
-     * The per-clue recap shown alongside this (each clue's own hint and answer word,
-     * templates/round_result.mustache) reuses the 'clues' key build_round_panel_context()
-     * already sets from build_clue_rows($state, $roundfinished) — with $roundfinished
-     * true, every clue's revealword is populated there regardless of whether the
+     * The per-term recap shown alongside this (each term's own clue and answer word,
+     * templates/round_result.mustache) reuses the 'terms' key build_round_panel_context()
+     * already sets from build_term_rows($state, $roundfinished) — with $roundfinished
+     * true, every term's revealword is populated there regardless of whether the
      * student actually resolved it, so this method does not need to build its own copy.
      *
      * @param \stdClass $instance Activity instance record.
@@ -610,7 +610,7 @@ class round_presenter {
             'feedbackmessage'     => '',
             'revealthemeword'     => '',
             'revealthemewordlabel' => get_string('revealthemewordlabel', 'mod_playercross'),
-            'resultclueslabel'    => get_string('resultclueslabel', 'mod_playercross'),
+            'resulttermslabel'    => get_string('resulttermslabel', 'mod_playercross'),
             'scoreachieved'       => '',
             'scoreachievedlabel'  => get_string('scoreachievedlabel', 'mod_playercross'),
             'cooldownuntil'       => 0,
@@ -633,9 +633,9 @@ class round_presenter {
 
         return [
             'feedbackmessage'      => self::build_feedback_message($state),
-            'revealthemeword'      => s(core_text::strtoupper($state['themehint'])),
+            'revealthemeword'      => s(core_text::strtoupper($state['themeclue'])),
             'revealthemewordlabel' => $blank['revealthemewordlabel'],
-            'resultclueslabel'     => $blank['resultclueslabel'],
+            'resulttermslabel'     => $blank['resulttermslabel'],
             'scoreachieved'        => format_float((float)$state['scoreaccumulated'], 2),
             'scoreachievedlabel'   => $blank['scoreachievedlabel'],
             'cooldownuntil'        => $cooldownuntil,

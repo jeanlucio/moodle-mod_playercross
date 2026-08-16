@@ -34,7 +34,7 @@ use mod_playercross\local\round_service;
 
 /**
  * Validates a direct guess of the mystery phrase, available at any point in the
- * round even with clues still pending.
+ * round even with terms still pending.
  */
 class submit_final_guess extends external_api {
     /**
@@ -120,7 +120,7 @@ class submit_final_guess extends external_api {
                 VALUE_DEFAULT,
                 false
             ),
-            'panel' => submit_clue_guess::panel_structure(),
+            'panel' => submit_term_guess::panel_structure(),
         ]);
     }
 }

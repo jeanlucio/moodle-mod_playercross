@@ -69,7 +69,7 @@ class new_round extends external_api {
         // Must be checked before the restriction notice below: a theme word already
         // armed — whether the round has actually been started or is still sitting in
         // the lobby — is not a rate-limit/cooldown question, it is the same "server is
-        // the authority" invariant submit_clue_guess()/submit_final_guess()/
+        // the authority" invariant submit_term_guess()/submit_final_guess()/
         // reveal_hint()/forfeit()/timeout() already enforce. Checking roundstarted
         // alone left the lobby state (themewordid > 0, roundstarted still false)
         // unguarded: a client could call this web service directly, before ever
@@ -130,7 +130,7 @@ class new_round extends external_api {
             ),
             'notificationtype' => new external_value(PARAM_ALPHA, 'Notification type', VALUE_DEFAULT, ''),
             'lobby'            => new external_single_structure([
-                'cluesthisround'    => new external_value(PARAM_TEXT, 'Clues-in-this-round summary message'),
+                'termsthisround'    => new external_value(PARAM_TEXT, 'Terms-in-this-round summary message'),
                 'timerenabled'      => new external_value(PARAM_BOOL, 'Whether the timer is enabled'),
                 'lobbytimerinfo'    => new external_value(PARAM_TEXT, 'Timer info message for the lobby'),
                 'hudstartcost'      => new external_value(PARAM_BOOL, 'Whether starting costs a PlayerHUD item'),

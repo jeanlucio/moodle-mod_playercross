@@ -30,7 +30,7 @@ namespace mod_playercross\event;
  * Expected data:
  *   objectid  — id of the playercross_words record used as the mystery phrase
  *   context   — module context
- *   other     — ['cluestotal' => int]
+ *   other     — ['termstotal' => int]
  */
 class round_started extends \core\event\base {
     #[\Override]

@@ -56,7 +56,7 @@ class word_normalizer {
     /**
      * Splits a normalized word into its individual Unicode characters.
      *
-     * Uses a regex-based split instead of str_split() because clue/theme words may
+     * Uses a regex-based split instead of str_split() because term/theme words may
      * contain multi-byte UTF-8 characters that str_split() would tear across bytes.
      *
      * @param string $normalizedword Already-normalized word (see normalize()).
@@ -67,7 +67,7 @@ class word_normalizer {
     }
 
     /**
-     * Splits a free-text phrase (a word's own hint) into its individual word tokens,
+     * Splits a free-text phrase (a word's own clue) into its individual word tokens,
      * each normalized the same way a single word would be (see normalize()). Any
      * fragment that is not letters-only after normalization — punctuation, a stray
      * digit, an isolated hyphen — is dropped, so the round-wide slot map never ends up

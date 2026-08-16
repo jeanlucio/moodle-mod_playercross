@@ -22,16 +22,16 @@
 
     Example context (json):
     {
-        "introtext": "Solve clues about course concepts. Each correct answer reveals shared letters of the mystery phrase.",
+        "introtext": "Solve terms about course concepts. Each correct answer reveals letters the term shares with the mystery phrase, in every pending term and in the mystery phrase itself.",
         "legendrevealedlabel": "Revealed: this letter is known.",
         "legendhiddenlabel": "Hidden: this letter is not known yet.",
-        "cluestext": "Each clue is a separate word; guess it in the box next to it.",
-        "submittext": "As soon as you finish typing a word, a button appears right next to it to check that word — you do not need to fill in every clue first.",
-        "hinttext": "A hint may be available for each clue, depending on how the teacher configured the activity.",
-        "finalguesstext": "You can guess the mystery phrase directly at any time, even with clues still pending.",
-        "winconditiontext": "To win a round, you must resolve every clue and correctly guess the mystery phrase.",
-        "showclueloss": true,
-        "cluelosstext": "Each clue has a limited number of attempts. If one runs out, winning becomes impossible and the round ends immediately as a loss.",
+        "termstext": "Each term is a separate word about a course concept; guess it in the box next to it — each letter you type moves you to the next box automatically.",
+        "submittext": "As soon as you finish typing a word, a button appears right next to it to check that word — you do not need to fill in every term first.",
+        "hinttext": "A hint may be available for each term, depending on how the teacher configured the activity.",
+        "finalguesstext": "You can guess the mystery phrase directly at any time, even with terms still pending — the earlier you guess correctly, the bigger the bonus.",
+        "winconditiontext": "To win a round, you must resolve every term and correctly guess the mystery phrase — in either order.",
+        "showtermloss": true,
+        "termlosstext": "Each term has a limited number of attempts. If one runs out, winning becomes impossible and the round ends immediately as a loss.",
         "timertext": "Some activities have a time limit per round.",
         "showhud": true,
         "hudtext": "This activity may require PlayerHUD items to start a round or reveal a hint, and can reward you with an item for winning a round.",
@@ -46,14 +46,14 @@
         <li><span class="pc-legend-swatch is-revealed" aria-hidden="true">A</span> {{legendrevealedlabel}}</li>
         <li><span class="pc-legend-swatch is-hidden" aria-hidden="true">A</span> {{legendhiddenlabel}}</li>
     </ul>
-    <p>{{cluestext}}</p>
+    <p>{{termstext}}</p>
     <p>{{submittext}}</p>
     <p>{{hinttext}}</p>
     <p>{{finalguesstext}}</p>
     <p>{{winconditiontext}}</p>
-    {{#showclueloss}}
-        <p>{{cluelosstext}}</p>
-    {{/showclueloss}}
+    {{#showtermloss}}
+        <p>{{termlosstext}}</p>
+    {{/showtermloss}}
     <p>{{timertext}}</p>
     {{#showhud}}
         <p>{{hudtext}}</p>

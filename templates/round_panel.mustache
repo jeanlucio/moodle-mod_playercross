@@ -18,21 +18,21 @@
     @template mod_playercross/round_panel
 
     Active-round panel: the theme concept's own word (shown openly, as a caption —
-    never tiled), its hint as the mystery-phrase tiles below, and clue progress,
-    followed by either the clue/final-guess forms (mod_playercross/round_play) or the
+    never tiled), its clue as the mystery-phrase tiles below, and term progress,
+    followed by either the term/final-guess forms (mod_playercross/round_play) or the
     post-round result (mod_playercross/round_result), depending on whether the round
     has finished.
 
     The mystery-phrase tiles and its submit button are replaced by a plain
     checkmark-and-word line — the same resolved-answer style round_play.mustache
-    already uses for a solved clue — as soon as themesolved is true. That happens
+    already uses for a solved term — as soon as themesolved is true. That happens
     either once the round is finished, or earlier, the moment a direct guess through
-    this same form is confirmed correct (finalguesscorrect), even with clues still
+    this same form is confirmed correct (finalguesscorrect), even with terms still
     pending: the phrase is already fully spelled out letter-by-letter in the tiles at
     that point anyway, so leaving the tile grid and a still-live submit button on
     screen for a form that has nothing left to resolve would be misleading. The
     checkmark itself only appears when finalguesscorrect is genuinely true — a round
-    lost via forfeit/timeout/cluesexhausted still sets themesolved (so the tiles still
+    lost via forfeit/timeout/termsexhausted still sets themesolved (so the tiles still
     collapse to text), but shows the phrase without a checkmark, since the player never
     actually solved it.
 
@@ -66,10 +66,10 @@
         "hudhintcost": true,
         "hudhintcostlabel": "You have 3× Gold Key. Costs 1×.",
         "canaffordhint": true,
-        "cluesprogresslabel": "0 of 5 clues resolved",
-        "clues": [
+        "termsprogresslabel": "0 of 5 terms resolved",
+        "terms": [
             {
-                "clueid": 12,
+                "termid": 12,
                 "phrase": "A place to keep notes and school exercises",
                 "resolved": false,
                 "exhausted": false,
@@ -82,7 +82,7 @@
             }
         ],
         "guesslabel": "Your answer",
-        "submitclueguess": "Submit",
+        "submittermguess": "Submit",
         "canfinalguess": true,
         "submitfinalguess": "Guess the mystery phrase",
         "keyboardlabel": "Virtual keyboard",
@@ -142,7 +142,8 @@
         {{/themesolved}}
         {{#themesolved}}
             <p class="text-center mb-0">
-                <span class="mod-playercross-clue-answer">{{#finalguesscorrect}}&#10003; {{/finalguesscorrect}}{{themedisplayword}}</span>
+                {{! Reuses .mod-playercross-term-answer for the mystery-phrase's own resolved-answer line. }}
+                <span class="mod-playercross-term-answer">{{#finalguesscorrect}}&#10003; {{/finalguesscorrect}}{{themedisplayword}}</span>
             </p>
         {{/themesolved}}
     </form>
@@ -169,7 +170,7 @@
         </div>
     {{/showglobalhint}}
 
-    <p class="text-muted small text-center mb-3">{{cluesprogresslabel}}</p>
+    <p class="text-muted small text-center mb-3">{{termsprogresslabel}}</p>
 
     {{^roundfinished}}
         {{> mod_playercross/round_play}}

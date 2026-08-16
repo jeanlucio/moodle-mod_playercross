@@ -32,7 +32,7 @@ use core_text;
  * Ported from mod_playerwords\local\words_repository, same method signatures and
  * behaviour except where the puzzle mechanic genuinely differs: theme-word candidates
  * are filtered by theme_min_length/theme_max_length (its own range, the latter 0 for
- * unlimited) instead of the min_length/max_length range used for clue words, and the
+ * unlimited) instead of the min_length/max_length range used for term words, and the
  * attempts table tracks one theme word per round (themewordid) instead of one word per
  * round.
  */
@@ -88,13 +88,13 @@ class words_repository {
     }
 
     /**
-     * Returns approved words eligible as clues: matching the instance's configured
-     * length range and carrying a non-blank hint — a clue's own phrase (its hint) is
+     * Returns approved words eligible as terms: matching the instance's configured
+     * length range and carrying a non-blank clue — a term's own phrase (its clue) is
      * always shown to the player as the question itself (see round_play.mustache), so
-     * a word saved with a blank hint (manualhint is optional on the manage-words form,
+     * a word saved with a blank clue (manualclue is optional on the manage-words form,
      * add_manual_word()/update_word() accept an empty string) would otherwise become an
-     * unplayable clue with nothing to ask. Mirrors the same blank-hint guard
-     * get_theme_candidate_words() already applies for its own reason (the theme's hint
+     * unplayable term with nothing to ask. Mirrors the same blank-clue guard
+     * get_theme_candidate_words() already applies for its own reason (the theme's clue
      * is the mystery phrase itself, so a blank one has no words to normalize).
      *
      * @param \stdClass $instance Activity instance.
@@ -111,7 +111,7 @@ class words_repository {
                 'approved' => 1,
             ],
             '',
-            'id, word, hint, concept'
+            'id, word, clue, concept'
         );
 
         $candidates = [];
@@ -124,7 +124,7 @@ class words_repository {
             if (!word_normalizer::is_valid_charset($word)) {
                 continue;
             }
-            if (trim((string)$record->hint) === '') {
+            if (trim((string)$record->clue) === '') {
                 continue;
             }
             $candidates[] = $record;
@@ -134,17 +134,17 @@ class words_repository {
     }
 
     /**
-     * Returns approved words eligible as the theme concept: their own hint normalizes
+     * Returns approved words eligible as the theme concept: their own clue normalizes
      * to at least one letter-only word, and the phrase's total letter count (summed
      * across every word, spaces excluded) is at least theme_min_length long — and, if
      * theme_max_length is set (non-zero), no more than that. The concept's own word is
      * shown openly as a caption, never tiled (SCOPE.md §20.2 v1.9) — the mystery phrase
-     * to guess is the hint — so the word's own length no longer matters for
+     * to guess is the clue — so the word's own length no longer matters for
      * eligibility.
      *
      * theme_max_length exists purely as a teacher-facing pacing/screen-size control —
-     * a longer hint is never unplayable, it simply produces more distinct letter slots
-     * for puzzle_builder to cover with more clues, and mod_playercross/round_panel
+     * a longer clue is never unplayable, it simply produces more distinct letter slots
+     * for puzzle_builder to cover with more terms, and mod_playercross/round_panel
      * already wraps arbitrarily long words onto multiple lines without overflowing.
      *
      * @param \stdClass $instance Activity instance.
@@ -161,14 +161,14 @@ class words_repository {
                 'approved' => 1,
             ],
             '',
-            'id, word, hint, concept'
+            'id, word, clue, concept'
         );
 
         $thememaxlength = (int)($instance->theme_max_length ?? 0);
 
         $candidates = [];
         foreach ($records as $record) {
-            $phrasewords = word_normalizer::normalize_phrase((string)$record->hint);
+            $phrasewords = word_normalizer::normalize_phrase((string)$record->clue);
             if ($phrasewords === []) {
                 continue;
             }
@@ -284,7 +284,7 @@ class words_repository {
                 'playercrossid' => $instanceid,
                 'approved' => 1,
             ],
-            'id, word, hint, concept',
+            'id, word, clue, concept',
             IGNORE_MISSING
         );
 
@@ -375,18 +375,18 @@ class words_repository {
      * @param int $instanceid Activity instance id.
      * @param int $userid User id.
      * @param string $word Word text.
-     * @param string $hint Clue hint — required by the caller (managewords.php), never
+     * @param string $clue Term clue — required by the caller (managewords.php), never
      *     blank in practice, but not re-validated here; this layer trusts its caller.
      * @return void
      */
-    public static function add_manual_word(int $instanceid, int $userid, string $word, string $hint): void {
+    public static function add_manual_word(int $instanceid, int $userid, string $word, string $clue): void {
         global $DB;
 
         $record = (object)[
             'playercrossid' => $instanceid,
             'word' => trim($word),
             'concept' => trim($word),
-            'hint' => trim($hint),
+            'clue' => trim($clue),
             'source' => 'manual',
             'approved' => 1,
             'timecreated' => time(),
@@ -399,7 +399,7 @@ class words_repository {
     /**
      * Imports approved glossary entries into the word pool for a given activity instance.
      *
-     * Existing glossary-sourced words (matched case-insensitively by concept) have their hint
+     * Existing glossary-sourced words (matched case-insensitively by concept) have their clue
      * updated. New words are inserted as approved. A word whose text already belongs to a
      * manual or AI-sourced entry is skipped instead, leaving that entry untouched — glossary
      * sync never overwrites a word the teacher (or the AI flow) already owns.
@@ -485,22 +485,22 @@ class words_repository {
             // strip_tags(html_entity_decode()) closes that gap while keeping
             // content_to_text()'s handling of genuine HTML (real <script>/<style>
             // removal, paragraphs and inline formatting collapsed to readable text).
-            $hint = trim(strip_tags(html_entity_decode(
+            $clue = trim(strip_tags(html_entity_decode(
                 content_to_text($entry->definition, $entry->definitionformat),
                 ENT_QUOTES | ENT_HTML5,
                 'UTF-8'
             )));
-            if ($hint === '') {
+            if ($clue === '') {
                 // A glossary entry saved with a blank (or markup-only, once sanitised)
-                // definition would otherwise sync in as a clue with nothing to ask the
-                // student — its hint is shown verbatim as the clue's own phrase
-                // (round_play.mustache). Never write a blank hint, but also never let
+                // definition would otherwise sync in as a term with nothing to ask the
+                // student — its clue is shown verbatim as the term's own phrase
+                // (round_play.mustache). Never write a blank clue, but also never let
                 // this silently delete a word that already had a real one: the orphan
                 // removal below (for a concept the current glossary content no longer
                 // produces at all) would otherwise sweep it up too, since skipping the
                 // whole entry never re-confirms it as still present. Marking any
                 // already-existing match as confirmed protects it from that, without
-                // inserting anything new or touching its stored hint.
+                // inserting anything new or touching its stored clue.
                 foreach (self::extract_candidate_words($concept, (string)($instance->stopwords ?? '')) as $word) {
                     $key = core_text::strtolower($word);
                     if (isset($existingmap[$key]) && $existingmap[$key] !== true) {
@@ -526,7 +526,7 @@ class words_repository {
                     if ($existingmap[$key] !== true) {
                         $DB->update_record('playercross_words', (object)[
                             'id'           => $existingmap[$key],
-                            'hint'         => $hint,
+                            'clue'         => $clue,
                             'concept'      => $concept,
                             'glossaryid'   => (int)$entry->glossaryid,
                             'timemodified' => time(),
@@ -542,7 +542,7 @@ class words_repository {
                         'playercrossid' => $instance->id,
                         'word'          => $word,
                         'concept'       => $concept,
-                        'hint'          => $hint,
+                        'clue'          => $clue,
                         'source'        => 'glossary',
                         'glossaryid'    => (int)$entry->glossaryid,
                         'approved'      => 1,
@@ -580,7 +580,7 @@ class words_repository {
     public static function get_word_by_id(int $wordid, int $instanceid): ?\stdClass {
         global $DB;
         $word = $DB->get_record_sql(
-            "SELECT id, word, hint, source, approved
+            "SELECT id, word, clue, source, approved
                FROM {playercross_words}
               WHERE id = :id AND playercrossid = :iid",
             ['id' => $wordid, 'iid' => $instanceid],
@@ -590,15 +590,15 @@ class words_repository {
     }
 
     /**
-     * Updates word text and hint for an entry that belongs to the given activity.
+     * Updates word text and clue for an entry that belongs to the given activity.
      *
      * @param int $wordid Word id.
      * @param int $instanceid Activity instance id.
      * @param string $word New word text.
-     * @param string $hint New hint text.
+     * @param string $clue New clue text.
      * @return bool True if the record was found and updated.
      */
-    public static function update_word(int $wordid, int $instanceid, string $word, string $hint): bool {
+    public static function update_word(int $wordid, int $instanceid, string $word, string $clue): bool {
         global $DB;
         $existing = $DB->get_record_sql(
             "SELECT id FROM {playercross_words} WHERE id = :id AND playercrossid = :iid",
@@ -612,7 +612,7 @@ class words_repository {
             'id'           => $wordid,
             'word'         => trim($word),
             'concept'      => trim($word),
-            'hint'         => trim($hint),
+            'clue'         => trim($clue),
             'timemodified' => time(),
         ]);
     }
@@ -662,18 +662,18 @@ class words_repository {
      * @param int $instanceid Activity instance id.
      * @param int $userid User id.
      * @param string $word Word text.
-     * @param string $hint Clue hint or definition — the caller (ai_word_generator::
+     * @param string $clue Term clue or definition — the caller (ai_word_generator::
      *     generate_and_save()) already rejects any AI-returned item with a blank one.
      * @return void
      */
-    public static function add_ai_word(int $instanceid, int $userid, string $word, string $hint): void {
+    public static function add_ai_word(int $instanceid, int $userid, string $word, string $clue): void {
         global $DB;
 
         $record = (object)[
             'playercrossid' => $instanceid,
             'word' => trim($word),
             'concept' => trim($word),
-            'hint' => trim($hint),
+            'clue' => trim($clue),
             'source' => 'ai',
             'approved' => 0,
             'timecreated' => time(),
@@ -760,7 +760,7 @@ class words_repository {
      * several sibling tokens (see sync_glossary_words()).
      *
      * Each sibling word still carries the full original concept's definition as its
-     * hint, so guessing one in isolation only tests a fragment of what the hint
+     * clue, so guessing one in isolation only tests a fragment of what the clue
      * actually describes — the teacher is expected to review these before publishing.
      * Scoped to source = 'glossary' on purpose: manual and AI-added words always store
      * concept = word (a single token, enforced at insert time), so they can never
@@ -813,9 +813,9 @@ class words_repository {
                 continue;
             }
             $wordlength = core_text::strlen($word);
-            $fitsclue = $wordlength >= (int)$instance->min_length && $wordlength <= (int)$instance->max_length;
+            $fitsterm = $wordlength >= (int)$instance->min_length && $wordlength <= (int)$instance->max_length;
             $fitstheme = $wordlength >= (int)$instance->theme_min_length;
-            if (!$fitsclue && !$fitstheme) {
+            if (!$fitsterm && !$fitstheme) {
                 $inactive[] = ['word' => $word, 'reason' => 'length'];
             }
         }

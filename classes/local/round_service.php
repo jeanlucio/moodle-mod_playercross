@@ -27,13 +27,13 @@ namespace mod_playercross\local;
 use completion_info;
 
 /**
- * Owns every round-state mutation: starting, guessing a clue, guessing the mystery
+ * Owns every round-state mutation: starting, guessing a term, guessing the mystery
  * phrase directly, revealing a hint, forfeiting, timing out and starting a new round.
  * This is the single source of truth for what happens on each transition, shared by
  * the classic page render and by the AJAX external functions.
  *
  * Unlike mod_playerwords, PlayerCross has no ephemeral DB table and no reserve-on-start
- * attempt row: the whole puzzle (mystery phrase, clue list, revealed slots) lives only
+ * attempt row: the whole puzzle (mystery phrase, term list, revealed slots) lives only
  * in session state for the duration of the round, and playercross_attempts only ever
  * gains a row once the round actually finishes (see SCOPE.md §5).
  */
@@ -73,11 +73,11 @@ class round_service {
      * Checks that a round's state still matches the shape the current code expects:
      * that it carries the round-wide mystery phrase (themewords — see SCOPE.md §20.2
      * v1.9, before which the mystery was a single themeword string), its own original
-     * (accented) spelling (themehint, added for the post-round reveal), that every
-     * clue's per-position slots array is exactly as long as its own word (before slots
-     * became a round-wide, per-position map, see §20.2 v1.7), and that every clue
+     * (accented) spelling (themeclue, added for the post-round reveal), that every
+     * term's per-position slots array is exactly as long as its own word (before slots
+     * became a round-wide, per-position map, see §20.2 v1.7), and that every term
      * carries its own original spelling too (originalword, same reveal purpose as
-     * themehint). A round started under an older version of puzzle_builder can still be
+     * themeclue). A round started under an older version of puzzle_builder can still be
      * sitting in a live PHP session at the moment the plugin is upgraded; without this
      * check, round_presenter would fatal on an undefined array key the first time that
      * stale round is rendered, instead of transparently starting a fresh one.
@@ -86,13 +86,13 @@ class round_service {
      * @return bool
      */
     private static function state_is_valid(array $state): bool {
-        if (!isset($state['themewords'], $state['themehint']) || !is_array($state['themewords'])) {
+        if (!isset($state['themewords'], $state['themeclue']) || !is_array($state['themewords'])) {
             return false;
         }
-        foreach ($state['clues'] ?? [] as $clue) {
+        foreach ($state['terms'] ?? [] as $term) {
             if (
-                !isset($clue['slots'], $clue['word'], $clue['originalword'])
-                || count($clue['slots']) !== count(word_normalizer::chars($clue['word']))
+                !isset($term['slots'], $term['word'], $term['originalword'])
+                || count($term['slots']) !== count(word_normalizer::chars($term['word']))
             ) {
                 return false;
             }
@@ -110,14 +110,14 @@ class round_service {
             'themewordid'   => 0,
             'themeconcept'  => '',
             'themewords'    => [],
-            'themehint'     => '',
+            'themeclue'     => '',
             'themeslots'    => [],
             'slotcount'     => 0,
             'revealedslots' => [],
             'hintsused'     => 0,
-            'clues'         => [],
-            'cluestotal'    => 0,
-            'cluesresolved' => 0,
+            'terms'         => [],
+            'termstotal'    => 0,
+            'termsresolved' => 0,
             'scoreaccumulated' => 0.0,
             'attemptsused'  => 0,
             'starttime'     => 0,
@@ -130,7 +130,7 @@ class round_service {
             'finalguessed'  => false,
             'finalguesscorrect' => false,
             'finalguesseddirectly' => false,
-            'cluesexhausted' => false,
+            'termsexhausted' => false,
         ];
     }
 
@@ -236,7 +236,7 @@ class round_service {
      * needed. Never rebuilds while the current round is finished — that transition
      * belongs exclusively to new_round(). Also never picks a new puzzle while
      * get_round_restriction_notice() reports max_rounds or cooldown as active — this is
-     * the single point every caller (page render, and the start_round/submit_clue_guess/
+     * the single point every caller (page render, and the start_round/submit_term_guess/
      * submit_final_guess/reveal_hint/new_round externals) goes through to pick a puzzle,
      * so the restriction is enforced once here instead of at each call site.
      *
@@ -264,14 +264,14 @@ class round_service {
             return $state;
         }
 
-        $clues = [];
-        foreach ($puzzle->clues as $clue) {
-            $clues[] = [
-                'wordid'       => $clue->wordid,
-                'word'         => $clue->word,
-                'originalword' => $clue->originalword,
-                'hint'         => $clue->hint,
-                'slots'        => $clue->slots,
+        $terms = [];
+        foreach ($puzzle->terms as $term) {
+            $terms[] = [
+                'wordid'       => $term->wordid,
+                'word'         => $term->word,
+                'originalword' => $term->originalword,
+                'clue'         => $term->clue,
+                'slots'        => $term->slots,
                 'resolved'     => false,
                 'attemptsused' => 0,
                 'exhausted'    => false,
@@ -282,17 +282,17 @@ class round_service {
         $state['themewordid']   = $puzzle->themewordid;
         $state['themeconcept']  = $puzzle->themeconcept;
         $state['themewords']    = $puzzle->themewords;
-        $state['themehint']     = $puzzle->themehint;
+        $state['themeclue']     = $puzzle->themeclue;
         $state['themeslots']    = $puzzle->themeslots;
         $state['slotcount']     = $puzzle->slotcount;
         $state['revealedslots'] = $puzzle->alwaysrevealedslots;
-        $state['clues']         = $clues;
-        $state['cluestotal']    = count($clues);
+        $state['terms']         = $terms;
+        $state['termstotal']    = count($terms);
 
         $event = \mod_playercross\event\round_started::create([
             'objectid' => $puzzle->themewordid,
             'context'  => \context_module::instance($cmid),
-            'other'    => ['cluestotal' => count($clues)],
+            'other'    => ['termstotal' => count($terms)],
         ]);
         $event->trigger();
 
@@ -375,15 +375,15 @@ class round_service {
     }
 
     /**
-     * Finds a clue's array index by its word id.
+     * Finds a term's array index by its word id.
      *
      * @param array $state Current state.
-     * @param int $clueid Clue word id.
+     * @param int $termid Term word id.
      * @return int|null
      */
-    private static function find_clue_index(array $state, int $clueid): ?int {
-        foreach ($state['clues'] as $index => $clue) {
-            if ((int)$clue['wordid'] === $clueid) {
+    private static function find_term_index(array $state, int $termid): ?int {
+        foreach ($state['terms'] as $index => $term) {
+            if ((int)$term['wordid'] === $termid) {
                 return $index;
             }
         }
@@ -391,11 +391,11 @@ class round_service {
     }
 
     /**
-     * Marks any still-active clue as resolved once every one of its own slots is
-     * already in revealedslots — reached, for instance, when a clue's word happens to
+     * Marks any still-active term as resolved once every one of its own slots is
+     * already in revealedslots — reached, for instance, when a term's word happens to
      * be made entirely of letters shared with the mystery phrase, and a correct final
      * guess reveals every phrase slot at once (see submit_final_guess()). Without this,
-     * such a clue would sit with every tile locked-and-revealed but no editable box
+     * such a term would sit with every tile locked-and-revealed but no editable box
      * left for the player to ever submit its own guess through — resolved stays false
      * and the round can never finish under PLAYERCROSS_WINCONDITION_BOTH.
      *
@@ -407,21 +407,21 @@ class round_service {
      * @param \stdClass $instance Activity instance.
      * @return array Updated state.
      */
-    private static function resolve_fully_revealed_clues(array $state, \stdClass $instance): array {
-        foreach ($state['clues'] as $index => $clue) {
-            if ($clue['resolved'] || $clue['exhausted']) {
+    private static function resolve_fully_revealed_terms(array $state, \stdClass $instance): array {
+        foreach ($state['terms'] as $index => $term) {
+            if ($term['resolved'] || $term['exhausted']) {
                 continue;
             }
-            if (array_diff($clue['slots'], $state['revealedslots']) !== []) {
+            if (array_diff($term['slots'], $state['revealedslots']) !== []) {
                 continue;
             }
 
-            $state['clues'][$index]['resolved'] = true;
-            $state['cluesresolved']++;
-            $state['scoreaccumulated'] += gameplay_service::calculate_clue_points(
+            $state['terms'][$index]['resolved'] = true;
+            $state['termsresolved']++;
+            $state['scoreaccumulated'] += gameplay_service::calculate_term_points(
                 $instance,
-                (int)$state['cluestotal'],
-                (int)$state['clues'][$index]['attemptsused']
+                (int)$state['termstotal'],
+                (int)$state['terms'][$index]['attemptsused']
             );
         }
         return $state;
@@ -429,8 +429,8 @@ class round_service {
 
     /**
      * Marks the mystery phrase itself as correctly guessed once every one of its own
-     * slots is already revealed — the same situation resolve_fully_revealed_clues()
-     * handles for a single clue, but for the phrase's own guess form: reached when
+     * slots is already revealed — the same situation resolve_fully_revealed_terms()
+     * handles for a single term, but for the phrase's own guess form: reached when
      * reveal_hint() alone, never a typed-and-submitted guess through that form, has
      * revealed every theme slot. Without this, finalguesscorrect stays false forever
      * with no editable box left in the phrase's own form to ever set it through, and
@@ -448,23 +448,23 @@ class round_service {
     }
 
     /**
-     * Runs after every operation that adds to revealedslots — a clue resolved
-     * (submit_clue_guess()), a hint revealed (reveal_hint()), or the phrase itself
+     * Runs after every operation that adds to revealedslots — a term resolved
+     * (submit_term_guess()), a hint revealed (reveal_hint()), or the phrase itself
      * confirmed (submit_final_guess()) — regardless of which of those three actually
      * triggered it. Any one of them can, via shared slots, incidentally complete a
-     * different clue or the phrase itself: resolving three ordinary clues can reveal
+     * different term or the phrase itself: resolving three ordinary terms can reveal
      * every mystery-phrase slot as a side effect just as easily as a hint or a direct
      * final guess can. Centralizing the consequences here — auto-resolving whatever
-     * clue is now fully revealed, confirming the phrase if it is too, and finishing the
+     * term is now fully revealed, confirming the phrase if it is too, and finishing the
      * round if that satisfies the win condition — means no entry point that touches
      * revealedslots can be the one left without this safeguard; retrofitting it three
      * separate times, once per call site, is exactly how it went missing from
-     * submit_clue_guess() the first time around.
+     * submit_term_guess() the first time around.
      *
      * The round can finish here regardless of which of the three callers triggered it,
      * but the "solved directly" feedback message must only fire when the phrase was
      * actually typed and submitted correctly through submit_final_guess() — never when
-     * the same slots simply ended up revealed as a side effect of resolving clues or
+     * the same slots simply ended up revealed as a side effect of resolving terms or
      * spending a hint. state['finalguesseddirectly'] carries that distinction (set only
      * by submit_final_guess(), never by confirm_fully_revealed_theme()) through to
      * finish_round()'s own $finalguessed parameter.
@@ -482,12 +482,12 @@ class round_service {
         int $cmid,
         int $userid
     ): array {
-        $state = self::resolve_fully_revealed_clues($state, $instance);
+        $state = self::resolve_fully_revealed_terms($state, $instance);
         $state = self::confirm_fully_revealed_theme($state);
 
         $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
         $readytowin = !empty($state['finalguesscorrect'])
-            && ($wincondition === PLAYERCROSS_WINCONDITION_FINALONLY || $state['cluesresolved'] >= $state['cluestotal']);
+            && ($wincondition === PLAYERCROSS_WINCONDITION_FINALONLY || $state['termsresolved'] >= $state['termstotal']);
 
         if (!$readytowin) {
             return [$state, null];
@@ -495,8 +495,8 @@ class round_service {
 
         $bonus = gameplay_service::calculate_final_guess_bonus(
             $instance,
-            (int)$state['cluestotal'],
-            (int)$state['cluesresolved']
+            (int)$state['termstotal'],
+            (int)$state['termsresolved']
         );
         $state['scoreaccumulated'] += $bonus;
         $state = self::finish_round(
@@ -515,22 +515,22 @@ class round_service {
 
     /**
      * Reveals one still-hidden letter anywhere in the round, optionally consuming a
-     * PlayerHUD item cost. A global action, not scoped to any single clue or to the
+     * PlayerHUD item cost. A global action, not scoped to any single term or to the
      * mystery phrase specifically: the revealed slot lights up in the mystery phrase
-     * and in every pending clue that shares it, exactly like solving a clue would —
-     * this reuses the same revealedslots set submit_clue_guess() already writes to, so
-     * no separate per-clue "hint revealed" state is needed.
+     * and in every pending term that shares it, exactly like solving a term would —
+     * this reuses the same revealedslots set submit_term_guess() already writes to, so
+     * no separate per-term "hint revealed" state is needed.
      *
      * Candidates are every slot in the round-wide slot map (state['slotcount']), which
-     * also numbers letters exclusive to a clue that never appear in the mystery phrase
+     * also numbers letters exclusive to a term that never appear in the mystery phrase
      * at all (SCOPE.md §20.2 v1.7) — a hint can therefore reveal a letter inside a
-     * single clue's own word without touching the mystery phrase's own tile row. This
+     * single term's own word without touching the mystery phrase's own tile row. This
      * keeps the action useful even after the whole mystery phrase is already revealed,
-     * as long as any clue still has a hidden letter of its own.
+     * as long as any term still has a hidden letter of its own.
      *
      * Also closes a soft-lock possible once every hidden slot in the round has been
-     * hinted away: with no clue and no phrase tile left unrevealed, neither the
-     * phrase's own guess form nor the last clue's has any editable box left, so the
+     * hinted away: with no term and no phrase tile left unrevealed, neither the
+     * phrase's own guess form nor the last term's has any editable box left, so the
      * player could never submit a guess through them again to actually finish the
      * round. reconcile_after_reveal() covers exactly that, and — unlike a plain hint
      * reveal — a call that completes the round this way finishes it immediately, the
@@ -549,7 +549,7 @@ class round_service {
             return [$state, get_string('roundfinished', 'mod_playercross'), 'warning', true];
         }
 
-        // Requires roundstarted: see submit_clue_guess() for why — the hint itself also
+        // Requires roundstarted: see submit_term_guess() for why — the hint itself also
         // has its own configurable PlayerHUD cost, but start_round() is where the player
         // commits to the round, and a hint pulled before that point would still be a way
         // to play part of the round for free.
@@ -557,7 +557,7 @@ class round_service {
             return [$state, get_string('roundnotstarted', 'mod_playercross'), 'warning', true];
         }
 
-        // See submit_clue_guess() for why this is re-checked here too, not just in
+        // See submit_term_guess() for why this is re-checked here too, not just in
         // timeout() itself.
         if (self::round_expired($state, $instance)) {
             $state = self::finish_round($state, $instance, $cmid, $userid, false, false, true, false);
@@ -597,7 +597,7 @@ class round_service {
         $state['revealedslots'][] = $hiddenslots[0];
         $state['hintsused'] = (int)($state['hintsused'] ?? 0) + 1;
 
-        // See reconcile_after_reveal(): this hint can, via shared slots, leave a clue or
+        // See reconcile_after_reveal(): this hint can, via shared slots, leave a term or
         // the phrase itself fully revealed with no editable box left in its own form —
         // and finish the round outright if that satisfies the win condition.
         [$state, $wonmessage] = self::reconcile_after_reveal($state, $instance, $cmid, $userid);
@@ -615,39 +615,39 @@ class round_service {
     }
 
     /**
-     * Validates and applies one guess for a specific clue.
+     * Validates and applies one guess for a specific term.
      *
-     * On a correct guess, every theme slot the clue's word covers is revealed — in the
-     * mystery phrase and, implicitly, in every other pending clue that shares one of
+     * On a correct guess, every theme slot the term's word covers is revealed — in the
+     * mystery phrase and, implicitly, in every other pending term that shares one of
      * those slots too, since revealedslots is a single set shared by the whole puzzle.
      *
      * Under PLAYERCROSS_WINCONDITION_BOTH (the default), resolving the last pending
-     * clue only finishes the round if the mystery phrase is already known correct —
+     * term only finishes the round if the mystery phrase is already known correct —
      * either a direct guess through its own form (submit_final_guess()) or, via
      * reconcile_after_reveal(), every one of its slots happening to be revealed
-     * already as a side effect of the clues resolved so far. Under
-     * PLAYERCROSS_WINCONDITION_FINALONLY, resolving every clue never finishes the round
+     * already as a side effect of the terms resolved so far. Under
+     * PLAYERCROSS_WINCONDITION_FINALONLY, resolving every term never finishes the round
      * by itself unless that same side effect reveals the whole phrase too.
      *
-     * A clue running out of attempts under PLAYERCROSS_WINCONDITION_BOTH makes winning
-     * this round mathematically impossible from that moment on — cluesresolved can
-     * never reach cluestotal again — so the round ends immediately as a loss instead of
+     * A term running out of attempts under PLAYERCROSS_WINCONDITION_BOTH makes winning
+     * this round mathematically impossible from that moment on — termsresolved can
+     * never reach termstotal again — so the round ends immediately as a loss instead of
      * being left open with no way forward.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
      * @param int $cmid Course module id.
      * @param int $userid User id.
-     * @param int $clueid Clue word id.
+     * @param int $termid Term word id.
      * @param string $guess Raw guess text.
      * @return array [$state, $resolved, $notification, $notificationtype, $toast]
      */
-    public static function submit_clue_guess(
+    public static function submit_term_guess(
         array $state,
         \stdClass $instance,
         int $cmid,
         int $userid,
-        int $clueid,
+        int $termid,
         string $guess
     ): array {
         if (!empty($state['finished'])) {
@@ -674,14 +674,14 @@ class round_service {
             return [$state, false, get_string('roundtimeout', 'mod_playercross'), 'warning', true];
         }
 
-        $index = self::find_clue_index($state, $clueid);
+        $index = self::find_term_index($state, $termid);
         if ($index === null) {
-            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning', true];
+            return [$state, false, get_string('termnotavailable', 'mod_playercross'), 'warning', true];
         }
 
-        $clue = $state['clues'][$index];
-        if ($clue['resolved'] || $clue['exhausted']) {
-            return [$state, false, get_string('cluenotavailable', 'mod_playercross'), 'warning', true];
+        $term = $state['terms'][$index];
+        if ($term['resolved'] || $term['exhausted']) {
+            return [$state, false, get_string('termnotavailable', 'mod_playercross'), 'warning', true];
         }
 
         $normalizedguess = word_normalizer::normalize($guess);
@@ -690,38 +690,38 @@ class round_service {
         }
 
         $state['attemptsused']++;
-        $state['clues'][$index]['attemptsused']++;
+        $state['terms'][$index]['attemptsused']++;
 
-        if ($normalizedguess !== $clue['word']) {
-            $maxattempts = (int)$instance->max_attempts_per_clue;
-            if ($maxattempts > 0 && $state['clues'][$index]['attemptsused'] >= $maxattempts) {
-                $state['clues'][$index]['exhausted'] = true;
+        if ($normalizedguess !== $term['word']) {
+            $maxattempts = (int)$instance->max_attempts_per_term;
+            if ($maxattempts > 0 && $state['terms'][$index]['attemptsused'] >= $maxattempts) {
+                $state['terms'][$index]['exhausted'] = true;
 
                 $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
                 if ($wincondition === PLAYERCROSS_WINCONDITION_BOTH) {
                     $state = self::finish_round($state, $instance, $cmid, $userid, false, false, false, false, true);
-                    return [$state, false, get_string('feedback_cluesexhausted', 'mod_playercross'), 'warning', true];
+                    return [$state, false, get_string('feedback_termsexhausted', 'mod_playercross'), 'warning', true];
                 }
 
-                return [$state, false, get_string('clueexhausted', 'mod_playercross'), 'warning', true];
+                return [$state, false, get_string('termexhausted', 'mod_playercross'), 'warning', true];
             }
-            return [$state, false, get_string('clueguesswrong', 'mod_playercross'), 'warning', true];
+            return [$state, false, get_string('termguesswrong', 'mod_playercross'), 'warning', true];
         }
 
-        $state['clues'][$index]['resolved'] = true;
-        $state['cluesresolved']++;
-        $state['revealedslots'] = array_values(array_unique(array_merge($state['revealedslots'], $clue['slots'])));
+        $state['terms'][$index]['resolved'] = true;
+        $state['termsresolved']++;
+        $state['revealedslots'] = array_values(array_unique(array_merge($state['revealedslots'], $term['slots'])));
 
-        $points = gameplay_service::calculate_clue_points(
+        $points = gameplay_service::calculate_term_points(
             $instance,
-            (int)$state['cluestotal'],
-            $state['clues'][$index]['attemptsused']
+            (int)$state['termstotal'],
+            $state['terms'][$index]['attemptsused']
         );
         $state['scoreaccumulated'] += $points;
 
-        // See reconcile_after_reveal(): this clue's own slots can, via shared letters,
-        // also complete a different still-open clue or the mystery phrase itself —
-        // resolving three ordinary clues can reveal the whole phrase as a side effect
+        // See reconcile_after_reveal(): this term's own slots can, via shared letters,
+        // also complete a different still-open term or the mystery phrase itself —
+        // resolving three ordinary terms can reveal the whole phrase as a side effect
         // just as easily as a hint or a direct final guess can. Finishes the round
         // outright if that satisfies the win condition.
         [$state, $wonmessage] = self::reconcile_after_reveal($state, $instance, $cmid, $userid);
@@ -729,20 +729,20 @@ class round_service {
             return [$state, true, $wonmessage, 'success', true];
         }
 
-        if ($state['cluesresolved'] >= $state['cluestotal']) {
-            return [$state, true, get_string('cluescompleteneedsfinal', 'mod_playercross'), 'success', true];
+        if ($state['termsresolved'] >= $state['termstotal']) {
+            return [$state, true, get_string('termscompleteneedsfinal', 'mod_playercross'), 'success', true];
         }
 
         // Every round-flow message is an auto-dismissing toast, milestones included — see
         // the matching note in reveal_hint(): a persistent notification never clears on its
         // own, so a wrong guess and a later "round won" message would otherwise sit stacked
         // on screen together. Toasts fade out and never accumulate that way.
-        return [$state, true, get_string('clueresolved', 'mod_playercross'), 'success', true];
+        return [$state, true, get_string('termresolved', 'mod_playercross'), 'success', true];
     }
 
     /**
      * Validates and applies a direct guess of the mystery phrase, available at any
-     * point in the round, even with clues still pending.
+     * point in the round, even with terms still pending.
      *
      * The guess is normalized the same way the phrase itself was (word_normalizer::
      * normalize_phrase(): split on anything that is not a letter, lowercase and strip
@@ -751,11 +751,11 @@ class round_service {
      * phrase, in order.
      *
      * Under PLAYERCROSS_WINCONDITION_BOTH (the default), a correct guess here does not
-     * finish the round by itself if clues are still pending — it is recorded
-     * (finalguesscorrect), so resolving the last remaining clue afterwards finishes the
+     * finish the round by itself if terms are still pending — it is recorded
+     * (finalguesscorrect), so resolving the last remaining term afterwards finishes the
      * round immediately instead of requiring the same phrase to be guessed twice. Under
      * PLAYERCROSS_WINCONDITION_FINALONLY, a correct guess always finishes the round on
-     * the spot, however many clues are still pending.
+     * the spot, however many terms are still pending.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
@@ -775,12 +775,12 @@ class round_service {
             return [$state, false, get_string('roundfinished', 'mod_playercross'), 'warning', true];
         }
 
-        // Requires roundstarted: see submit_clue_guess() for why.
+        // Requires roundstarted: see submit_term_guess() for why.
         if (empty($state['roundstarted'])) {
             return [$state, false, get_string('roundnotstarted', 'mod_playercross'), 'warning', true];
         }
 
-        // See submit_clue_guess() for why this is re-checked here too, not just in
+        // See submit_term_guess() for why this is re-checked here too, not just in
         // timeout() itself.
         if (self::round_expired($state, $instance)) {
             $state = self::finish_round($state, $instance, $cmid, $userid, false, false, true, false);
@@ -803,30 +803,30 @@ class round_service {
 
         // Reveals the mystery phrase's own tiles immediately, independently of whether the
         // round finishes here — a correct guess demonstrates the player already knows every
-        // letter, so leaving the tiles blank until every clue is also solved (WINCONDITION_BOTH)
+        // letter, so leaving the tiles blank until every term is also solved (WINCONDITION_BOTH)
         // would contradict the positive feedback they just received. themeslots (the phrase's
         // own slot numbers) is used here rather than the round-wide slotcount range, so this
-        // never reveals a slot exclusive to a still-unsolved clue's own word — same distinction
+        // never reveals a slot exclusive to a still-unsolved term's own word — same distinction
         // reveal_hint() draws (see its docblock).
         $state['revealedslots'] = array_values(array_unique(array_merge($state['revealedslots'], $state['themeslots'])));
 
         // See reconcile_after_reveal(): finalguesscorrect is already true above, so this
-        // resolves any clue left fully revealed as a side effect and finishes the round
+        // resolves any term left fully revealed as a side effect and finishes the round
         // outright once the win condition is met (immediately under
-        // PLAYERCROSS_WINCONDITION_FINALONLY, or once every clue is resolved too under
+        // PLAYERCROSS_WINCONDITION_FINALONLY, or once every term is resolved too under
         // PLAYERCROSS_WINCONDITION_BOTH).
         [$state, $wonmessage] = self::reconcile_after_reveal($state, $instance, $cmid, $userid);
         if ($wonmessage !== null) {
             return [$state, true, $wonmessage, 'success', true];
         }
 
-        return [$state, true, get_string('finalguesscorrectneedsclues', 'mod_playercross'), 'success', true];
+        return [$state, true, get_string('finalguesscorrectneedsterms', 'mod_playercross'), 'success', true];
     }
 
     /**
-     * Handles a forfeit: ends the round without resolving any remaining clue.
+     * Handles a forfeit: ends the round without resolving any remaining term.
      *
-     * Requires roundstarted: see submit_clue_guess() for why — a puzzle armed at
+     * Requires roundstarted: see submit_term_guess() for why — a puzzle armed at
      * view.php's GET-time ensure_round_state() call, before the "Iniciar rodada"
      * button is ever clicked, must not be endable at all, let alone spend one of the
      * student's max_rounds for a round they never actually played.
@@ -893,7 +893,7 @@ class round_service {
      * end_round(timeout) would. Used by view_page_service so a page reload after the
      * deadline renders the round as finished immediately, instead of it only closing
      * on the player's next guess/hint attempt (round_expired() is also checked at the
-     * top of submit_clue_guess(), submit_final_guess() and reveal_hint(), which is the
+     * top of submit_term_guess(), submit_final_guess() and reveal_hint(), which is the
      * actual security boundary — this is purely about not rendering stale playable
      * forms on a read-only GET).
      *
@@ -913,7 +913,7 @@ class round_service {
     /**
      * Applies the shared "round just finished" bookkeeping.
      *
-     * The single place all finish paths (all clues resolved, direct final guess,
+     * The single place all finish paths (all terms resolved, direct final guess,
      * forfeit, timeout) go through: flags, score persistence, the attempts row,
      * completion state and the grade update.
      *
@@ -925,7 +925,7 @@ class round_service {
      * @param bool $forfeited Whether the player gave up.
      * @param bool $timedout Whether the timer expired.
      * @param bool $finalguessed Whether the round ended via a correct direct guess.
-     * @param bool $cluesexhausted Whether the round ended because a clue ran out of
+     * @param bool $termsexhausted Whether the round ended because a term ran out of
      *     attempts under PLAYERCROSS_WINCONDITION_BOTH, making a win impossible. Only
      *     ever used to pick the right feedback message — not persisted to the attempts
      *     table, which already records the loss via $won.
@@ -957,7 +957,7 @@ class round_service {
         bool $forfeited,
         bool $timedout,
         bool $finalguessed,
-        bool $cluesexhausted = false
+        bool $termsexhausted = false
     ): array {
         global $CFG, $DB;
         require_once($CFG->dirroot . '/mod/playercross/lib.php');
@@ -966,7 +966,7 @@ class round_service {
         $state['endtime']      = time();
         $state['won']          = $won;
         $state['forfeited']    = $forfeited;
-        $state['cluesexhausted'] = $cluesexhausted;
+        $state['termsexhausted'] = $termsexhausted;
         $state['timedout']     = $timedout;
         $state['finalguessed'] = $finalguessed;
 
@@ -999,8 +999,8 @@ class round_service {
                 'playercrossid' => $instance->id,
                 'userid'        => $userid,
                 'themewordid'   => (int)$state['themewordid'],
-                'cluestotal'    => (int)$state['cluestotal'],
-                'cluesresolved' => (int)$state['cluesresolved'],
+                'termstotal'    => (int)$state['termstotal'],
+                'termsresolved' => (int)$state['termsresolved'],
                 'finalguessed'  => $finalguessed ? 1 : 0,
                 'attempts_used' => (int)$state['attemptsused'],
                 'time_used'     => $timeused,
@@ -1016,8 +1016,8 @@ class round_service {
                     'completed'     => $won,
                     'finalguessed'  => $finalguessed,
                     'score'         => $score,
-                    'cluesresolved' => (int)$state['cluesresolved'],
-                    'cluestotal'    => (int)$state['cluestotal'],
+                    'termsresolved' => (int)$state['termsresolved'],
+                    'termstotal'    => (int)$state['termstotal'],
                     'attemptsused'  => (int)$state['attemptsused'],
                     'timeused'      => $timeused,
                     'themewordid'   => (int)$state['themewordid'],

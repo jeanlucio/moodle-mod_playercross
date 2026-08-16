@@ -68,14 +68,14 @@ if (optional_param('addword', 0, PARAM_BOOL)) {
     require_sesskey();
 
     $manualword = trim(required_param('manualword', PARAM_TEXT));
-    $manualhint = trim(optional_param('manualhint', '', PARAM_TEXT));
+    $manualclue = trim(optional_param('manualclue', '', PARAM_TEXT));
     $wordlength = core_text::strlen($manualword);
 
     if ($manualword === '') {
         $notification = get_string('error_manualwordrequired', 'mod_playercross');
         $notificationtype = 'warning';
-    } else if ($manualhint === '') {
-        $notification = get_string('error_manualhintrequired', 'mod_playercross');
+    } else if ($manualclue === '') {
+        $notification = get_string('error_manualcluerequired', 'mod_playercross');
         $notificationtype = 'warning';
     } else if (!word_normalizer::is_valid_charset($manualword)) {
         $notification = get_string('error_manualwordinvalidchars', 'mod_playercross');
@@ -91,7 +91,7 @@ if (optional_param('addword', 0, PARAM_BOOL)) {
         $notification = get_string('error_manualwordduplicate', 'mod_playercross');
         $notificationtype = 'warning';
     } else {
-        words_repository::add_manual_word((int)$instance->id, (int)$USER->id, $manualword, $manualhint);
+        words_repository::add_manual_word((int)$instance->id, (int)$USER->id, $manualword, $manualclue);
         $notification = get_string('manualwordadded', 'mod_playercross');
         $notificationtype = 'success';
     }
@@ -102,15 +102,15 @@ if (optional_param('saveword', 0, PARAM_BOOL)) {
 
     $wordid    = required_param('wordid', PARAM_INT);
     $manualword = trim(required_param('manualword', PARAM_TEXT));
-    $manualhint = trim(optional_param('manualhint', '', PARAM_TEXT));
+    $manualclue = trim(optional_param('manualclue', '', PARAM_TEXT));
     $wordlength = core_text::strlen($manualword);
 
     if ($manualword === '') {
         $notification = get_string('error_manualwordrequired', 'mod_playercross');
         $notificationtype = 'warning';
         $editwordid = $wordid;
-    } else if ($manualhint === '') {
-        $notification = get_string('error_manualhintrequired', 'mod_playercross');
+    } else if ($manualclue === '') {
+        $notification = get_string('error_manualcluerequired', 'mod_playercross');
         $notificationtype = 'warning';
         $editwordid = $wordid;
     } else if (!word_normalizer::is_valid_charset($manualword)) {
@@ -130,7 +130,7 @@ if (optional_param('saveword', 0, PARAM_BOOL)) {
         $notificationtype = 'warning';
         $editwordid = $wordid;
     } else {
-        words_repository::update_word($wordid, (int)$instance->id, $manualword, $manualhint);
+        words_repository::update_word($wordid, (int)$instance->id, $manualword, $manualclue);
         $notification = get_string('wordupdated', 'mod_playercross');
         $notificationtype = 'success';
     }
@@ -283,9 +283,9 @@ $templatecontext = [
     'syncglossarybutton'     => get_string('syncglossarybutton', 'mod_playercross'),
     'managewordslabel'       => get_string('managewordslabel', 'mod_playercross'),
     'manualwordlabel'        => get_string('manualwordlabel', 'mod_playercross'),
-    'manualhintlabel'        => get_string('manualhintlabel', 'mod_playercross'),
+    'manualcluelabel'        => get_string('manualcluelabel', 'mod_playercross'),
     'manualwordplaceholder'  => get_string('manualwordplaceholder', 'mod_playercross'),
-    'manualhintplaceholder'  => get_string('manualhintplaceholder', 'mod_playercross'),
+    'manualclueplaceholder'  => get_string('manualclueplaceholder', 'mod_playercross'),
     'addwordbutton'          => get_string('addwordbutton', 'mod_playercross'),
     'hasai'                  => ai_word_generator::has_key($context),
     'aigeneratetitle'        => get_string('aigeneratetitle', 'mod_playercross'),
@@ -327,7 +327,7 @@ $templatecontext = [
     'haseditword'            => $editwordid > 0 && $editworddata !== null,
     'editword_id'            => $editworddata ? (int)$editworddata->id : 0,
     'editword_word'          => $editworddata ? $editworddata->word : '',
-    'editword_hint'          => $editworddata ? ($editworddata->hint ?? '') : '',
+    'editword_clue'          => $editworddata ? ($editworddata->clue ?? '') : '',
     'cancelediteurl'         => $cancelediteurl->out(false),
     'pagingbar'              => $pagingbar,
 ];

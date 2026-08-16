@@ -20,7 +20,7 @@
  * Personal data stored:
  *   - playercross_attempts: one record per round per user (userid).
  *   - playercross_words: addedby (userid of the teacher/user who added the word),
- *     plus the word, hint, source and timecreated of that same row. See get_metadata()
+ *     plus the word, clue, source and timecreated of that same row. See get_metadata()
  *     for why concept/glossaryid/approved/timemodified are deliberately excluded.
  *
  * @package    mod_playercross
@@ -55,8 +55,8 @@ class provider implements
                 'userid'        => 'privacy:metadata:playercross_attempts:userid',
                 'playercrossid' => 'privacy:metadata:playercross_attempts:playercrossid',
                 'themewordid'   => 'privacy:metadata:playercross_attempts:themewordid',
-                'cluestotal'    => 'privacy:metadata:playercross_attempts:cluestotal',
-                'cluesresolved' => 'privacy:metadata:playercross_attempts:cluesresolved',
+                'termstotal'    => 'privacy:metadata:playercross_attempts:termstotal',
+                'termsresolved' => 'privacy:metadata:playercross_attempts:termsresolved',
                 'finalguessed'  => 'privacy:metadata:playercross_attempts:finalguessed',
                 'attempts_used' => 'privacy:metadata:playercross_attempts:attempts_used',
                 'time_used'     => 'privacy:metadata:playercross_attempts:time_used',
@@ -82,7 +82,7 @@ class provider implements
                 'addedby'       => 'privacy:metadata:playercross_words:addedby',
                 'playercrossid' => 'privacy:metadata:playercross_words:playercrossid',
                 'word'          => 'privacy:metadata:playercross_words:word',
-                'hint'          => 'privacy:metadata:playercross_words:hint',
+                'clue'          => 'privacy:metadata:playercross_words:clue',
                 'source'        => 'privacy:metadata:playercross_words:source',
                 'timecreated'   => 'privacy:metadata:playercross_words:timecreated',
             ],
@@ -267,7 +267,7 @@ class provider implements
             "addedby = :addedby AND playercrossid $insql",
             array_merge(['addedby' => $userid], $inparams),
             'timecreated ASC',
-            'id, playercrossid, word, hint, source, timecreated'
+            'id, playercrossid, word, clue, source, timecreated'
         );
 
         $grouped = [];
@@ -304,8 +304,8 @@ class provider implements
                 $rows = array_values(array_map(function (\stdClass $a): array {
                     return [
                         'themewordid'   => (int)$a->themewordid,
-                        'cluestotal'    => (int)$a->cluestotal,
-                        'cluesresolved' => (int)$a->cluesresolved,
+                        'termstotal'    => (int)$a->termstotal,
+                        'termsresolved' => (int)$a->termsresolved,
                         'finalguessed'  => transform::yesno($a->finalguessed),
                         'attempts_used' => (int)$a->attempts_used,
                         'time_used'     => (int)$a->time_used,
@@ -329,7 +329,7 @@ class provider implements
                 $rows = array_values(array_map(function (\stdClass $w): array {
                     return [
                         'word'        => $w->word,
-                        'hint'        => $w->hint,
+                        'clue'        => $w->clue,
                         'source'      => $w->source,
                         'timecreated' => transform::datetime($w->timecreated),
                     ];

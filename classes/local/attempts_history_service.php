@@ -29,7 +29,7 @@ use context_course;
 /**
  * Builds one student's own round history, plus the teacher/manager-facing report
  * across every student. Ported from mod_playerwords\local\attempts_history_service,
- * adapted for the puzzle's own attempt shape (theme word, clues resolved, direct
+ * adapted for the puzzle's own attempt shape (theme word, terms resolved, direct
  * final guess) instead of a single guessed word.
  */
 class attempts_history_service {
@@ -40,7 +40,7 @@ class attempts_history_service {
     private const SORTABLE_COLUMNS = [
         'student'  => 'studentname',
         'theme'    => 'pw.word',
-        'clues'    => 'pa.cluesresolved',
+        'terms'    => 'pa.termsresolved',
         'attempts' => 'pa.attempts_used',
         'time'     => 'pa.time_used',
         'score'    => 'pa.score',
@@ -109,8 +109,8 @@ class attempts_history_service {
 
         $row = [
             'themeword'     => $attempt->concept ?: ($attempt->word ?: ''),
-            'cluesresolved' => (int)$attempt->cluesresolved,
-            'cluestotal'    => (int)$attempt->cluestotal,
+            'termsresolved' => (int)$attempt->termsresolved,
+            'termstotal'    => (int)$attempt->termstotal,
             'finalguessed'  => !empty($attempt->finalguessed),
             'attemptsused'  => (int)$attempt->attempts_used,
             'timeused'      => sprintf('%d:%02d', $minutes, $seconds),

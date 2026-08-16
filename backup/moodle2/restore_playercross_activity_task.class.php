@@ -58,7 +58,7 @@ class restore_playercross_activity_task extends restore_activity_task {
     public static function define_decode_contents(): array {
         return [
             new restore_decode_content('playercross', ['intro'], 'playercross'),
-            new restore_decode_content('playercross_words', ['hint'], 'playercross'),
+            new restore_decode_content('playercross_words', ['clue'], 'playercross'),
         ];
     }
 

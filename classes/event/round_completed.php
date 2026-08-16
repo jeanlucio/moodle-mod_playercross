@@ -26,7 +26,7 @@ namespace mod_playercross\event;
 
 /**
  * Fired by round_service::finish_round() whenever a round ends — by resolving every
- * clue, a correct direct guess, a forfeit, or a timeout — and a playercross_attempts
+ * term, a correct direct guess, a forfeit, or a timeout — and a playercross_attempts
  * record is persisted.
  *
  * Expected data:
@@ -36,8 +36,8 @@ namespace mod_playercross\event;
  *                 'completed'     => bool,  // true = round won
  *                 'finalguessed'  => bool,
  *                 'score'         => float,
- *                 'cluesresolved' => int,
- *                 'cluestotal'    => int,
+ *                 'termsresolved' => int,
+ *                 'termstotal'    => int,
  *                 'attemptsused'  => int,
  *                 'timeused'      => int,   // seconds
  *                 'themewordid'   => int,
@@ -61,7 +61,7 @@ class round_completed extends \core\event\base {
         $outcome = !empty($this->other['completed']) ? 'won' : 'did not win';
         return "The user with id '{$this->userid}' completed a round and {$outcome} in the playercross activity " .
             "with course module id '{$this->contextinstanceid}'. " .
-            "Score: {$this->other['score']}. Clues resolved: {$this->other['cluesresolved']}/{$this->other['cluestotal']}.";
+            "Score: {$this->other['score']}. Terms resolved: {$this->other['termsresolved']}/{$this->other['termstotal']}.";
     }
 
     #[\Override]

@@ -117,13 +117,13 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->setType('wordmode', PARAM_INT);
         $mform->setDefault('wordmode', PLAYERCROSS_WORDMODE_RANDOM);
 
-        $numcluesoptions = [];
+        $numtermsoptions = [];
         for ($i = 3; $i <= 10; $i++) {
-            $numcluesoptions[$i] = $i;
+            $numtermsoptions[$i] = $i;
         }
-        $mform->addElement('select', 'num_clues', get_string('num_clues', 'mod_playercross'), $numcluesoptions);
-        $mform->setType('num_clues', PARAM_INT);
-        $mform->setDefault('num_clues', 5);
+        $mform->addElement('select', 'num_terms', get_string('num_terms', 'mod_playercross'), $numtermsoptions);
+        $mform->setType('num_terms', PARAM_INT);
+        $mform->setDefault('num_terms', 5);
 
         $mform->addElement(
             'select',
@@ -208,13 +208,13 @@ class mod_playercross_mod_form extends moodleform_mod {
 
         $mform->addElement(
             'text',
-            'max_attempts_per_clue',
-            get_string('max_attempts_per_clue', 'mod_playercross')
+            'max_attempts_per_term',
+            get_string('max_attempts_per_term', 'mod_playercross')
         );
-        $mform->setType('max_attempts_per_clue', PARAM_INT);
-        $mform->setDefault('max_attempts_per_clue', 0);
-        $mform->addRule('max_attempts_per_clue', null, 'numeric', null, 'client');
-        $mform->addHelpButton('max_attempts_per_clue', 'max_attempts_per_clue', 'mod_playercross');
+        $mform->setType('max_attempts_per_term', PARAM_INT);
+        $mform->setDefault('max_attempts_per_term', 0);
+        $mform->addRule('max_attempts_per_term', null, 'numeric', null, 'client');
+        $mform->addHelpButton('max_attempts_per_term', 'max_attempts_per_term', 'mod_playercross');
 
         $mform->addElement('text', 'timer_minutes', get_string('timer_minutes', 'mod_playercross'));
         $mform->setType('timer_minutes', PARAM_INT);
@@ -408,7 +408,7 @@ class mod_playercross_mod_form extends moodleform_mod {
      * Freezes settings that feed the puzzle's point scale once the activity has
      * recorded a real grade for any student.
      *
-     * num_clues and grademethod are baked into every already-scored round at the
+     * num_terms and grademethod are baked into every already-scored round at the
      * moment it finishes. Changing either afterwards would make past and future
      * rounds count on different scales, both for the grade and for the ranking
      * total. This mirrors the same condition core already uses to freeze the
@@ -439,13 +439,13 @@ class mod_playercross_mod_form extends moodleform_mod {
         }
 
         $mform = $this->_form;
-        $lockedfields = ['num_clues', 'grademethod'];
+        $lockedfields = ['num_terms', 'grademethod'];
         $mform->freeze($lockedfields);
 
         $warninghtml = html_writer::div(get_string('scoringmode_locked', 'mod_playercross'), 'alert alert-warning');
         $mform->insertElementBefore(
             $mform->createElement('static', 'scoringmodelockedmsg', '', $warninghtml),
-            'num_clues'
+            'num_terms'
         );
     }
 
@@ -516,8 +516,8 @@ class mod_playercross_mod_form extends moodleform_mod {
             $errors['max_length'] = get_string('error_maxlength', 'mod_playercross');
         }
 
-        if ((int)$data['max_attempts_per_clue'] < 0) {
-            $errors['max_attempts_per_clue'] = get_string('error_maxattemptsperclue', 'mod_playercross');
+        if ((int)$data['max_attempts_per_term'] < 0) {
+            $errors['max_attempts_per_term'] = get_string('error_maxattemptsperterm', 'mod_playercross');
         }
 
         if ((int)$data['timer_minutes'] < 0) {

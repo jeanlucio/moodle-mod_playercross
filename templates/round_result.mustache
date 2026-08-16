@@ -17,10 +17,10 @@
 {{!
     @template mod_playercross/round_result
 
-    Post-round panel: feedback message, mystery-phrase reveal, a recap of every clue's
-    own hint and answer word (reusing the 'clues' context round_presenter::
-    build_round_panel_context() already builds via build_clue_rows() for round_play —
-    every clue's own revealword is populated once the round is finished, regardless of
+    Post-round panel: feedback message, mystery-phrase reveal, a recap of every term's
+    own clue and answer word (reusing the 'terms' context round_presenter::
+    build_round_panel_context() already builds via build_term_rows() for round_play —
+    every term's own revealword is populated once the round is finished, regardless of
     whether the student actually resolved it), score, cooldown countdown and the
     new-round action.
 
@@ -29,16 +29,16 @@
         "feedbackmessage": "You solved the mystery phrase!",
         "revealthemewordlabel": "The mystery phrase was:",
         "revealthemeword": "ESCOLA",
-        "resultclueslabel": "Clues from this round:",
-        "clues": [
+        "resulttermslabel": "Terms from this round:",
+        "terms": [
             {
-                "clueid": 12,
+                "termid": 12,
                 "phrase": "A tool used to write",
                 "resolved": true,
                 "revealword": "CANETA"
             },
             {
-                "clueid": 13,
+                "termid": 13,
                 "phrase": "A place to keep notes and school exercises",
                 "resolved": false,
                 "revealword": "CADERNO"
@@ -64,14 +64,14 @@
         <p class="mb-1"><strong>{{revealthemewordlabel}}</strong> {{revealthemeword}}</p>
         <p class="mb-0">{{scoreachievedlabel}} {{scoreachieved}}</p>
     </div>
-    <p class="fw-bold text-center mt-3 mb-2">{{resultclueslabel}}</p>
-    <ul class="mod-playercross-clues list-unstyled">
-        {{#clues}}
-            <li class="mod-playercross-clue{{#resolved}} is-resolved{{/resolved}}">
-                <p class="mod-playercross-clue-phrase">{{phrase}}</p>
-                <span class="mod-playercross-clue-answer">{{#resolved}}&#10003; {{/resolved}}{{revealword}}</span>
+    <p class="fw-bold text-center mt-3 mb-2">{{resulttermslabel}}</p>
+    <ul class="mod-playercross-terms list-unstyled">
+        {{#terms}}
+            <li class="mod-playercross-term{{#resolved}} is-resolved{{/resolved}}">
+                <p class="mod-playercross-term-phrase">{{phrase}}</p>
+                <span class="mod-playercross-term-answer">{{#resolved}}&#10003; {{/resolved}}{{revealword}}</span>
             </li>
-        {{/clues}}
+        {{/terms}}
     </ul>
     {{#showgradesofar}}
         <p class="mt-2 text-center">{{gradesofarmessage}}</p>

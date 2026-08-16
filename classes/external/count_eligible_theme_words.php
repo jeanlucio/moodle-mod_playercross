@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * External function: count approved pool hints eligible as the mystery phrase.
+ * External function: count approved pool clues eligible as the mystery phrase.
  *
  * @package    mod_playercross
  * @copyright  2026 Jean Lúcio
@@ -32,7 +32,7 @@ use core_external\external_value;
 use mod_playercross\local\words_repository;
 
 /**
- * Backs the live "eligible hints for the mystery phrase" count shown next to the
+ * Backs the live "eligible clues for the mystery phrase" count shown next to the
  * theme length fields on the settings form while editing an already-created
  * activity — see mod_form.php.
  */
@@ -51,7 +51,7 @@ class count_eligible_theme_words extends external_api {
     }
 
     /**
-     * Counts approved pool words whose own hint's total letter count falls within the
+     * Counts approved pool words whose own clue's total letter count falls within the
      * given range.
      *
      * Reuses words_repository::get_theme_candidate_words() rather than a separate SQL
@@ -95,7 +95,7 @@ class count_eligible_theme_words extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-            'count' => new external_value(PARAM_INT, 'Number of approved pool hints within the range'),
+            'count' => new external_value(PARAM_INT, 'Number of approved pool clues within the range'),
         ]);
     }
 }

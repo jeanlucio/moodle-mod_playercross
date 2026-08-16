@@ -29,9 +29,9 @@
         "syncglossarybutton": "Sync with glossary",
         "managewordslabel": "Word pool",
         "manualwordlabel": "Word",
-        "manualhintlabel": "Hint",
+        "manualcluelabel": "Clue",
         "manualwordplaceholder": "Enter a word",
-        "manualhintplaceholder": "Optional hint for students",
+        "manualclueplaceholder": "Short text that helps students guess the word",
         "addwordbutton": "Add word",
         "hasai": true,
         "aigeneratetitle": "Generate words with AI",
@@ -71,7 +71,7 @@
         "haseditword": false,
         "editword_id": 0,
         "editword_word": "",
-        "editword_hint": "",
+        "editword_clue": "",
         "cancelediteurl": "https://example.com/mod/playercross/managewords.php?id=1",
         "hasrecentwords": true,
         "recentwords": [
@@ -153,13 +153,13 @@
                 required
             >
 
-            <label for="playercross-edithint" class="form-label mt-2">{{manualhintlabel}}</label>
+            <label for="playercross-editclue" class="form-label mt-2">{{manualcluelabel}}</label>
             <input
                 type="text"
-                id="playercross-edithint"
-                name="manualhint"
+                id="playercross-editclue"
+                name="manualclue"
                 class="form-control"
-                value="{{editword_hint}}"
+                value="{{editword_clue}}"
                 required
             >
 
@@ -192,13 +192,13 @@
                 required
             >
 
-            <label for="playercross-manualhint" class="form-label mt-2">{{manualhintlabel}}</label>
+            <label for="playercross-manualclue" class="form-label mt-2">{{manualcluelabel}}</label>
             <input
                 type="text"
-                id="playercross-manualhint"
-                name="manualhint"
+                id="playercross-manualclue"
+                name="manualclue"
                 class="form-control"
-                placeholder="{{manualhintplaceholder}}"
+                placeholder="{{manualclueplaceholder}}"
                 required
             >
 

@@ -17,14 +17,14 @@
  * AMD module for mod_playercross game interactions.
  *
  * Submits guesses via AJAX so the page never reloads — the mystery phrase and every
- * clue answer stay server-side the whole time, only the updated round panel (theme
- * tiles, clue rows, reveal-once-finished fields) comes back on each response. Every
+ * term answer stay server-side the whole time, only the updated round panel (theme
+ * tiles, term rows, reveal-once-finished fields) comes back on each response. Every
  * delegated listener is attached once, on #playercross-stage, at init() time: the
  * stage element itself is never replaced across re-renders (only its contents, via
  * Templates.replaceNodeContents()), so delegation survives every AJAX round-trip
  * without needing to be rewired.
  *
- * Every still-hidden letter of a guess row (a clue's own word, or the mystery phrase)
+ * Every still-hidden letter of a guess row (a term's own word, or the mystery phrase)
  * is its own real single-character <input> — a locked, already-revealed letter is a
  * plain, non-focusable <span> instead (inputmode="none" on every box, so the device's
  * own keyboard never appears). A single virtual keyboard writes into whichever box
@@ -35,13 +35,13 @@
  * The physical Left/Right arrow keys move focus one editable box over, the same
  * verification-code-input convention as a bank 2FA field; Up/Down move to the same
  * column in the row above/below, clamped to a shorter target row's own length — the
- * mystery phrase counts as the topmost row, so Up from the first clue reaches it —
+ * mystery phrase counts as the topmost row, so Up from the first term reaches it —
  * mirroring how real crossword apps let arrow keys move both along and across an
  * answer (see the stage's own keydown listener, and focusAdjacentBox/
  * focusAdjacentRow). All four take this over from the browser's own default (moving
  * the text caret inside a single-character box, effectively a no-op there).
  * A guess is assembled at submit time by reading every tile in a row, in order: a
- * locked span's own letter, or a box's typed value (see buildClueGuess/
+ * locked span's own letter, or a box's typed value (see buildTermGuess/
  * buildFinalGuess). A guess is confirmed via a physical Enter key or the row's own
  * submit button (each row's <form> carries one, see round_play.mustache/
  * round_panel.mustache) — that button stays hidden (.pc-row-submit, still tab-reachable)
@@ -323,7 +323,7 @@ const initForfeit = (cmid) => {
  * Returns every tile-wrap element within a scope, in position order — one per letter,
  * whether that position is a locked (already-revealed) tile or an editable box.
  *
- * @param {HTMLElement} scope A clue's tiles container, or one mystery-phrase word group.
+ * @param {HTMLElement} scope A term's tiles container, or one mystery-phrase word group.
  * @returns {HTMLElement[]}
  */
 const getTileWraps = (scope) => Array.from(scope.querySelectorAll('.mod-playercross-tile-wrap'));
@@ -341,13 +341,13 @@ const readTileWrap = (wrap) => {
 };
 
 /**
- * Assembles a clue's full guess from its tile row: each locked tile's own letter, or
+ * Assembles a term's full guess from its tile row: each locked tile's own letter, or
  * each editable box's typed letter, in position order.
  *
- * @param {HTMLElement} tilesContainer A clue's .mod-playercross-clue-tiles element.
+ * @param {HTMLElement} tilesContainer A term's .mod-playercross-term-tiles element.
  * @returns {string}
  */
-const buildClueGuess = (tilesContainer) => getTileWraps(tilesContainer).map(readTileWrap).join('');
+const buildTermGuess = (tilesContainer) => getTileWraps(tilesContainer).map(readTileWrap).join('');
 
 /**
  * Assembles the mystery phrase's full guess from its tile rows: each word group's own
@@ -368,10 +368,10 @@ const buildFinalGuess = (themeContainer) => Array.from(themeContainer.querySelec
  * wrong guess and the re-render that follows it, so the characters line up with the
  * fresh tile-wraps one for one. Re-evaluates the row's own submit button afterwards
  * (see refreshRowReadiness) — the only place that needs to happen, since every caller
- * (restoreClueGuess, restoreFinalGuess, restoreInProgressGuesses) only ever changes box
+ * (restoreTermGuess, restoreFinalGuess, restoreInProgressGuesses) only ever changes box
  * values through here.
  *
- * @param {HTMLElement} scope A clue's tiles container, or one word group.
+ * @param {HTMLElement} scope A term's tiles container, or one word group.
  * @param {string[]} chars Characters to distribute, one per tile-wrap in scope.
  */
 const distributeIntoWraps = (scope, chars) => {
@@ -385,16 +385,16 @@ const distributeIntoWraps = (scope, chars) => {
 };
 
 /**
- * Restores a clue's guess into its freshly re-rendered boxes after a wrong (or
- * exhausted) submission, and focuses its first editable box. A no-op once the clue is
+ * Restores a term's guess into its freshly re-rendered boxes after a wrong (or
+ * exhausted) submission, and focuses its first editable box. A no-op once the term is
  * actually resolved or the round finished — canguess is then false server-side, so no
  * matching form exists to restore into.
  *
- * @param {number} clueid Clue word id.
+ * @param {number} termid Term word id.
  * @param {string} guess The guess text the player had submitted.
  */
-const restoreClueGuess = (clueid, guess) => {
-    const tilesContainer = document.querySelector(`.mod-playercross-clue-tiles[data-clue-tiles="${clueid}"]`);
+const restoreTermGuess = (termid, guess) => {
+    const tilesContainer = document.querySelector(`.mod-playercross-term-tiles[data-term-tiles="${termid}"]`);
     if (!tilesContainer) {
         return;
     }
@@ -421,7 +421,7 @@ const restoreFinalGuess = (guess) => {
 };
 
 /**
- * Snapshots every guess row's currently typed content right before a submission (clue
+ * Snapshots every guess row's currently typed content right before a submission (term
  * guess, final guess, or hint reveal) triggers a full panel re-render. Every row that is
  * *not* the one being submitted has no way to send its own in-progress typing along with
  * that request — without this snapshot, the fresh panel HTML silently replaces it with
@@ -436,14 +436,14 @@ const restoreFinalGuess = (guess) => {
  * box once restored. distributeIntoWraps() already takes chars by array, so this needs
  * no format conversion of its own.
  *
- * @returns {{clues: Map<number, string[]>, theme: ?string[][]}}
+ * @returns {{terms: Map<number, string[]>, theme: ?string[][]}}
  */
 const snapshotInProgressGuesses = () => {
-    const clues = new Map();
-    document.querySelectorAll('.mod-playercross-clue-form[data-clue-id]').forEach((form) => {
-        const tilesContainer = form.querySelector('.mod-playercross-clue-tiles');
+    const terms = new Map();
+    document.querySelectorAll('.mod-playercross-term-form[data-term-id]').forEach((form) => {
+        const tilesContainer = form.querySelector('.mod-playercross-term-tiles');
         if (tilesContainer) {
-            clues.set(Number(form.dataset.clueId), getTileWraps(tilesContainer).map(readTileWrap));
+            terms.set(Number(form.dataset.termId), getTileWraps(tilesContainer).map(readTileWrap));
         }
     });
     const themeContainer = document.querySelector('.mod-playercross-theme');
@@ -451,28 +451,28 @@ const snapshotInProgressGuesses = () => {
         ? Array.from(themeContainer.querySelectorAll('.mod-playercross-word-group'))
             .map((group) => getTileWraps(group).map(readTileWrap))
         : null;
-    return {clues, theme};
+    return {terms, theme};
 };
 
 /**
  * Restores every *other* row's snapshotted in-progress guess (see
  * snapshotInProgressGuesses) into the freshly re-rendered panel, after a different row's
  * submission replaced the whole stage. Skips whichever row the caller already restored
- * itself — submitClueGuess/submitFinalGuess only do that on a wrong guess, and with their
+ * itself — submitTermGuess/submitFinalGuess only do that on a wrong guess, and with their
  * own extra focus/shake side effects, so this never duplicates that. A no-op per row if
  * it no longer has an editable form (resolved, exhausted, or the round just finished) or
  * its snapshot was entirely blank.
  *
- * @param {{clues: Map<number, string[]>, theme: ?string[][]}} snapshot From snapshotInProgressGuesses().
- * @param {?number} skipClueId Clue id already restored by the caller, if any.
+ * @param {{terms: Map<number, string[]>, theme: ?string[][]}} snapshot From snapshotInProgressGuesses().
+ * @param {?number} skipTermId Term id already restored by the caller, if any.
  * @param {boolean} skipTheme Whether the theme row was already restored by the caller.
  */
-const restoreInProgressGuesses = (snapshot, skipClueId, skipTheme) => {
-    snapshot.clues.forEach((chars, clueid) => {
-        if (clueid === skipClueId || chars.every((char) => char === '')) {
+const restoreInProgressGuesses = (snapshot, skipTermId, skipTheme) => {
+    snapshot.terms.forEach((chars, termid) => {
+        if (termid === skipTermId || chars.every((char) => char === '')) {
             return;
         }
-        const tilesContainer = document.querySelector(`.mod-playercross-clue-tiles[data-clue-tiles="${clueid}"]`);
+        const tilesContainer = document.querySelector(`.mod-playercross-term-tiles[data-term-tiles="${termid}"]`);
         if (tilesContainer) {
             distributeIntoWraps(tilesContainer, chars);
         }
@@ -521,9 +521,9 @@ const focusAdjacentBox = (box, offset) => {
 /**
  * Returns every guess form currently on screen, in DOM order — the mystery phrase's
  * own form always first (round_panel.mustache renders it, then includes round_play,
- * which lists the clues), then each clue in the same top-to-bottom order the player
+ * which lists the terms), then each term in the same top-to-bottom order the player
  * sees. Used by Up/Down row navigation; a row whose form does not exist right now
- * (a resolved clue, canguess false) is naturally absent, since no such <form> renders.
+ * (a resolved term, canguess false) is naturally absent, since no such <form> renders.
  *
  * @returns {HTMLElement[]}
  */
@@ -555,8 +555,8 @@ const focusAdjacentRow = (box, offset) => {
  * Toggles a guess row's own submit button into its visible "ready" state exactly when
  * every one of its editable boxes now holds a letter — the visual cue that this one
  * word can be checked right away, without filling any other row first (see
- * help_clues/help_finalguess). Scoped to the row itself rather than to whichever box
- * last had focus, so a row silently completed by restoreClueGuess/restoreFinalGuess/
+ * help_terms/help_finalguess). Scoped to the row itself rather than to whichever box
+ * last had focus, so a row silently completed by restoreTermGuess/restoreFinalGuess/
  * restoreInProgressGuesses (see distributeIntoWraps, which calls this after every
  * write) shows its own button too, not only the row the player is actively typing in.
  *
@@ -590,7 +590,7 @@ const handleBoxInput = (box) => {
 
 /**
  * Marks the guess row containing the focused box as active (amber highlight) — a
- * clue's own <li> card, or the mystery phrase's <form> when that is the target —
+ * term's own <li> card, or the mystery phrase's <form> when that is the target —
  * remembers the box as the virtual keyboard's write target, and selects its existing
  * content so a physical keystroke replaces it instead of being silently rejected by
  * the box's own maxlength="1". Delegated on focusin (see wireStageDelegation), so it
@@ -601,10 +601,10 @@ const handleBoxInput = (box) => {
  */
 const setActiveInput = (input) => {
     activeInput = input;
-    document.querySelectorAll('.mod-playercross-clue.is-active, .mod-playercross-theme-form.is-active').forEach((el) => {
+    document.querySelectorAll('.mod-playercross-term.is-active, .mod-playercross-theme-form.is-active').forEach((el) => {
         el.classList.remove('is-active');
     });
-    const row = input.closest('.mod-playercross-clue') ?? input.closest('.mod-playercross-theme-form');
+    const row = input.closest('.mod-playercross-term') ?? input.closest('.mod-playercross-theme-form');
     row?.classList.add('is-active');
     input.select();
 };
@@ -612,7 +612,7 @@ const setActiveInput = (input) => {
 /**
  * Applies the side effects that must run after every stage re-render: the round or
  * cooldown countdown, the forfeit button's visibility, and moving focus to the first
- * pending clue (or the mystery-phrase input, if every clue is resolved) so continuous
+ * pending term (or the mystery-phrase input, if every term is resolved) so continuous
  * typing can carry straight on from one guess to the next.
  *
  * @param {Object} panelcontext Context matching mod_playercross/round_panel.
@@ -647,9 +647,9 @@ const applyPanelSideEffects = (panelcontext, cmid, timertotal) => {
         startTimer(panelcontext.timeleft, timertotal, cmid);
     }
 
-    const firstClueBox = document.querySelector('#playercross-clues-list .mod-playercross-tile-input');
+    const firstTermBox = document.querySelector('#playercross-terms-list .mod-playercross-tile-input');
     const finalBox = document.querySelector('.mod-playercross-theme .mod-playercross-tile-input');
-    (firstClueBox ?? finalBox)?.focus({preventScroll: true});
+    (firstTermBox ?? finalBox)?.focus({preventScroll: true});
 };
 
 /**
@@ -719,16 +719,16 @@ const endRound = async(cmid, reason) => {
 };
 
 /**
- * Briefly shakes and reddens a clue's card to give an unmistakable visual cue that its
+ * Briefly shakes and reddens a term's card to give an unmistakable visual cue that its
  * last guess was wrong — the toast notification alone (see notify()) is easy to miss
  * in a fast-paced typing flow. A no-op if the card no longer exists, e.g. because the
- * round just ended (a clue running out of attempts can finish the round on its own —
- * see round_service::submit_clue_guess()).
+ * round just ended (a term running out of attempts can finish the round on its own —
+ * see round_service::submit_term_guess()).
  *
- * @param {number} clueid Clue word id.
+ * @param {number} termid Term word id.
  */
-const flashWrongClue = (clueid) => {
-    const card = document.querySelector(`.mod-playercross-clue[data-clue-id="${clueid}"]`);
+const flashWrongTerm = (termid) => {
+    const card = document.querySelector(`.mod-playercross-term[data-term-id="${termid}"]`);
     if (!card) {
         return;
     }
@@ -737,24 +737,24 @@ const flashWrongClue = (clueid) => {
 };
 
 /**
- * Submits a clue guess via mod_playercross_submit_clue_guess. On a wrong (or
- * exhausted) guess, restores the typed text into the freshly re-rendered clue instead
+ * Submits a term guess via mod_playercross_submit_term_guess. On a wrong (or
+ * exhausted) guess, restores the typed text into the freshly re-rendered term instead
  * of leaving it blank — an explicit re-send corrects a mistake without punishing the
  * player for a typo they have not yet had the chance to review — and flashes the card
- * (see flashWrongClue) so a wrong guess is never silently invisible.
+ * (see flashWrongTerm) so a wrong guess is never silently invisible.
  *
  * @param {number} cmid Course-module id.
- * @param {number} clueid Clue word id.
+ * @param {number} termid Term word id.
  * @param {string} guess Player guess text.
  * @param {number} timertotal Total seconds configured for the round (0 = no timer).
  */
-const submitClueGuess = async(cmid, clueid, guess, timertotal) => {
+const submitTermGuess = async(cmid, termid, guess, timertotal) => {
     const snapshot = snapshotInProgressGuesses();
     let payload;
     try {
         payload = await Ajax.call([{
-            methodname: 'mod_playercross_submit_clue_guess',
-            args: {cmid, clueid, guess},
+            methodname: 'mod_playercross_submit_term_guess',
+            args: {cmid, termid, guess},
         }])[0];
     } catch (error) {
         Notification.exception(error);
@@ -766,15 +766,15 @@ const submitClueGuess = async(cmid, clueid, guess, timertotal) => {
     }
     await showRoundPanel(payload.panel, cmid, timertotal);
     if (!payload.resolved) {
-        restoreClueGuess(clueid, guess);
-        flashWrongClue(clueid);
+        restoreTermGuess(termid, guess);
+        flashWrongTerm(termid);
     }
-    restoreInProgressGuesses(snapshot, clueid, false);
+    restoreInProgressGuesses(snapshot, termid, false);
 };
 
 /**
  * Submits a direct guess of the mystery phrase via mod_playercross_submit_final_guess.
- * Same non-punitive rule as submitClueGuess: a wrong guess keeps its text in place.
+ * Same non-punitive rule as submitTermGuess: a wrong guess keeps its text in place.
  *
  * @param {number} cmid Course-module id.
  * @param {string} guess Player guess text.
@@ -802,7 +802,7 @@ const submitFinalGuess = async(cmid, guess, timertotal) => {
 
 /**
  * Reveals one mystery-phrase letter via mod_playercross_reveal_hint. A single
- * round-wide action (see round_service::reveal_hint()), not scoped to any clue, so it
+ * round-wide action (see round_service::reveal_hint()), not scoped to any term, so it
  * always re-renders the whole panel exactly like a guess would.
  *
  * @param {number} cmid Course-module id.
@@ -1064,7 +1064,7 @@ const initAccentLongPress = (stage) => {
 /**
  * Wires a round-result's new-round button via mod_playercross_new_round, the global
  * hint button, click-to-activate on any guess row, the virtual keyboard (including its
- * accent long-press popup, see initAccentLongPress), and every guess form (clues and
+ * accent long-press popup, see initAccentLongPress), and every guess form (terms and
  * the mystery phrase alike, both share .mod-playercross-guess-form) — all via event
  * delegation on #playercross-stage, which is never itself replaced across re-renders.
  *
@@ -1209,9 +1209,9 @@ const wireStageDelegation = (cmid, timertotal) => {
             return;
         }
         e.preventDefault();
-        if (form.dataset.clueId) {
-            const guess = buildClueGuess(form.querySelector('.mod-playercross-clue-tiles'));
-            await submitClueGuess(cmid, Number(form.dataset.clueId), guess, timertotal);
+        if (form.dataset.termId) {
+            const guess = buildTermGuess(form.querySelector('.mod-playercross-term-tiles'));
+            await submitTermGuess(cmid, Number(form.dataset.termId), guess, timertotal);
         } else {
             const guess = buildFinalGuess(document.querySelector('.mod-playercross-theme'));
             await submitFinalGuess(cmid, guess, timertotal);

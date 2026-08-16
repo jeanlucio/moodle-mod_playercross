@@ -17,14 +17,14 @@
 {{!
     @template mod_playercross/round_play
 
-    Clue guess forms and the shared virtual keyboard for an active round. The
+    Term guess forms and the shared virtual keyboard for an active round. The
     mystery-phrase's own guess form lives in mod_playercross/round_panel, not here —
     both share the .mod-playercross-guess-form class so amd/src/game.js can wire click-
     to-activate, per-letter navigation and submission with a single set of delegated
     listeners on #playercross-stage, re-rendered wholesale after every action without
     re-wiring individual listeners.
 
-    Each clue's phrase is always shown — it is the question itself, not an optional
+    Each term's phrase is always shown — it is the question itself, not an optional
     reveal. Every already-revealed letter of the answer renders as a locked, read-only
     tile (a plain <span>, never focusable); every still-hidden letter renders as its own
     real single-character <input> (inputmode="none", so the device's own on-screen
@@ -43,9 +43,9 @@
 
     Example context (json):
     {
-        "clues": [
+        "terms": [
             {
-                "clueid": 12,
+                "termid": 12,
                 "phrase": "A place to keep notes and school exercises",
                 "resolved": false,
                 "exhausted": false,
@@ -59,7 +59,7 @@
                 "canguess": true
             },
             {
-                "clueid": 13,
+                "termid": 13,
                 "phrase": "A tool used to write",
                 "resolved": true,
                 "exhausted": false,
@@ -71,27 +71,27 @@
             }
         ],
         "guesslabel": "Your answer",
-        "submitclueguess": "Submit",
+        "submittermguess": "Submit",
         "keyboardlabel": "Virtual keyboard",
         "keyboardbackspacelabel": "Delete last letter",
         "showcedilla": false
     }
 }}
 <div id="playercross-round-play">
-    <ul id="playercross-clues-list" class="mod-playercross-clues list-unstyled">
-        {{#clues}}
-            <li class="mod-playercross-clue{{#resolved}} is-resolved{{/resolved}}{{#exhausted}} is-exhausted{{/exhausted}}"
-                data-clue-id="{{clueid}}">
-                <p class="mod-playercross-clue-phrase">{{phrase}}</p>
+    <ul id="playercross-terms-list" class="mod-playercross-terms list-unstyled">
+        {{#terms}}
+            <li class="mod-playercross-term{{#resolved}} is-resolved{{/resolved}}{{#exhausted}} is-exhausted{{/exhausted}}"
+                data-term-id="{{termid}}">
+                <p class="mod-playercross-term-phrase">{{phrase}}</p>
                 {{#resolved}}
-                    <span class="mod-playercross-clue-answer">&#10003; {{revealword}}</span>
+                    <span class="mod-playercross-term-answer">&#10003; {{revealword}}</span>
                 {{/resolved}}
                 {{#exhausted}}
                     <span class="text-muted small">{{exhaustedlabel}}</span>
                 {{/exhausted}}
                 {{#canguess}}
-                    <form class="mod-playercross-clue-form mod-playercross-guess-form" data-clue-id="{{clueid}}">
-                        <div class="mod-playercross-clue-tiles" data-clue-tiles="{{clueid}}"
+                    <form class="mod-playercross-term-form mod-playercross-guess-form" data-term-id="{{termid}}">
+                        <div class="mod-playercross-term-tiles" data-term-tiles="{{termid}}"
                              role="group" aria-label="{{guesslabel}}">
                             {{#tiles}}
                                 <div class="mod-playercross-tile-wrap small">
@@ -112,11 +112,11 @@
                                 </div>
                             {{/tiles}}
                         </div>
-                        <button type="submit" class="pc-row-submit">{{submitclueguess}}</button>
+                        <button type="submit" class="pc-row-submit">{{submittermguess}}</button>
                     </form>
                 {{/canguess}}
             </li>
-        {{/clues}}
+        {{/terms}}
     </ul>
 
     <div id="playercross-keyboard" class="mod-playercross-keyboard" role="group" aria-label="{{keyboardlabel}}">

@@ -22,10 +22,10 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-/** Source type bit flag for manual clue words. */
+/** Source type bit flag for manual term words. */
 define('PLAYERCROSS_SOURCE_MANUAL', 1);
 
-/** Source type bit flag for glossary clue words. */
+/** Source type bit flag for glossary term words. */
 define('PLAYERCROSS_SOURCE_GLOSSARY', 2);
 
 /** Theme word selection mode: a random theme word is picked each round. */
@@ -49,12 +49,12 @@ define('PLAYERCROSS_GRADE_LAST', 4);
 /** Grade aggregation: average over all required rounds (uses max_rounds as denominator). */
 define('PLAYERCROSS_GRADE_AVERAGE_ALL', 5);
 
-/** Win condition: winning requires resolving every clue and guessing the mystery phrase. */
+/** Win condition: winning requires resolving every term and guessing the mystery phrase. */
 define('PLAYERCROSS_WINCONDITION_BOTH', 1);
 
 /**
  * Win condition: winning requires only guessing the mystery phrase; resolving every
- * clue never ends the round by itself.
+ * term never ends the round by itself.
  */
 define('PLAYERCROSS_WINCONDITION_FINALONLY', 2);
 
@@ -68,7 +68,7 @@ function mod_playercross_is_branded(): bool {
 }
 
 /**
- * Builds the clue-word source bitmask from form data.
+ * Builds the term-word source bitmask from form data.
  *
  * @param stdClass $data Form data.
  * @return int
@@ -244,7 +244,7 @@ function playercross_update_grades(stdClass $instance, int $userid = 0): void {
 
 /**
  * Normalises playercross form/instance data shared by add_instance() and update_instance():
- * the clue-word source bitmask, the completion rule toggle, the hints-enabled toggle, and
+ * the term-word source bitmask, the completion rule toggle, the hints-enabled toggle, and
  * the cooldown/timer unit groups collapsed into their stored seconds columns.
  *
  * @param stdClass $data Form data, mutated in place.

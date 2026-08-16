@@ -22,15 +22,15 @@
     Example context (json):
     {
         "helptitle": "How to play",
-        "introtext": "Solve clues about course concepts. Each correct answer reveals shared letters of the mystery phrase.",
+        "introtext": "Solve terms about course concepts. Each correct answer reveals letters the term shares with the mystery phrase, in every pending term and in the mystery phrase itself.",
         "legendrevealedlabel": "Revealed: this letter is known.",
         "legendhiddenlabel": "Hidden: this letter is not known yet.",
-        "cluestext": "Each clue is a separate word; guess it in the box next to it.",
-        "hinttext": "A hint may be available for each clue, depending on how the teacher configured the activity.",
-        "finalguesstext": "You can guess the mystery phrase directly at any time, even with clues still pending.",
-        "winconditiontext": "To win a round, you must resolve every clue and correctly guess the mystery phrase.",
-        "showclueloss": true,
-        "cluelosstext": "Each clue has a limited number of attempts. If one runs out, winning becomes impossible and the round ends immediately as a loss.",
+        "termstext": "Each term is a separate word; guess it in the box next to it.",
+        "hinttext": "A hint may be available for each term, depending on how the teacher configured the activity.",
+        "finalguesstext": "You can guess the mystery phrase directly at any time, even with terms still pending — the earlier you guess correctly, the bigger the bonus.",
+        "winconditiontext": "To win a round, you must resolve every term and correctly guess the mystery phrase — in either order.",
+        "showtermloss": true,
+        "termlosstext": "Each term has a limited number of attempts. If one runs out, winning becomes impossible and the round ends immediately as a loss.",
         "timertext": "Some activities have a time limit per round.",
         "showhud": true,
         "hudtext": "This activity may require PlayerHUD items to start a round or reveal a hint, and can reward you with an item for winning a round.",
@@ -74,9 +74,9 @@
             }
         ],
         "themelabel": "Mystery phrase",
-        "clues": [
+        "terms": [
             {
-                "clueid": 12,
+                "termid": 12,
                 "phrase": "A place to keep notes and school exercises",
                 "resolved": false,
                 "exhausted": false,
@@ -88,15 +88,15 @@
                 "canguess": true
             }
         ],
-        "cluesresolved": 0,
-        "cluestotal": 5,
-        "cluesprogresslabel": "0 of 5 clues resolved",
+        "termsresolved": 0,
+        "termstotal": 5,
+        "termsprogresslabel": "0 of 5 terms resolved",
         "timerenabled": false,
         "timerlabel": "Time left:",
         "timeleft": 0,
         "roundfinished": false,
         "guesslabel": "Your answer",
-        "submitclueguess": "Submit",
+        "submittermguess": "Submit",
         "showglobalhint": true,
         "globalhintlabel": "Hint",
         "showhintsremaining": false,
