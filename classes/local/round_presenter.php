@@ -547,8 +547,9 @@ class round_presenter {
         $maxhints = (int)($instance->max_hints_per_round ?? 0);
         $hintsused = (int)($state['hintsused'] ?? 0);
         $hintlimitreached = $maxhints > 0 && $hintsused >= $maxhints;
+        $hintsdisabled = empty($instance->hints_enabled);
 
-        if ($roundfinished || empty($hiddenslots) || $hintlimitreached) {
+        if ($roundfinished || empty($hiddenslots) || $hintlimitreached || $hintsdisabled) {
             return $blank;
         }
 

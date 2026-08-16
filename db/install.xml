@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/playercross/db" VERSION="20260723" COMMENT="XMLDB file for mod_playercross"
+<XMLDB PATH="mod/playercross/db" VERSION="20260815" COMMENT="XMLDB file for mod_playercross"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -43,6 +43,8 @@
             COMMENT="Maximum rounds per user, 0 means unlimited"/>
         <FIELD NAME="max_hints_per_round" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
             COMMENT="Maximum hint reveals per round, 0 means unlimited"/>
+        <FIELD NAME="hints_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Whether the reveal-hint button is offered at all this activity"/>
         <FIELD NAME="cooldown_seconds" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="86400" SEQUENCE="false"
             COMMENT="Cooldown between rounds in seconds, 0 means disabled"/>
         <FIELD NAME="completionrounds" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"

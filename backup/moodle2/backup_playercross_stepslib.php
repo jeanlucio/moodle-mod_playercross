@@ -55,6 +55,7 @@ class backup_playercross_activity_structure_step extends backup_activity_structu
             'wordmode',
             'max_rounds',
             'max_hints_per_round',
+            'hints_enabled',
             'cooldown_seconds',
             'completionrounds',
             'grade',

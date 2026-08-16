@@ -238,6 +238,11 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->setType('max_rounds', PARAM_INT);
         $mform->setDefault('max_rounds', 0);
 
+        $mform->addElement('advcheckbox', 'hints_enabled', get_string('hints_enabled', 'mod_playercross'));
+        $mform->setType('hints_enabled', PARAM_INT);
+        $mform->setDefault('hints_enabled', 1);
+        $mform->addHelpButton('hints_enabled', 'hints_enabled', 'mod_playercross');
+
         $maxhintsoptions = [0 => get_string('max_hints_per_round_unlimited', 'mod_playercross')];
         for ($i = 1; $i <= 10; $i++) {
             $maxhintsoptions[$i] = $i;
@@ -249,7 +254,8 @@ class mod_playercross_mod_form extends moodleform_mod {
             $maxhintsoptions
         );
         $mform->setType('max_hints_per_round', PARAM_INT);
-        $mform->setDefault('max_hints_per_round', 0);
+        $mform->setDefault('max_hints_per_round', 3);
+        $mform->hideIf('max_hints_per_round', 'hints_enabled', 'notchecked');
 
         $cooldowngroup = [];
         $cooldowngroup[] = $mform->createElement('text', 'cooldown_amount', '', ['size' => 5]);

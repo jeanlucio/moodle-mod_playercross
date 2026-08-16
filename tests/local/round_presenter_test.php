@@ -932,6 +932,27 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that hints_enabled=0 hides the hint button entirely, even with no
+     * per-round limit configured and hidden slots still available.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_hints_disabled_hides_button(): void {
+        $instance = $this->make_instance(['hints_enabled' => 0]);
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+
+        $context = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6], 'hintsused' => 0]),
+            $user->id
+        );
+
+        $this->assertFalse($context['showglobalhint']);
+    }
+
+    /**
      * The hint button shows the PlayerHUD balance/cost line, and canaffordhint is
      * false, while the user's balance is short of the required quantity.
      *

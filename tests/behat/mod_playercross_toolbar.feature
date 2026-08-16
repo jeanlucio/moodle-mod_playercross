@@ -78,6 +78,27 @@ Feature: PlayerCross toolbar and modals
     And I press enter
     Then "#playercross-forfeit-button" "css_element" should not be visible
 
+  Scenario: The hint button only appears when hints are enabled for the activity
+    Given the following "activities" exist:
+      | activity    | course | name           | num_clues | theme_min_length | min_length | max_length | hints_enabled |
+      | playercross | C1     | Cross HintOn   | 1         | 6                | 3          | 15         | 1             |
+      | playercross | C1     | Cross HintOff  | 1         | 6                | 3          | 15         | 0             |
+    And the following PlayerCross words exist in activity "Cross HintOn":
+      | word   |
+      | escola |
+      | livro  |
+    And the following PlayerCross words exist in activity "Cross HintOff":
+      | word   |
+      | escola |
+      | livro  |
+    And I log in as "student1"
+    And I am on the "Cross HintOn" "playercross activity" page
+    And I click on "Start round" "button"
+    Then "#playercross-global-hint-button" "css_element" should exist
+    When I am on the "Cross HintOff" "playercross activity" page
+    And I click on "Start round" "button"
+    Then "#playercross-global-hint-button" "css_element" should not exist
+
   Scenario: The help modal shows the optional paragraphs when they are all relevant
     Given the following "activities" exist:
       | activity    | course | name            | num_clues | theme_min_length | min_length | max_length | grade | hud_round_cost_item | max_attempts_per_clue |

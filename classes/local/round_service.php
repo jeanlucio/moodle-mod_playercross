@@ -564,6 +564,10 @@ class round_service {
             return [$state, get_string('roundtimeout', 'mod_playercross'), 'warning', true];
         }
 
+        if (empty($instance->hints_enabled)) {
+            return [$state, get_string('hintsdisabled', 'mod_playercross'), 'warning', true];
+        }
+
         $hiddenslots = array_values(array_diff(range(1, (int)$state['slotcount']), $state['revealedslots']));
         if (empty($hiddenslots)) {
             return [$state, get_string('hintnotavailable', 'mod_playercross'), 'warning', true];

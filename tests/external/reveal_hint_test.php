@@ -318,6 +318,28 @@ final class reveal_hint_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that hints_enabled=0 blocks every reveal attempt for the whole activity,
+     * even with no per-round limit configured and hidden slots still available.
+     *
+     * @return void
+     */
+    public function test_rejects_when_hints_are_disabled_for_the_activity(): void {
+        $instance = $this->make_instance_with_pool(['hints_enabled' => 0]);
+        $this->setUser($this->student);
+        $this->start_round_for_student($instance);
+
+        $first = $this->call_reveal_hint($instance->cmid);
+        $second = $this->call_reveal_hint($instance->cmid);
+
+        $this->assertFalse($first['error']);
+        $this->assertSame('warning', $first['data']['notificationtype']);
+        $this->assertSame(
+            $this->hidden_slotnums($first['data']['panel']),
+            $this->hidden_slotnums($second['data']['panel'])
+        );
+    }
+
+    /**
      * Tests that a user without the view capability in the module context is rejected.
      *
      * @return void

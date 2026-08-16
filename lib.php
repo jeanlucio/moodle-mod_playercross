@@ -244,8 +244,8 @@ function playercross_update_grades(stdClass $instance, int $userid = 0): void {
 
 /**
  * Normalises playercross form/instance data shared by add_instance() and update_instance():
- * the clue-word source bitmask, the completion rule toggle, and the cooldown/timer unit
- * groups collapsed into their stored seconds columns.
+ * the clue-word source bitmask, the completion rule toggle, the hints-enabled toggle, and
+ * the cooldown/timer unit groups collapsed into their stored seconds columns.
  *
  * @param stdClass $data Form data, mutated in place.
  * @return void
@@ -255,6 +255,10 @@ function playercross_normalise_instance_data(stdClass $data): void {
         $data->completionrounds = 0;
     }
     unset($data->completionroundsenabled);
+
+    if (empty($data->hints_enabled)) {
+        $data->max_hints_per_round = 0;
+    }
 
     $data->gradepass = isset($data->gradepass) ? (float)$data->gradepass : 0.0;
 

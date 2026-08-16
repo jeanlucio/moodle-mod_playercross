@@ -100,5 +100,18 @@ function xmldb_playercross_upgrade(int $oldversion): bool {
         upgrade_mod_savepoint(true, 2026072302, 'playercross');
     }
 
+    if ($oldversion < 2026081600) {
+        // Add hints_enabled, defaulting to 1 (enabled) for every activity, new or
+        // already existing — the reveal-hint button was always available before this,
+        // so a default of 1 changes nothing for anyone already using it.
+        $table = new xmldb_table('playercross');
+        $field = new xmldb_field('hints_enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026081600, 'playercross');
+    }
+
     return true;
 }
