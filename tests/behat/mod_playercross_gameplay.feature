@@ -2,7 +2,7 @@
 Feature: PlayerCross core gameplay loop
   As a student
   I want to play rounds of PlayerCross
-  So that I can practise course vocabulary through clues and a mystery phrase
+  So that I can practise course vocabulary through terms and a mystery phrase
 
   Background:
     Given the following "users" exist:
@@ -21,7 +21,7 @@ Feature: PlayerCross core gameplay loop
 
   Scenario: Student wins a round by guessing the mystery phrase directly, and the timer badge disappears
     Given the following "activities" exist:
-      | activity    | course | name      | num_clues | theme_min_length | min_length | max_length | win_condition | timer_minutes |
+      | activity    | course | name      | num_terms | theme_min_length | min_length | max_length | win_condition | timer_minutes |
       | playercross | C1     | Cross Win | 1         | 6                | 3          | 15         | 2             | 1             |
     And the following PlayerCross words exist in activity "Cross Win":
       | word   |
@@ -38,24 +38,24 @@ Feature: PlayerCross core gameplay loop
     And I should see "ESCOLA"
     And "#playercross-timer-wrapper" "css_element" should not be visible
 
-  Scenario: Student resolves a clue and its shared letters reveal in the mystery phrase
+  Scenario: Student resolves a term and its shared letters reveal in the mystery phrase
     Given the following "activities" exist:
-      | activity    | course | name       | num_clues | theme_min_length | min_length | max_length |
-      | playercross | C1     | Cross Clue | 1         | 6                | 3          | 15         |
-    And the following PlayerCross words exist in activity "Cross Clue":
+      | activity    | course | name       | num_terms | theme_min_length | min_length | max_length |
+      | playercross | C1     | Cross Term | 1         | 6                | 3          | 15         |
+    And the following PlayerCross words exist in activity "Cross Term":
       | word   |
       | escola |
       | livro  |
     And I log in as "student1"
-    And I am on the "Cross Clue" "playercross activity" page
+    And I am on the "Cross Term" "playercross activity" page
     And I click on "Start round" "button"
-    When I fill PlayerCross clue "1" tiles with "livro"
+    When I fill PlayerCross term "1" tiles with "livro"
     And I press enter
-    Then "li.mod-playercross-clue.is-resolved" "css_element" should exist
+    Then "li.mod-playercross-term.is-resolved" "css_element" should exist
 
   Scenario: Student forfeits an active round with a confirmation dialog
     Given the following "activities" exist:
-      | activity    | course | name          | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name          | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Forfeit | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Forfeit":
       | word   |
@@ -70,7 +70,7 @@ Feature: PlayerCross core gameplay loop
 
   Scenario: Student's round ends automatically when the timer runs out
     Given the following "activities" exist:
-      | activity    | course | name        | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name        | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Timer | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Timer":
       | word   |
@@ -85,7 +85,7 @@ Feature: PlayerCross core gameplay loop
 
   Scenario: Reaching the round limit hides the new-round action instead of offering a dead end
     Given the following "activities" exist:
-      | activity    | course | name        | num_clues | theme_min_length | min_length | max_length | win_condition | max_rounds |
+      | activity    | course | name        | num_terms | theme_min_length | min_length | max_length | win_condition | max_rounds |
       | playercross | C1     | Cross Limit | 1         | 6                | 3          | 15         | 2             | 1          |
     And the following PlayerCross words exist in activity "Cross Limit":
       | word   |
@@ -100,9 +100,9 @@ Feature: PlayerCross core gameplay loop
     And I should see "Rounds played: 1 / 1."
     And "#playercross-new-round-button" "css_element" should not exist
 
-  Scenario: Arrow keys move focus between a clue's own boxes without changing values
+  Scenario: Arrow keys move focus between a term's own boxes without changing values
     Given the following "activities" exist:
-      | activity    | course | name        | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name        | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Arrow | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Arrow":
       | word   |
@@ -111,15 +111,15 @@ Feature: PlayerCross core gameplay loop
     And I log in as "student1"
     And I am on the "Cross Arrow" "playercross activity" page
     And I click on "Start round" "button"
-    When I fill PlayerCross clue "1" tiles with "l"
+    When I fill PlayerCross term "1" tiles with "l"
     And I press the right key
     And I press the right key
     And I press the v key
-    Then PlayerCross clue "1" tiles should read "l_v__"
+    Then PlayerCross term "1" tiles should read "l_v__"
 
-  Scenario: Arrow keys move focus between rows, reaching the mystery phrase from the first clue
+  Scenario: Arrow keys move focus between rows, reaching the mystery phrase from the first term
     Given the following "activities" exist:
-      | activity    | course | name       | num_clues | theme_min_length | min_length | max_length | reveal_uncovered_slots |
+      | activity    | course | name       | num_terms | theme_min_length | min_length | max_length | reveal_uncovered_slots |
       | playercross | C1     | Cross Rows | 1         | 6                | 3          | 15         | 0                      |
     And the following PlayerCross words exist in activity "Cross Rows":
       | word   |
@@ -128,14 +128,14 @@ Feature: PlayerCross core gameplay loop
     And I log in as "student1"
     And I am on the "Cross Rows" "playercross activity" page
     And I click on "Start round" "button"
-    When I fill PlayerCross clue "1" tiles with "l"
+    When I fill PlayerCross term "1" tiles with "l"
     And I press the up key
     And I press the e key
     Then the PlayerCross mystery phrase tiles should read "e_____"
 
-  Scenario: A clue's own submit button stays hidden while the row is still incomplete
+  Scenario: A term's own submit button stays hidden while the row is still incomplete
     Given the following "activities" exist:
-      | activity    | course | name         | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name         | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Button | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Button":
       | word   |
@@ -144,12 +144,12 @@ Feature: PlayerCross core gameplay loop
     And I log in as "student1"
     And I am on the "Cross Button" "playercross activity" page
     And I click on "Start round" "button"
-    When I fill PlayerCross clue "1" tiles with "livr"
-    Then PlayerCross clue "1"'s submit button should be "not ready"
+    When I fill PlayerCross term "1" tiles with "livr"
+    Then PlayerCross term "1"'s submit button should be "not ready"
 
-  Scenario: A clue's own submit button appears once every letter is typed
+  Scenario: A term's own submit button appears once every letter is typed
     Given the following "activities" exist:
-      | activity    | course | name         | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name         | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Button | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Button":
       | word   |
@@ -158,12 +158,12 @@ Feature: PlayerCross core gameplay loop
     And I log in as "student1"
     And I am on the "Cross Button" "playercross activity" page
     And I click on "Start round" "button"
-    When I fill PlayerCross clue "1" tiles with "livro"
-    Then PlayerCross clue "1"'s submit button should be "ready"
+    When I fill PlayerCross term "1" tiles with "livro"
+    Then PlayerCross term "1"'s submit button should be "ready"
 
-  Scenario: A clue can be submitted by tapping its own row button
+  Scenario: A term can be submitted by tapping its own row button
     Given the following "activities" exist:
-      | activity    | course | name       | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name       | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Tap  | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Tap":
       | word   |
@@ -172,13 +172,13 @@ Feature: PlayerCross core gameplay loop
     And I log in as "student1"
     And I am on the "Cross Tap" "playercross activity" page
     And I click on "Start round" "button"
-    When I fill PlayerCross clue "1" tiles with "livro"
-    And I click on "#playercross-clues-list .pc-row-submit" "css_element"
-    Then "li.mod-playercross-clue.is-resolved" "css_element" should exist
+    When I fill PlayerCross term "1" tiles with "livro"
+    And I click on "#playercross-terms-list .pc-row-submit" "css_element"
+    Then "li.mod-playercross-term.is-resolved" "css_element" should exist
 
-  Scenario: Submitting one clue preserves another still-open clue's in-progress typing
+  Scenario: Submitting one term preserves another still-open term's in-progress typing
     Given the following "activities" exist:
-      | activity    | course | name           | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Preserve | 2         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Preserve":
       | word   |
@@ -188,15 +188,15 @@ Feature: PlayerCross core gameplay loop
     And I log in as "student1"
     And I am on the "Cross Preserve" "playercross activity" page
     And I click on "Start round" "button"
-    When I fill PlayerCross clue "1" tiles with "liv"
-    And I fill PlayerCross clue "2" tiles with "zzzzz"
+    When I fill PlayerCross term "1" tiles with "liv"
+    And I fill PlayerCross term "2" tiles with "zzzzz"
     And I press enter
     Then I should see "Incorrect guess. Try again."
-    And PlayerCross clue "1" tiles should read "liv__"
+    And PlayerCross term "1" tiles should read "liv__"
 
   Scenario: A configured cooldown shows a countdown instead of the new-round button
     Given the following "activities" exist:
-      | activity    | course | name           | num_clues | theme_min_length | min_length | max_length | win_condition |
+      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length | win_condition |
       | playercross | C1     | Cross Cooldown | 1         | 6                | 3          | 15         | 2             |
     And the following PlayerCross words exist in activity "Cross Cooldown":
       | word   |

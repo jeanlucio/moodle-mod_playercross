@@ -19,9 +19,9 @@ Feature: PlayerCross teacher-facing settings behaviour
     And "teacher1" has already seen the playercross intro
     And "student1" has already seen the playercross intro
 
-  Scenario: The clue count and grading method settings freeze once a real grade exists
+  Scenario: The term count and grading method settings freeze once a real grade exists
     Given the following "activities" exist:
-      | activity    | course | name         | num_clues | theme_min_length | min_length | max_length | win_condition | grade |
+      | activity    | course | name         | num_terms | theme_min_length | min_length | max_length | win_condition | grade |
       | playercross | C1     | Cross Freeze | 1         | 6                | 3          | 15         | 2              | 100   |
     And the following PlayerCross words exist in activity "Cross Freeze":
       | word   |
@@ -37,12 +37,12 @@ Feature: PlayerCross teacher-facing settings behaviour
     And I am on the "Cross Freeze" "playercross activity editing" page
     And I click on "a.collapseexpand" "css_element"
     Then I should see "Because this activity has already recorded a real grade"
-    And "select#id_num_clues" "css_element" should not exist
+    And "select#id_num_terms" "css_element" should not exist
     And "select#id_grademethod" "css_element" should not exist
 
   Scenario: Adding a manual word that already exists in the pool is rejected
     Given the following "activities" exist:
-      | activity    | course | name          | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name          | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Manage  | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Manage":
       | word   |
@@ -58,7 +58,7 @@ Feature: PlayerCross teacher-facing settings behaviour
 
   Scenario: Adding a manual word with a character the game cannot use is rejected
     Given the following "activities" exist:
-      | activity    | course | name               | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name               | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross InvalidChars | 1         | 6                | 4          | 12         |
     And I log in as "teacher1"
     And I am on the "Cross InvalidChars" "playercross activity" page
@@ -70,7 +70,7 @@ Feature: PlayerCross teacher-facing settings behaviour
 
   Scenario: A PlayerHUD item that no longer exists stays selected instead of resetting silently
     Given the following "activities" exist:
-      | activity    | course | name        | num_clues | theme_min_length | min_length | max_length | hud_round_cost_item |
+      | activity    | course | name        | num_terms | theme_min_length | min_length | max_length | hud_round_cost_item |
       | playercross | C1     | Cross Hud   | 1         | 6                | 3          | 15         | 99999                |
     And I log in as "teacher1"
     And I am on "Course 1" course homepage with editing mode on

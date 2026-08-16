@@ -27,7 +27,7 @@ Feature: PlayerCross attempt history and ranking
       | user     | course | role    |
       | student2 | C1     | student |
     And the following "activities" exist:
-      | activity    | course | name          | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name          | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Report  | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Report":
       | word   |
@@ -46,7 +46,7 @@ Feature: PlayerCross attempt history and ranking
 
   Scenario: The teacher's all-students report paginates past 30 rows
     Given the following "activities" exist:
-      | activity    | course | name              | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name              | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Pagination  | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Pagination":
       | word   |
@@ -63,7 +63,7 @@ Feature: PlayerCross attempt history and ranking
 
   Scenario: The teacher's all-students report sorts by clicking a column header
     Given the following "activities" exist:
-      | activity    | course | name       | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name       | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Sort | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Sort":
       | word   |
@@ -88,7 +88,7 @@ Feature: PlayerCross attempt history and ranking
       | user     | course | role    |
       | student2 | C1     | student |
     And the following "activities" exist:
-      | activity    | course | name         | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name         | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Filter | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Filter":
       | word   |
@@ -124,7 +124,7 @@ Feature: PlayerCross attempt history and ranking
       | player6 | C1     | student |
       | player7 | C1     | student |
     And the following "activities" exist:
-      | activity    | course | name          | num_clues | theme_min_length | min_length | max_length | show_ranking |
+      | activity    | course | name          | num_terms | theme_min_length | min_length | max_length | show_ranking |
       | playercross | C1     | Cross Ranking | 1         | 6                | 3          | 15         | 1            |
     And the following PlayerCross words exist in activity "Cross Ranking":
       | word   |

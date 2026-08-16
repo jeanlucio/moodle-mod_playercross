@@ -21,7 +21,7 @@ Feature: PlayerCross toolbar and modals
 
   Scenario: The manage-words icon only appears for whoever can manage the activity
     Given the following "activities" exist:
-      | activity    | course | name           | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Toolbar  | 1         | 6                | 3          | 15         |
     When I log in as "teacher1"
     And I am on the "Cross Toolbar" "playercross activity" page
@@ -32,7 +32,7 @@ Feature: PlayerCross toolbar and modals
 
   Scenario: The inactive-words warning appears only for whoever can manage the activity
     Given the following "activities" exist:
-      | activity    | course | name           | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Inactive | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Inactive":
       | word   |
@@ -52,7 +52,7 @@ Feature: PlayerCross toolbar and modals
 
   Scenario: The ranking icon only appears when the activity has ranking enabled
     Given the following "activities" exist:
-      | activity    | course | name               | num_clues | theme_min_length | min_length | max_length | show_ranking |
+      | activity    | course | name               | num_terms | theme_min_length | min_length | max_length | show_ranking |
       | playercross | C1     | Cross Ranking On   | 1         | 6                | 3          | 15         | 1            |
       | playercross | C1     | Cross Ranking Off  | 1         | 6                | 3          | 15         | 0            |
     And I log in as "student1"
@@ -63,7 +63,7 @@ Feature: PlayerCross toolbar and modals
 
   Scenario: The forfeit icon only appears while a round is active
     Given the following "activities" exist:
-      | activity    | course | name           | num_clues | theme_min_length | min_length | max_length | win_condition |
+      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length | win_condition |
       | playercross | C1     | Cross Forfeit2 | 1         | 6                | 3          | 15         | 2             |
     And the following PlayerCross words exist in activity "Cross Forfeit2":
       | word   |
@@ -80,7 +80,7 @@ Feature: PlayerCross toolbar and modals
 
   Scenario: The hint button only appears when hints are enabled for the activity
     Given the following "activities" exist:
-      | activity    | course | name           | num_clues | theme_min_length | min_length | max_length | hints_enabled |
+      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length | hints_enabled |
       | playercross | C1     | Cross HintOn   | 1         | 6                | 3          | 15         | 1             |
       | playercross | C1     | Cross HintOff  | 1         | 6                | 3          | 15         | 0             |
     And the following PlayerCross words exist in activity "Cross HintOn":
@@ -101,7 +101,7 @@ Feature: PlayerCross toolbar and modals
 
   Scenario: The help modal shows the optional paragraphs when they are all relevant
     Given the following "activities" exist:
-      | activity    | course | name            | num_clues | theme_min_length | min_length | max_length | grade | hud_round_cost_item | max_attempts_per_clue |
+      | activity    | course | name            | num_terms | theme_min_length | min_length | max_length | grade | hud_round_cost_item | max_attempts_per_term |
       | playercross | C1     | Cross HelpFull  | 1         | 6                | 3          | 15         | 100   | 1                    | 3                     |
     And I log in as "student1"
     And I am on the "Cross HelpFull" "playercross activity" page
@@ -109,18 +109,18 @@ Feature: PlayerCross toolbar and modals
     Then I should see "How to play"
     And I should see "This activity may require PlayerHUD items"
     And I should see "Grading method:"
-    And I should see "Each clue has a limited number of attempts"
+    And I should see "Each term has a limited number of attempts"
 
   Scenario: The help modal hides the optional paragraphs when none of them are relevant
     Given the following "activities" exist:
-      | activity    | course | name               | num_clues | theme_min_length | min_length | max_length | grade |
+      | activity    | course | name               | num_terms | theme_min_length | min_length | max_length | grade |
       | playercross | C1     | Cross HelpMinimal  | 1         | 6                | 3          | 15         | 0     |
     And I log in as "student1"
     And I am on the "Cross HelpMinimal" "playercross activity" page
     When I click on "#playercross-help-button" "css_element"
     Then I should see "How to play"
     And I should not see "This activity may require PlayerHUD items"
-    And I should not see "Each clue has a limited number of attempts"
+    And I should not see "Each term has a limited number of attempts"
     And I should not see "Grading method:"
 
   Scenario: The how-to-play modal opens automatically on a player's very first visit, once ever
@@ -131,7 +131,7 @@ Feature: PlayerCross toolbar and modals
       | user     | course | role    |
       | student2 | C1     | student |
     And the following "activities" exist:
-      | activity    | course | name             | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name             | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross AutoIntro  | 1         | 6                | 3          | 15         |
     When I log in as "student2"
     And I am on the "Cross AutoIntro" "playercross activity" page
@@ -144,7 +144,7 @@ Feature: PlayerCross toolbar and modals
 
   Scenario: Cancelling the forfeit confirmation leaves the round untouched
     Given the following "activities" exist:
-      | activity    | course | name                | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name                | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross ForfeitCancel | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross ForfeitCancel":
       | word   |
@@ -158,6 +158,6 @@ Feature: PlayerCross toolbar and modals
     And I wait "1" seconds
     When I click on "[data-action=\"cancel\"]" "css_element"
     Then "#playercross-round-play" "css_element" should exist
-    When I fill PlayerCross clue "1" tiles with "livro"
+    When I fill PlayerCross term "1" tiles with "livro"
     And I press enter
-    Then "li.mod-playercross-clue.is-resolved" "css_element" should exist
+    Then "li.mod-playercross-term.is-resolved" "css_element" should exist

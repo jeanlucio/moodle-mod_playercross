@@ -35,7 +35,7 @@ class behat_mod_playercross extends behat_base {
      * Seeds approved manual words directly into an instance's pool.
      *
      * Bypasses managewords.php and the approval flow, so a scenario can rely on a
-     * deterministic pool (e.g. one theme candidate plus one clue candidate) instead
+     * deterministic pool (e.g. one theme candidate plus one term candidate) instead
      * of the pseudo-random round selection.
      *
      * @param string $activityname PlayerCross activity name.
@@ -61,7 +61,7 @@ class behat_mod_playercross extends behat_base {
      * so "sort by date" scenarios have a deterministic order to assert against.
      *
      * @param string $activityname PlayerCross activity name.
-     * @param TableNode $data Table with columns: user, word, cluesresolved, cluestotal,
+     * @param TableNode $data Table with columns: user, word, termsresolved, termstotal,
      *     finalguessed, attemptsused, timeused, completed, score, created (all but
      *     user and word are optional).
      * @Given the following PlayerCross attempts exist in activity :activityname:
@@ -82,8 +82,8 @@ class behat_mod_playercross extends behat_base {
             );
 
             $columnmap = [
-                'cluesresolved' => 'cluesresolved',
-                'cluestotal'    => 'cluestotal',
+                'termsresolved' => 'termsresolved',
+                'termstotal'    => 'termstotal',
                 'finalguessed'  => 'finalguessed',
                 'attemptsused'  => 'attempts_used',
                 'timeused'      => 'time_used',
@@ -215,10 +215,10 @@ class behat_mod_playercross extends behat_base {
     }
 
     /**
-     * Fills one clue's own tile inputs with the given word, one letter per box, in
-     * position order. $position counts only clues that currently carry a guess
-     * form (already-resolved/exhausted clues have none), in the order they appear
-     * on the page — the first still-guessable clue is position 1, matching how a
+     * Fills one term's own tile inputs with the given word, one letter per box, in
+     * position order. $position counts only terms that currently carry a guess
+     * form (already-resolved/exhausted terms have none), in the order they appear
+     * on the page — the first still-guessable term is position 1, matching how a
      * scenario author reads the rendered page rather than an internal word id.
      *
      * Targets each tile input directly instead of relying on the app's own
@@ -230,16 +230,16 @@ class behat_mod_playercross extends behat_base {
      * since it is part of the same word, just pre-filled — only the still-hidden
      * boxes actually receive a setValue() call. Ends by clicking the last box
      * filled, so the page's own "which form is active" tracking (activeInput in
-     * game.js) points at this clue's form before an ENTER keypress is simulated.
+     * game.js) points at this term's form before an ENTER keypress is simulated.
      *
-     * @param int $position 1-based position among the currently guessable clues.
+     * @param int $position 1-based position among the currently guessable terms.
      * @param string $word Full word to type in, letters only.
-     * @Given I fill PlayerCross clue :position tiles with :word
+     * @Given I fill PlayerCross term :position tiles with :word
      */
-    public function i_fill_the_playercross_clue_tiles_with(int $position, string $word): void {
-        $tilescontainers = $this->find_all('css', '#playercross-clues-list .mod-playercross-clue-tiles');
+    public function i_fill_the_playercross_term_tiles_with(int $position, string $word): void {
+        $tilescontainers = $this->find_all('css', '#playercross-terms-list .mod-playercross-term-tiles');
         if (!isset($tilescontainers[$position - 1])) {
-            throw new \Exception("No guessable PlayerCross clue at position {$position}.");
+            throw new \Exception("No guessable PlayerCross term at position {$position}.");
         }
         $wraps = $tilescontainers[$position - 1]->findAll('css', '.mod-playercross-tile-wrap');
         $this->fill_playercross_tile_wraps($wraps, $word);
@@ -259,7 +259,7 @@ class behat_mod_playercross extends behat_base {
     }
 
     /**
-     * Shared tile-filling logic for a clue's or the mystery phrase's own tile row.
+     * Shared tile-filling logic for a term's or the mystery phrase's own tile row.
      *
      * @param \Behat\Mink\Element\NodeElement[] $wraps Every tile-wrap in the form, in position order.
      * @param string $word Letters to type in, one per still-editable tile-wrap.
@@ -288,27 +288,27 @@ class behat_mod_playercross extends behat_base {
     }
 
     /**
-     * Asserts a clue's own guess row currently holds exactly the given letters, one
+     * Asserts a term's own guess row currently holds exactly the given letters, one
      * per tile-wrap, in position order — "_" marks a position expected to still be
      * empty. Covers the amd/src/game.js regression this exists to guard: submitting
-     * one clue used to silently wipe whatever a player had typed into every other
-     * still-open clue, since the whole panel re-renders from the server's own
+     * one term used to silently wipe whatever a player had typed into every other
+     * still-open term, since the whole panel re-renders from the server's own
      * response, which never knew about that unsent typing (see
      * snapshotInProgressGuesses/restoreInProgressGuesses in game.js). Reads values via
      * a single evaluateScript() call rather than per-element getValue() traversal —
      * faster and less brittle over WebDriver for a whole row at once. Mirrors "I fill
-     * PlayerCross clue :position tiles with :word"'s own indexing (position among the
-     * currently guessable clues).
+     * PlayerCross term :position tiles with :word"'s own indexing (position among the
+     * currently guessable terms).
      *
-     * @param int $position 1-based position among the currently guessable clues.
+     * @param int $position 1-based position among the currently guessable terms.
      * @param string $expected Expected letters, "_" marking a still-empty box.
-     * @Then PlayerCross clue :position tiles should read :expected
+     * @Then PlayerCross term :position tiles should read :expected
      */
-    public function playercross_clue_tiles_should_read(int $position, string $expected): void {
+    public function playercross_term_tiles_should_read(int $position, string $expected): void {
         $index = $position - 1;
         $js = <<<JS
             (function() {
-                var containers = document.querySelectorAll('#playercross-clues-list .mod-playercross-clue-tiles');
+                var containers = document.querySelectorAll('#playercross-terms-list .mod-playercross-term-tiles');
                 var container = containers[{$index}];
                 if (!container) {
                     return null;
@@ -326,7 +326,7 @@ class behat_mod_playercross extends behat_base {
 JS;
         $actual = $this->getSession()->evaluateScript($js);
         if ($actual === null) {
-            throw new \Exception("No guessable PlayerCross clue at position {$position}.");
+            throw new \Exception("No guessable PlayerCross term at position {$position}.");
         }
 
         $actualchars = explode('|', $actual);
@@ -336,7 +336,7 @@ JS;
             $expectedchar = $expectedchar === '_' ? '' : $expectedchar;
             if (strtoupper($actualchar) !== $expectedchar) {
                 throw new \Exception(
-                    "PlayerCross clue {$position} tile " . ($i + 1) . " expected '{$expectedchar}' " .
+                    "PlayerCross term {$position} tile " . ($i + 1) . " expected '{$expectedchar}' " .
                     "but found '{$actualchar}'."
                 );
             }
@@ -344,25 +344,25 @@ JS;
     }
 
     /**
-     * Asserts whether a clue's own submit button is currently in its revealed
+     * Asserts whether a term's own submit button is currently in its revealed
      * "ready" state or its default hidden one (see refreshRowReadiness in
      * amd/src/game.js, and the .pc-row-submit/.is-ready pair in styles.css). Reads
      * the class directly via JS rather than a raw visibility check: the hidden state
      * uses clip-based hiding (kept tab-reachable for screen readers), which some
      * WebDriver implementations still report as "displayed" despite its 1x1px size,
      * making the underlying CSS class the only reliable signal. Mirrors "I fill
-     * PlayerCross clue :position tiles with :word"'s own indexing.
+     * PlayerCross term :position tiles with :word"'s own indexing.
      *
-     * @param int $position 1-based position among the currently guessable clues.
+     * @param int $position 1-based position among the currently guessable terms.
      * @param string $state Either "ready" or "not ready".
-     * @Then PlayerCross clue :position's submit button should be :state
+     * @Then PlayerCross term :position's submit button should be :state
      */
-    public function playercross_clue_submit_button_state(int $position, string $state): void {
+    public function playercross_term_submit_button_state(int $position, string $state): void {
         $index = $position - 1;
         $js = <<<JS
             (function() {
                 var forms = document.querySelectorAll(
-                    '#playercross-clues-list .mod-playercross-clue-form[data-clue-id]'
+                    '#playercross-terms-list .mod-playercross-term-form[data-term-id]'
                 );
                 var form = forms[{$index}];
                 if (!form) {
@@ -374,13 +374,13 @@ JS;
 JS;
         $isready = $this->getSession()->evaluateScript($js);
         if ($isready === null) {
-            throw new \Exception("No guessable PlayerCross clue at position {$position}.");
+            throw new \Exception("No guessable PlayerCross term at position {$position}.");
         }
 
         $expected = $state === 'ready';
         if ((bool)$isready !== $expected) {
             throw new \Exception(
-                "Expected PlayerCross clue {$position}'s submit button to be " .
+                "Expected PlayerCross term {$position}'s submit button to be " .
                 ($expected ? 'ready' : 'not ready') . ', but it was ' . ($isready ? 'ready' : 'not ready') . '.'
             );
         }
@@ -390,8 +390,8 @@ JS;
      * Asserts the mystery phrase's own tile boxes currently hold exactly the given
      * letters, one per tile-wrap across every word group, in position order — "_"
      * marks a position expected to still be empty. Same technique, and guards the
-     * same class of regression, as "PlayerCross clue :position tiles should read
-     * :expected" (see its own docblock), just for the theme row instead of a clue.
+     * same class of regression, as "PlayerCross term :position tiles should read
+     * :expected" (see its own docblock), just for the theme row instead of a term.
      *
      * @param string $expected Expected letters, "_" marking a still-empty box.
      * @Then the PlayerCross mystery phrase tiles should read :expected

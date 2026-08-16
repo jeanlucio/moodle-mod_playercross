@@ -26,7 +26,7 @@ Feature: PlayerCross PlayerHUD integration
   Scenario: The lobby blocks starting a round until the student can afford the item cost
     Given a PlayerCross PlayerHUD item "Gold Key" exists in course "C1"
     And the following "activities" exist:
-      | activity    | course | name           | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross HudLobby | 1         | 6                | 3          | 15         |
     And the PlayerCross activity "Cross HudLobby" charges 2 PlayerHUD item "Gold Key" to start a round
     And the following PlayerCross words exist in activity "Cross HudLobby":
@@ -46,7 +46,7 @@ Feature: PlayerCross PlayerHUD integration
   Scenario: Revealing a hint requires confirmation and enough balance
     Given a PlayerCross PlayerHUD item "Magnifying Glass" exists in course "C1"
     And the following "activities" exist:
-      | activity    | course | name          | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name          | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross HudHint | 1         | 6                | 3          | 15         |
     And the PlayerCross activity "Cross HudHint" charges 1 PlayerHUD item "Magnifying Glass" to reveal a hint
     And the following PlayerCross words exist in activity "Cross HudHint":
@@ -68,7 +68,7 @@ Feature: PlayerCross PlayerHUD integration
 
   Scenario: A round starts and the hint reveals for free when the configured item no longer exists
     Given the following "activities" exist:
-      | activity    | course | name          | num_clues | theme_min_length | min_length | max_length | hud_round_cost_item | hud_hint_cost_item |
+      | activity    | course | name          | num_terms | theme_min_length | min_length | max_length | hud_round_cost_item | hud_hint_cost_item |
       | playercross | C1     | Cross HudGone | 1         | 6                | 3          | 15         | 99999                | 99999               |
     And the following PlayerCross words exist in activity "Cross HudGone":
       | word   |
@@ -85,7 +85,7 @@ Feature: PlayerCross PlayerHUD integration
   Scenario: Winning a round grants the configured PlayerHUD item
     Given a PlayerCross PlayerHUD item "Trophy" exists in course "C1"
     And the following "activities" exist:
-      | activity    | course | name         | num_clues | theme_min_length | min_length | max_length | win_condition |
+      | activity    | course | name         | num_terms | theme_min_length | min_length | max_length | win_condition |
       | playercross | C1     | Cross HudWin | 1         | 6                | 3          | 15         | 2             |
     And the PlayerCross activity "Cross HudWin" grants 1 PlayerHUD item "Trophy" for winning a round
     And the following PlayerCross words exist in activity "Cross HudWin":

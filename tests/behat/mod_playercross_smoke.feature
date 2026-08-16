@@ -17,7 +17,7 @@ Feature: PlayerCross smoke test
       | teacher1 | C1     | editingteacher |
       | student1 | C1     | student        |
     And the following "activities" exist:
-      | activity    | course | name       | num_clues | theme_min_length | min_length | max_length |
+      | activity    | course | name       | num_terms | theme_min_length | min_length | max_length |
       | playercross | C1     | Cross Game | 1         | 6                | 3          | 15         |
     And the following PlayerCross words exist in activity "Cross Game":
       | word    | hint    |
