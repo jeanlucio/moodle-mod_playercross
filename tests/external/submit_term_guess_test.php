@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * External function tests for submit_clue_guess.
+ * External function tests for submit_term_guess.
  *
  * @package    mod_playercross
  * @category   test
@@ -30,17 +30,17 @@ use mod_playercross\local\round_presenter;
 use mod_playercross\local\round_service;
 
 /**
- * Tests for the mod_playercross_submit_clue_guess web service.
+ * Tests for the mod_playercross_submit_term_guess web service.
  *
  * The invariant under test (SCOPE.md §7): no response ever reveals the mystery
- * phrase, nor an unresolved clue's word, before the round has actually finished
+ * phrase, nor an unresolved term's word, before the round has actually finished
  * server-side.
  *
- * @covers \mod_playercross\external\submit_clue_guess
+ * @covers \mod_playercross\external\submit_term_guess
  * @covers \mod_playercross\external\submit_final_guess
  * @covers \mod_playercross\local\round_presenter
  */
-final class submit_clue_guess_test extends \advanced_testcase {
+final class submit_term_guess_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
     private \stdClass $course;
 
@@ -71,7 +71,7 @@ final class submit_clue_guess_test extends \advanced_testcase {
     private function make_ready_instance(array $overrides = []): array {
         $cm = $this->modgenerator->create_instance($overrides + [
             'course' => $this->course->id,
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
         ]);
         global $DB;
@@ -87,7 +87,7 @@ final class submit_clue_guess_test extends \advanced_testcase {
 
     /**
      * Every context field round_presenter::build_round_panel_context() can return must
-     * also be declared in submit_clue_guess::panel_structure() — a field present in the
+     * also be declared in submit_term_guess::panel_structure() — a field present in the
      * PHP array but absent from the external API's declared schema is silently stripped
      * by external_api::clean_returnvalue() the moment a mutating endpoint actually
      * returns it over AJAX, with no error or warning anywhere on the PHP side. This is
@@ -117,7 +117,7 @@ final class submit_clue_guess_test extends \advanced_testcase {
         );
 
         $context = round_presenter::build_round_panel_context($instance, $cm, $state, $this->student->id);
-        $declared = array_keys(submit_clue_guess::panel_structure()->keys);
+        $declared = array_keys(submit_term_guess::panel_structure()->keys);
 
         $missing = array_diff(array_keys($context), $declared);
         $this->assertSame([], $missing, 'panel_structure() is missing: ' . implode(', ', $missing));
@@ -169,11 +169,11 @@ final class submit_clue_guess_test extends \advanced_testcase {
     }
 
     /**
-     * An unresolved clue's word is never present in the panel response.
+     * An unresolved term's word is never present in the panel response.
      *
      * @return void
      */
-    public function test_wrong_guess_never_leaks_the_clue_word(): void {
+    public function test_wrong_guess_never_leaks_the_term_word(): void {
         [$instance, $cm] = $this->make_ready_instance();
         $this->setUser($this->student);
 
@@ -185,26 +185,26 @@ final class submit_clue_guess_test extends \advanced_testcase {
         );
         [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
-        $clueid = (int)$state['clues'][0]['wordid'];
+        $termid = (int)$state['terms'][0]['wordid'];
 
-        $result = submit_clue_guess::execute($cm->cmid, $clueid, 'zzzzzzz');
+        $result = submit_term_guess::execute($cm->cmid, $termid, 'zzzzzzz');
 
         $this->assertFalse($result['resolved']);
         $this->assertFalse($result['finished']);
-        foreach ($result['panel']['clues'] as $cluerow) {
-            $this->assertSame('', $cluerow['revealword']);
+        foreach ($result['panel']['terms'] as $termrow) {
+            $this->assertSame('', $termrow['revealword']);
         }
         $this->assertSame('', $result['panel']['revealthemeword']);
     }
 
     /**
-     * An ordinary mid-round clue (others still pending) is flagged toast-worthy, so the
+     * An ordinary mid-round term (others still pending) is flagged toast-worthy, so the
      * player-facing "Pista resolvida!" message auto-dismisses instead of piling up —
-     * see round_service::submit_clue_guess() and amd/src/game.js::notify().
+     * see round_service::submit_term_guess() and amd/src/game.js::notify().
      *
      * @return void
      */
-    public function test_ordinary_resolved_clue_is_flagged_as_a_toast(): void {
+    public function test_ordinary_resolved_term_is_flagged_as_a_toast(): void {
         [$instance, $cm] = $this->make_ready_instance();
         $this->setUser($this->student);
 
@@ -216,9 +216,9 @@ final class submit_clue_guess_test extends \advanced_testcase {
         );
         [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
-        $clue = $state['clues'][0];
+        $term = $state['terms'][0];
 
-        $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
+        $result = submit_term_guess::execute($cm->cmid, (int)$term['wordid'], $term['word']);
 
         $this->assertTrue($result['resolved']);
         $this->assertSame('success', $result['notificationtype']);
@@ -226,21 +226,21 @@ final class submit_clue_guess_test extends \advanced_testcase {
     }
 
     /**
-     * Resolving every clue alone does not finish the round — winning always requires
+     * Resolving every term alone does not finish the round — winning always requires
      * the mystery phrase to be guessed too — and the theme word stays hidden until the
      * round actually finishes.
      *
-     * num_clues/reveal_uncovered_slots overridden from make_ready_instance()'s usual 3
-     * clues: with all three of casa/lobo/mel selected, their combined coverage always
+     * num_terms/reveal_uncovered_slots overridden from make_ready_instance()'s usual 3
+     * terms: with all three of casa/lobo/mel selected, their combined coverage always
      * happens to reach every theme letter (a coincidence of this fixed word pool),
      * which would make round_service::reconcile_after_reveal() confirm the phrase —
-     * and finish the round — as a side effect of the last clue, defeating the very
+     * and finish the round — as a side effect of the last term, defeating the very
      * thing this test means to check.
      *
      * @return void
      */
-    public function test_resolving_every_clue_reveals_theme_word_only_at_the_end(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 2, 'reveal_uncovered_slots' => 0]);
+    public function test_resolving_every_term_reveals_theme_word_only_at_the_end(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 2, 'reveal_uncovered_slots' => 0]);
         $this->setUser($this->student);
 
         $state = round_service::ensure_round_state(
@@ -252,8 +252,8 @@ final class submit_clue_guess_test extends \advanced_testcase {
         [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
 
-        foreach ($state['clues'] as $clue) {
-            $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
+        foreach ($state['terms'] as $term) {
+            $result = submit_term_guess::execute($cm->cmid, (int)$term['wordid'], $term['word']);
             $this->assertTrue($result['resolved']);
             $this->assertFalse($result['finished']);
             $this->assertSame('', $result['panel']['revealthemeword']);
@@ -276,21 +276,21 @@ final class submit_clue_guess_test extends \advanced_testcase {
         $this->setUser($outsider);
 
         $this->expectException(\require_login_exception::class);
-        submit_clue_guess::execute($cm->cmid, 1, 'palpite');
+        submit_term_guess::execute($cm->cmid, 1, 'palpite');
     }
 
     /**
      * Regression test for the round-cost bypass: a student who skips the "Iniciar
      * rodada" button — the only place a configured PlayerHUD round cost is actually
-     * charged — and calls mod_playercross_submit_clue_guess directly through the real
-     * web service dispatch path must be rejected, even with a correct guess for a clue
+     * charged — and calls mod_playercross_submit_term_guess directly through the real
+     * web service dispatch path must be rejected, even with a correct guess for a term
      * already sitting in session (view.php's GET-time ensure_round_state() call puts it
      * there before the student ever clicks anything). The round must not finish and no
-     * clue may resolve.
+     * term may resolve.
      *
      * @return void
      */
-    public function test_rejects_clue_guess_when_round_not_started_bypassing_hud_cost(): void {
+    public function test_rejects_term_guess_when_round_not_started_bypassing_hud_cost(): void {
         $this->skip_if_no_playerhud();
         $itemid = $this->make_hud_item();
         [$instance, $cm] = $this->make_ready_instance([
@@ -304,9 +304,9 @@ final class submit_clue_guess_test extends \advanced_testcase {
         $state = round_service::load_state($cm->cmid, $this->student->id);
         $state = round_service::ensure_round_state($state, $instance, $cm->cmid, $this->student->id);
         round_service::save_state($cm->cmid, $this->student->id, $state);
-        $clue = $state['clues'][0];
+        $term = $state['terms'][0];
 
-        $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
+        $result = submit_term_guess::execute($cm->cmid, (int)$term['wordid'], $term['word']);
 
         $this->assertFalse($result['resolved']);
         $this->assertFalse($result['finished']);
@@ -317,13 +317,13 @@ final class submit_clue_guess_test extends \advanced_testcase {
      * Regression test for the timer bypass in the security report's PoC: a student
      * who never calls mod_playercross_end_round(reason=timeout) — because the client
      * only ever arms that call when it first sees timeleft > 0, so simply reloading
-     * after the deadline never fires it — must still be stopped from resolving a clue
-     * through mod_playercross_submit_clue_guess after the round's own deadline has
+     * after the deadline never fires it — must still be stopped from resolving a term
+     * through mod_playercross_submit_term_guess after the round's own deadline has
      * passed. The server, not the client, must be the one enforcing the time limit.
      *
      * @return void
      */
-    public function test_rejects_clue_guess_once_deadline_has_passed(): void {
+    public function test_rejects_term_guess_once_deadline_has_passed(): void {
         [$instance, $cm] = $this->make_ready_instance(['timer_minutes' => 1]);
         $this->setUser($this->student);
 
@@ -332,9 +332,9 @@ final class submit_clue_guess_test extends \advanced_testcase {
         [$state] = round_service::start_round($state, $instance, $this->student->id);
         $state['starttime'] = time() - 120;
         round_service::save_state($cm->cmid, $this->student->id, $state);
-        $clue = $state['clues'][0];
+        $term = $state['terms'][0];
 
-        $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
+        $result = submit_term_guess::execute($cm->cmid, (int)$term['wordid'], $term['word']);
 
         $this->assertFalse($result['resolved']);
         $this->assertTrue($result['finished']);

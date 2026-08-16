@@ -32,15 +32,15 @@ use mod_playercross\local\round_service;
  * Tests for the mod_playercross_reveal_hint web service.
  *
  * reveal_hint is a round-wide action (SCOPE.md §20.2 v1.5), not scoped to any single
- * clue or to the mystery phrase specifically (v1.8: it can reveal a letter exclusive
- * to a clue too) — it always picks the smallest still-hidden slot number anywhere in
- * the round, the same way solving a clue would reveal its own letters.
+ * term or to the mystery phrase specifically (v1.8: it can reveal a letter exclusive
+ * to a term too) — it always picks the smallest still-hidden slot number anywhere in
+ * the round, the same way solving a term would reveal its own letters.
  *
  * make_instance_with_pool() seeds a deterministic two-word pool: theme "escola" (slots
- * 1..6) and the sole clue "livro" (l,i,v,r,o), which shares l and o with the theme
+ * 1..6) and the sole term "livro" (l,i,v,r,o), which shares l and o with the theme
  * (slots 5 and 4) and introduces i, v, r as its own exclusive slots (7, 8, 9 — always
  * numbered after every theme slot, see puzzle_builder::expand_slots_by_letter()). The
- * other 4 theme letters (e,s,c,a) are never covered by any clue, so they are
+ * other 4 theme letters (e,s,c,a) are never covered by any term, so they are
  * always-revealed from the start (puzzle_builder's graceful degradation). That leaves
  * exactly 5 slots hidden (4, 5, 7, 8, 9) — 5 reveal_hint calls exhaust them, making "no
  * more hints" easy to reach deterministically. Because slots are always numbered
@@ -70,7 +70,7 @@ final class reveal_hint_test extends \advanced_testcase {
 
     /**
      * Creates a playercross instance with a deterministic two-word pool: a theme
-     * candidate ("escola") and the sole clue ("livro").
+     * candidate ("escola") and the sole term ("livro").
      *
      * @param array $overrides Instance field overrides.
      * @return \stdClass Instance record, with ->cmid added.
@@ -79,7 +79,7 @@ final class reveal_hint_test extends \advanced_testcase {
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
         $record = array_merge([
             'course'           => $this->course->id,
-            'num_clues'        => 1,
+            'num_terms'        => 1,
             'theme_min_length' => 6,
             'min_length'       => 3,
             'max_length'       => 15,
@@ -197,7 +197,7 @@ final class reveal_hint_test extends \advanced_testcase {
 
     /**
      * Returns every slot number still shown as hidden anywhere in a panel response —
-     * the mystery phrase's own tile row plus every clue's own tile row. A single
+     * the mystery phrase's own tile row plus every term's own tile row. A single
      * successful hint always removes exactly one distinct slot number from this set,
      * however many tile positions that slot maps to (a repeated letter reveals more
      * than one position from the same call).
@@ -212,8 +212,8 @@ final class reveal_hint_test extends \advanced_testcase {
                 $nums[] = $tile['slotnum'];
             }
         }
-        foreach ($panel['clues'] as $clue) {
-            foreach ($clue['tiles'] as $tile) {
+        foreach ($panel['terms'] as $term) {
+            foreach ($term['tiles'] as $tile) {
                 if ($tile['slotnum'] !== '') {
                     $nums[] = $tile['slotnum'];
                 }
@@ -252,7 +252,7 @@ final class reveal_hint_test extends \advanced_testcase {
     /**
      * Tests that revealing every slot in the round via hints alone — never a typed
      * guess through either the phrase's own form or livro's — both resolves livro
-     * (round_service::resolve_fully_revealed_clues()) and confirms the phrase itself
+     * (round_service::resolve_fully_revealed_terms()) and confirms the phrase itself
      * (round_service::confirm_fully_revealed_theme()), finishing and winning the round
      * on the very call that completes it. Without those safeguards, every tile of both
      * forms ends up locked-and-revealed with no editable box left, and resolved /
@@ -283,8 +283,8 @@ final class reveal_hint_test extends \advanced_testcase {
         $this->assertSame('success', $response['data']['notificationtype']);
         $this->assertTrue($response['data']['toast']);
         $this->assertSame([], $this->hidden_slotnums($panel));
-        $this->assertTrue($panel['clues'][0]['resolved']);
-        $this->assertSame(1, $panel['cluesresolved']);
+        $this->assertTrue($panel['terms'][0]['resolved']);
+        $this->assertSame(1, $panel['termsresolved']);
 
         $rejected = $this->call_reveal_hint($instance->cmid);
 

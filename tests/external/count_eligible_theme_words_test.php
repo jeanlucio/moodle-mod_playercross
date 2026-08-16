@@ -72,21 +72,21 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
     }
 
     /**
-     * Inserts one word directly into an instance's pool, with a given hint.
+     * Inserts one word directly into an instance's pool, with a given clue.
      *
      * @param int $instanceid Activity instance id.
      * @param string $word Word text.
-     * @param string $hint Hint text — the mystery phrase this word would produce.
+     * @param string $clue Clue text — the mystery phrase this word would produce.
      * @param int $approved Approval status (1 = approved, 0 = pending).
      * @return void
      */
-    private function make_word(int $instanceid, string $word, string $hint, int $approved = 1): void {
+    private function make_word(int $instanceid, string $word, string $clue, int $approved = 1): void {
         global $DB;
         $DB->insert_record('playercross_words', (object)[
             'playercrossid' => $instanceid,
             'word'          => $word,
             'concept'       => $word,
-            'hint'          => $hint,
+            'clue'          => $clue,
             'source'        => 'manual',
             'glossaryid'    => 0,
             'approved'      => $approved,
@@ -115,15 +115,15 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
     }
 
     /**
-     * Counts only approved hints whose total letter count falls within the given
+     * Counts only approved clues whose total letter count falls within the given
      * range, and thememaxlength=0 means no upper bound.
      *
      * @return void
      */
-    public function test_counts_approved_hints_within_range(): void {
+    public function test_counts_approved_clues_within_range(): void {
         $instance = $this->make_instance();
-        $this->make_word($instance->id, 'sol', 'floresta');       // Hint: 8 letters.
-        $this->make_word($instance->id, 'mar', 'praia');          // Hint: 5 letters.
+        $this->make_word($instance->id, 'sol', 'floresta');       // Clue: 8 letters.
+        $this->make_word($instance->id, 'mar', 'praia');          // Clue: 5 letters.
 
         $this->setUser($this->teacher);
         $response = $this->call_count($instance->cmid, 6, 0);
@@ -133,13 +133,13 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
     }
 
     /**
-     * A hint whose letter count exceeds a real (non-zero) thememaxlength is excluded.
+     * A clue whose letter count exceeds a real (non-zero) thememaxlength is excluded.
      *
      * @return void
      */
-    public function test_excludes_hints_over_max_length_when_set(): void {
+    public function test_excludes_clues_over_max_length_when_set(): void {
         $instance = $this->make_instance();
-        $this->make_word($instance->id, 'sol', 'floresta');       // Hint: 8 letters.
+        $this->make_word($instance->id, 'sol', 'floresta');       // Clue: 8 letters.
 
         $this->setUser($this->teacher);
         $response = $this->call_count($instance->cmid, 1, 6);
@@ -148,7 +148,7 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
     }
 
     /**
-     * Pending (unapproved) words are never counted, regardless of hint length.
+     * Pending (unapproved) words are never counted, regardless of clue length.
      *
      * @return void
      */
@@ -163,7 +163,7 @@ final class count_eligible_theme_words_test extends \advanced_testcase {
     }
 
     /**
-     * The count is scoped to its own activity instance — a matching hint in another
+     * The count is scoped to its own activity instance — a matching clue in another
      * instance must never leak into this one's count.
      *
      * @return void

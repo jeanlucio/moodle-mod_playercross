@@ -151,7 +151,7 @@ final class backup_restore_test extends \advanced_testcase {
 
     /**
      * A full course backup/restore must carry every playercross_attempts column,
-     * including the puzzle-specific ones (cluestotal, cluesresolved, finalguessed) — a
+     * including the puzzle-specific ones (termstotal, termsresolved, finalguessed) — a
      * regression test for the backup/restore checklist rule that every install.xml
      * column must be mirrored into the matching backup_nested_element() attribute
      * list; a column added after the initial backup implementation silently reverts to
@@ -172,8 +172,8 @@ final class backup_restore_test extends \advanced_testcase {
         $instancecm = $modgenerator->create_instance(['course' => $course->id]);
         $theme = $modgenerator->create_word($instancecm->id, 'escola');
         $modgenerator->create_attempt($instancecm->id, $user->id, $theme->id, [
-            'cluestotal'    => 5,
-            'cluesresolved' => 4,
+            'termstotal'    => 5,
+            'termsresolved' => 4,
             'finalguessed'  => 1,
             'attempts_used' => 7,
             'time_used'     => 42,
@@ -186,8 +186,8 @@ final class backup_restore_test extends \advanced_testcase {
         $newinstance = $DB->get_record('playercross', ['course' => $newcourse->id], '*', MUST_EXIST);
         $newattempt = $DB->get_record('playercross_attempts', ['playercrossid' => $newinstance->id], '*', MUST_EXIST);
 
-        $this->assertSame(5, (int)$newattempt->cluestotal);
-        $this->assertSame(4, (int)$newattempt->cluesresolved);
+        $this->assertSame(5, (int)$newattempt->termstotal);
+        $this->assertSame(4, (int)$newattempt->termsresolved);
         $this->assertSame(1, (int)$newattempt->finalguessed);
         $this->assertSame(7, (int)$newattempt->attempts_used);
         $this->assertSame(42, (int)$newattempt->time_used);

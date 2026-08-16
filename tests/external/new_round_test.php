@@ -61,7 +61,7 @@ final class new_round_test extends \advanced_testcase {
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
         $record = array_merge([
             'course'           => $this->course->id,
-            'num_clues'        => 1,
+            'num_terms'        => 1,
             'theme_min_length' => 6,
             'min_length'       => 3,
             'max_length'       => 15,
@@ -118,9 +118,9 @@ final class new_round_test extends \advanced_testcase {
         $this->assertTrue($result['data']['hastheme']);
         // Regression guard: build_lobby_context() must keep returning exactly the keys
         // declared in execute_returns()'s 'lobby' structure, or the external API silently
-        // strips/rejects them — this caught a real drift once already (cluestotal ->
-        // cluesthisround rename that execute_returns() had not been updated for).
-        $this->assertNotEmpty($result['data']['lobby']['cluesthisround']);
+        // strips/rejects them — this caught a real drift once already (termstotal ->
+        // termsthisround rename that execute_returns() had not been updated for).
+        $this->assertNotEmpty($result['data']['lobby']['termsthisround']);
 
         $state = round_service::load_state($instance->cmid, $this->student->id);
         $this->assertFalse($state['finished']);

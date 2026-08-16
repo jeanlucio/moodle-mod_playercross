@@ -53,7 +53,7 @@ final class end_round_test extends \advanced_testcase {
 
     /**
      * Creates a playercross instance with a deterministic two-word pool: a theme
-     * candidate ("escola") and the sole clue ("livro").
+     * candidate ("escola") and the sole term ("livro").
      *
      * @param array $overrides Instance field overrides.
      * @return \stdClass Instance record with the ->cmid field added.
@@ -62,7 +62,7 @@ final class end_round_test extends \advanced_testcase {
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
         $record = array_merge([
             'course'           => $this->course->id,
-            'num_clues'        => 1,
+            'num_terms'        => 1,
             'theme_min_length' => 6,
             'min_length'       => 3,
             'max_length'       => 15,

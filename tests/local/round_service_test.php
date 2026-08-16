@@ -83,12 +83,12 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::load_state(1, $this->user->id);
         $this->assertSame(0, $state['themewordid']);
         $this->assertFalse($state['finished']);
-        $this->assertSame([], $state['clues']);
+        $this->assertSame([], $state['terms']);
     }
 
     /**
      * load_state() discards a round left over from an older, structurally
-     * incompatible puzzle_builder version — a clue whose slots array is too short for
+     * incompatible puzzle_builder version — a term whose slots array is too short for
      * its own word (the old distinct-set-of-theme-slots shape, before slots became a
      * round-wide, per-position map, SCOPE.md §20.2 v1.7) — instead of returning it
      * as-is and letting round_presenter fatal on it the next time it is rendered.
@@ -107,11 +107,11 @@ final class round_service_test extends \advanced_testcase {
                 'themeslots'       => [1, 2, 3, 4, 5, 6],
                 'slotcount'        => 6,
                 'revealedslots'    => [],
-                'clues'            => [
+                'terms'            => [
                     [
                         'wordid'       => 2,
                         'word'         => 'livro',
-                        'hint'         => 'dica',
+                        'clue'         => 'dica',
                         // Old shape: a distinct set of theme slots, too short for
                         // "livro"'s 5 characters.
                         'slots'        => [4, 5],
@@ -120,8 +120,8 @@ final class round_service_test extends \advanced_testcase {
                         'exhausted'    => false,
                     ],
                 ],
-                'cluestotal'       => 1,
-                'cluesresolved'    => 0,
+                'termstotal'       => 1,
+                'termsresolved'    => 0,
                 'scoreaccumulated' => 0.0,
                 'attemptsused'     => 0,
                 'starttime'        => 0,
@@ -138,13 +138,13 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::load_state($cmid, $this->user->id);
 
         $this->assertSame(0, $state['themewordid']);
-        $this->assertSame([], $state['clues']);
+        $this->assertSame([], $state['terms']);
     }
 
     /**
      * load_state() also discards a round left over from just before themehint/
      * originalword existed (added for the post-round reveal to keep its accented
-     * spelling — see puzzle_builder::build_round()): themewords and every clue's slots
+     * spelling — see puzzle_builder::build_round()): themewords and every term's slots
      * are already the current, correctly-sized shape, but themehint and originalword
      * are simply absent, the way a session saved by the previous code version would be.
      *
@@ -164,7 +164,7 @@ final class round_service_test extends \advanced_testcase {
                 'themeslots'       => [1, 2, 3, 4, 5, 6],
                 'slotcount'        => 6,
                 'revealedslots'    => [],
-                'clues'            => [
+                'terms'            => [
                     [
                         'wordid'       => 2,
                         'word'         => 'livro',
@@ -176,8 +176,8 @@ final class round_service_test extends \advanced_testcase {
                         'exhausted'    => false,
                     ],
                 ],
-                'cluestotal'       => 1,
-                'cluesresolved'    => 0,
+                'termstotal'       => 1,
+                'termsresolved'    => 0,
                 'scoreaccumulated' => 0.0,
                 'attemptsused'     => 0,
                 'starttime'        => 0,
@@ -194,7 +194,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::load_state($cmid, $this->user->id);
 
         $this->assertSame(0, $state['themewordid']);
-        $this->assertSame([], $state['clues']);
+        $this->assertSame([], $state['terms']);
     }
 
     /**
@@ -203,28 +203,28 @@ final class round_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_ensure_round_state_builds_puzzle(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
 
         $state = round_service::load_state($cm->cmid, $this->user->id);
         $state = round_service::ensure_round_state($state, $instance, $cm->cmid, $this->user->id);
 
         $this->assertGreaterThan(0, $state['themewordid']);
-        $this->assertSame(3, $state['cluestotal']);
-        $this->assertCount(3, $state['clues']);
+        $this->assertSame(3, $state['termstotal']);
+        $this->assertCount(3, $state['terms']);
     }
 
     /**
      * Regression test for the round-cost bypass: a client that calls
-     * submit_clue_guess() before start_round() — skipping the "Iniciar rodada" button,
+     * submit_term_guess() before start_round() — skipping the "Iniciar rodada" button,
      * the only place a configured PlayerHUD round cost is actually charged — must be
-     * rejected, even with a correct guess for a clue already sitting in session. The
+     * rejected, even with a correct guess for a term already sitting in session. The
      * round stays unfinished and no attempt is counted, so a repeat with start_round()
      * first still works normally.
      *
      * @return void
      */
-    public function test_submit_clue_guess_rejected_when_round_not_started(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+    public function test_submit_term_guess_rejected_when_round_not_started(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -232,34 +232,34 @@ final class round_service_test extends \advanced_testcase {
             $this->user->id
         );
         $this->assertFalse($state['roundstarted']);
-        $clue = $state['clues'][0];
+        $term = $state['terms'][0];
 
-        [$state, $resolved, $notification, $notificationtype] = round_service::submit_clue_guess(
+        [$state, $resolved, $notification, $notificationtype] = round_service::submit_term_guess(
             $state,
             $instance,
             $cm->cmid,
             $this->user->id,
-            (int)$clue['wordid'],
-            $clue['word']
+            (int)$term['wordid'],
+            $term['word']
         );
 
         $this->assertFalse($resolved);
         $this->assertNotEmpty($notification);
         $this->assertSame('warning', $notificationtype);
         $this->assertFalse($state['finished']);
-        $this->assertFalse($state['clues'][0]['resolved']);
+        $this->assertFalse($state['terms'][0]['resolved']);
         $this->assertSame(0, $state['attemptsused']);
     }
 
     /**
      * Regression test for the round-cost bypass: same as
-     * test_submit_clue_guess_rejected_when_round_not_started(), for a direct guess of
+     * test_submit_term_guess_rejected_when_round_not_started(), for a direct guess of
      * the mystery phrase.
      *
      * @return void
      */
     public function test_submit_final_guess_rejected_when_round_not_started(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -291,7 +291,7 @@ final class round_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_reveal_hint_rejected_when_already_finished(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -311,14 +311,14 @@ final class round_service_test extends \advanced_testcase {
 
     /**
      * Regression test for the round-cost bypass: same as
-     * test_submit_clue_guess_rejected_when_round_not_started(), for revealing a hint —
+     * test_submit_term_guess_rejected_when_round_not_started(), for revealing a hint —
      * which has its own configurable PlayerHUD cost, equally skippable before
      * start_round() without this guard.
      *
      * @return void
      */
     public function test_reveal_hint_rejected_when_round_not_started(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -350,7 +350,7 @@ final class round_service_test extends \advanced_testcase {
      */
     public function test_reveal_hint_stops_at_configured_limit(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'max_hints_per_round' => 2,
         ]);
@@ -385,14 +385,14 @@ final class round_service_test extends \advanced_testcase {
 
     /**
      * Revealing every slot in the round via hints alone — never a single typed guess
-     * through either the phrase's own form or the sole clue's — still finishes and
-     * wins the round. A deterministic two-word pool (theme "escola", sole clue
+     * through either the phrase's own form or the sole term's — still finishes and
+     * wins the round. A deterministic two-word pool (theme "escola", sole term
      * "livro", sharing "l" and "o" — see tests/external/reveal_hint_test.php's class
      * docblock for the exact slot numbering this relies on) makes exactly 5 reveal_hint
      * calls exhaust every hidden slot: the theme's own two shared slots first, so the
      * phrase itself (confirm_fully_revealed_theme()) is already fully known by the 2nd
      * call, then livro's three exclusive ones, resolving it
-     * (resolve_fully_revealed_clues()) and — since both PLAYERCROSS_WINCONDITION_BOTH
+     * (resolve_fully_revealed_terms()) and — since both PLAYERCROSS_WINCONDITION_BOTH
      * conditions are then met — finishing the round on the 5th.
      *
      * @return void
@@ -400,7 +400,7 @@ final class round_service_test extends \advanced_testcase {
     public function test_reveal_hint_alone_can_finish_and_win_the_round(): void {
         $cm = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 1,
+            'num_terms' => 1,
             'theme_min_length' => 6,
             'min_length' => 3,
             'max_length' => 15,
@@ -426,18 +426,18 @@ final class round_service_test extends \advanced_testcase {
         $this->assertTrue($state['finished']);
         $this->assertTrue($state['won']);
         $this->assertTrue($state['finalguesscorrect']);
-        $this->assertTrue($state['clues'][0]['resolved']);
+        $this->assertTrue($state['terms'][0]['resolved']);
         $this->assertSame(get_string('roundwon', 'mod_playercross'), $notification);
     }
 
     /**
-     * A wrong clue guess increments its attempt counter without resolving it or
+     * A wrong term guess increments its attempt counter without resolving it or
      * revealing any theme letters.
      *
      * @return void
      */
-    public function test_submit_clue_guess_wrong_increments_attempts(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+    public function test_submit_term_guess_wrong_increments_attempts(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -445,33 +445,33 @@ final class round_service_test extends \advanced_testcase {
             $this->user->id
         );
         [$state] = round_service::start_round($state, $instance, $this->user->id);
-        $clueid = (int)$state['clues'][0]['wordid'];
+        $termid = (int)$state['terms'][0]['wordid'];
         $revealedbefore = $state['revealedslots'];
 
-        [$state, $resolved, $notification, $notificationtype] = round_service::submit_clue_guess(
+        [$state, $resolved, $notification, $notificationtype] = round_service::submit_term_guess(
             $state,
             $instance,
             $cm->cmid,
             $this->user->id,
-            $clueid,
+            $termid,
             'zzzzzzz'
         );
 
         $this->assertFalse($resolved);
-        $this->assertSame(1, $state['clues'][0]['attemptsused']);
-        $this->assertFalse($state['clues'][0]['resolved']);
+        $this->assertSame(1, $state['terms'][0]['attemptsused']);
+        $this->assertFalse($state['terms'][0]['resolved']);
         $this->assertSame($revealedbefore, $state['revealedslots']);
-        $this->assertSame(get_string('clueguesswrong', 'mod_playercross'), $notification);
+        $this->assertSame(get_string('termguesswrong', 'mod_playercross'), $notification);
         $this->assertSame('warning', $notificationtype);
     }
 
     /**
-     * A correct clue guess resolves it and reveals every theme slot it covers.
+     * A correct term guess resolves it and reveals every theme slot it covers.
      *
      * @return void
      */
-    public function test_submit_clue_guess_correct_resolves_and_reveals_slots(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+    public function test_submit_term_guess_correct_resolves_and_reveals_slots(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -479,46 +479,46 @@ final class round_service_test extends \advanced_testcase {
             $this->user->id
         );
         [$state] = round_service::start_round($state, $instance, $this->user->id);
-        $clue = $state['clues'][0];
+        $term = $state['terms'][0];
 
-        [$state, $resolved, , $notificationtype, $toast] = round_service::submit_clue_guess(
+        [$state, $resolved, , $notificationtype, $toast] = round_service::submit_term_guess(
             $state,
             $instance,
             $cm->cmid,
             $this->user->id,
-            (int)$clue['wordid'],
-            $clue['word']
+            (int)$term['wordid'],
+            $term['word']
         );
 
         $this->assertTrue($resolved);
-        $this->assertTrue($state['clues'][0]['resolved']);
-        $this->assertSame(1, $state['cluesresolved']);
+        $this->assertTrue($state['terms'][0]['resolved']);
+        $this->assertSame(1, $state['termsresolved']);
         $this->assertSame('success', $notificationtype);
-        // Every round-flow message is toast-worthy, this mid-round clue included — see
-        // round_service::submit_clue_guess().
+        // Every round-flow message is toast-worthy, this mid-round term included — see
+        // round_service::submit_term_guess().
         $this->assertTrue($toast);
-        foreach ($clue['slots'] as $slot) {
+        foreach ($term['slots'] as $slot) {
             $this->assertContains($slot, $state['revealedslots']);
         }
     }
 
     /**
-     * Resolving every clue alone does not finish the round while the mystery phrase has
+     * Resolving every term alone does not finish the round while the mystery phrase has
      * not been guessed yet — winning always requires both conditions.
      *
-     * num_clues is 2 here, not the usual 3 (see make_ready_instance()): with all three
+     * num_terms is 2 here, not the usual 3 (see make_ready_instance()): with all three
      * of casa/lobo/mel selected, their combined coverage always happens to reach every
      * theme letter (SCOPE.md-level coincidence of this fixed word pool), which would
      * make reconcile_after_reveal() confirm the phrase — and finish the round — as a
-     * side effect of the last clue, defeating the very thing this test means to check.
+     * side effect of the last term, defeating the very thing this test means to check.
      * reveal_uncovered_slots is also disabled so the one theme letter neither of the
-     * two selected clues covers is not simply given away for free at round start.
+     * two selected terms covers is not simply given away for free at round start.
      *
      * @return void
      */
-    public function test_resolving_all_clues_alone_does_not_finish_round(): void {
+    public function test_resolving_all_terms_alone_does_not_finish_round(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 2,
+            'num_terms' => 2,
             'theme_min_length' => 6,
             'reveal_uncovered_slots' => 0,
         ]);
@@ -531,37 +531,37 @@ final class round_service_test extends \advanced_testcase {
         [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         $lasttoast = null;
-        foreach ($state['clues'] as $clue) {
-            [$state, , , , $lasttoast] = round_service::submit_clue_guess(
+        foreach ($state['terms'] as $term) {
+            [$state, , , , $lasttoast] = round_service::submit_term_guess(
                 $state,
                 $instance,
                 $cm->cmid,
                 $this->user->id,
-                (int)$clue['wordid'],
-                $clue['word']
+                (int)$term['wordid'],
+                $term['word']
             );
         }
 
-        $this->assertSame(2, $state['cluesresolved']);
+        $this->assertSame(2, $state['termsresolved']);
         $this->assertFalse($state['finished']);
-        // The last clue resolves them all, triggering cluescompleteneedsfinal instead of the
-        // ordinary per-clue message — still toast-worthy like every other round-flow message
-        // (see test_submit_clue_guess_correct_resolves_and_reveals_slots).
+        // The last term resolves them all, triggering termscompleteneedsfinal instead of the
+        // ordinary per-term message — still toast-worthy like every other round-flow message
+        // (see test_submit_term_guess_correct_resolves_and_reveals_slots).
         $this->assertTrue($lasttoast);
     }
 
     /**
      * A correct direct guess of the mystery phrase alone does not finish the round while
-     * clues are still pending — winning always requires both conditions. The correct
+     * terms are still pending — winning always requires both conditions. The correct
      * guess is still recorded (finalguesscorrect), and every mystery-phrase tile is
      * revealed immediately even though the round stays open — the player just
      * demonstrated they know the whole phrase, so the grid must reflect that right away
-     * rather than only once every clue is also solved.
+     * rather than only once every term is also solved.
      *
      * @return void
      */
     public function test_submit_final_guess_correct_alone_does_not_finish_round(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -587,19 +587,19 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * A clue made entirely of letters shared with the mystery phrase (here "casa",
+     * A term made entirely of letters shared with the mystery phrase (here "casa",
      * every letter of which also appears in the theme "escola") ends up with every
      * tile revealed the instant a correct final guess reveals the whole phrase — see
      * test_submit_final_guess_correct_alone_does_not_finish_round(). Without
-     * round_service::resolve_fully_revealed_clues(), that clue's own resolved flag
+     * round_service::resolve_fully_revealed_terms(), that term's own resolved flag
      * would stay false with no editable box left to ever set it: every tile locked,
      * nothing left to type. This asserts it is auto-resolved instead, so the round can
-     * still finish once every other clue is solved too.
+     * still finish once every other term is solved too.
      *
      * @return void
      */
-    public function test_final_guess_auto_resolves_a_clue_made_entirely_of_shared_letters(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+    public function test_final_guess_auto_resolves_a_term_made_entirely_of_shared_letters(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -609,12 +609,12 @@ final class round_service_test extends \advanced_testcase {
         [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         $casaindex = null;
-        foreach ($state['clues'] as $index => $clue) {
-            if ($clue['word'] === 'casa') {
+        foreach ($state['terms'] as $index => $term) {
+            if ($term['word'] === 'casa') {
                 $casaindex = $index;
             }
         }
-        $this->assertNotNull($casaindex, 'Fixture assumption: casa must be selected as a clue.');
+        $this->assertNotNull($casaindex, 'Fixture assumption: casa must be selected as a term.');
 
         [$state] = round_service::submit_final_guess(
             $state,
@@ -624,8 +624,8 @@ final class round_service_test extends \advanced_testcase {
             implode(' ', $state['themewords'])
         );
 
-        $this->assertTrue($state['clues'][$casaindex]['resolved']);
-        $this->assertSame(1, $state['cluesresolved']);
+        $this->assertTrue($state['terms'][$casaindex]['resolved']);
+        $this->assertSame(1, $state['termsresolved']);
     }
 
     /**
@@ -634,7 +634,7 @@ final class round_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_submit_final_guess_wrong_keeps_round_open(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -656,21 +656,21 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * Resolving every clue first, then guessing the mystery phrase, finishes and wins
+     * Resolving every term first, then guessing the mystery phrase, finishes and wins
      * the round and writes the attempts row.
      *
-     * num_clues/reveal_uncovered_slots overridden the same way and for the same reason
-     * as test_resolving_all_clues_alone_does_not_finish_round(): otherwise the clue
+     * num_terms/reveal_uncovered_slots overridden the same way and for the same reason
+     * as test_resolving_all_terms_alone_does_not_finish_round(): otherwise the term
      * loop below would already finish the round by itself (every theme letter
      * incidentally covered), leaving nothing left for the submit_final_guess() call
      * this test actually means to exercise.
      *
      * @return void
      */
-    public function test_clues_then_final_guess_finishes_and_wins_round(): void {
+    public function test_terms_then_final_guess_finishes_and_wins_round(): void {
         global $DB;
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 2,
+            'num_terms' => 2,
             'theme_min_length' => 6,
             'reveal_uncovered_slots' => 0,
         ]);
@@ -682,14 +682,14 @@ final class round_service_test extends \advanced_testcase {
         );
         [$state] = round_service::start_round($state, $instance, $this->user->id);
 
-        foreach ($state['clues'] as $clue) {
-            [$state] = round_service::submit_clue_guess(
+        foreach ($state['terms'] as $term) {
+            [$state] = round_service::submit_term_guess(
                 $state,
                 $instance,
                 $cm->cmid,
                 $this->user->id,
-                (int)$clue['wordid'],
-                $clue['word']
+                (int)$term['wordid'],
+                $term['word']
             );
         }
         $this->assertFalse($state['finished']);
@@ -708,18 +708,18 @@ final class round_service_test extends \advanced_testcase {
         $this->assertTrue($state['finalguessed']);
 
         $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
-        $this->assertSame(2, (int)$attempt->cluesresolved);
+        $this->assertSame(2, (int)$attempt->termsresolved);
         $this->assertSame(1, (int)$attempt->completed);
     }
 
     /**
-     * Guessing the mystery phrase first, then resolving every remaining clue, finishes
+     * Guessing the mystery phrase first, then resolving every remaining term, finishes
      * and wins the round, recording the earlier correct guess as finalguessed.
      *
      * @return void
      */
-    public function test_final_guess_then_clues_finishes_and_wins_round(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+    public function test_final_guess_then_terms_finishes_and_wins_round(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -738,14 +738,14 @@ final class round_service_test extends \advanced_testcase {
         $this->assertTrue($correct);
         $this->assertFalse($state['finished']);
 
-        foreach ($state['clues'] as $clue) {
-            [$state] = round_service::submit_clue_guess(
+        foreach ($state['terms'] as $term) {
+            [$state] = round_service::submit_term_guess(
                 $state,
                 $instance,
                 $cm->cmid,
                 $this->user->id,
-                (int)$clue['wordid'],
-                $clue['word']
+                (int)$term['wordid'],
+                $term['word']
             );
         }
 
@@ -755,17 +755,17 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * PLAYERCROSS_WINCONDITION_BOTH (the default): a clue running out of attempts
+     * PLAYERCROSS_WINCONDITION_BOTH (the default): a term running out of attempts
      * makes winning mathematically impossible from then on, so the round ends
      * immediately as a loss instead of being left open with no way forward.
      *
      * @return void
      */
-    public function test_clue_exhaustion_ends_round_as_loss_under_both(): void {
+    public function test_term_exhaustion_ends_round_as_loss_under_both(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
-            'max_attempts_per_clue' => 2,
+            'max_attempts_per_term' => 2,
         ]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
@@ -774,41 +774,41 @@ final class round_service_test extends \advanced_testcase {
             $this->user->id
         );
         [$state] = round_service::start_round($state, $instance, $this->user->id);
-        $clueid = (int)$state['clues'][0]['wordid'];
+        $termid = (int)$state['terms'][0]['wordid'];
 
-        [$state] = round_service::submit_clue_guess($state, $instance, $cm->cmid, $this->user->id, $clueid, 'erradoum');
-        $this->assertFalse($state['clues'][0]['exhausted']);
+        [$state] = round_service::submit_term_guess($state, $instance, $cm->cmid, $this->user->id, $termid, 'erradoum');
+        $this->assertFalse($state['terms'][0]['exhausted']);
         $this->assertFalse($state['finished']);
 
-        [$state, $resolved, $notification] = round_service::submit_clue_guess(
+        [$state, $resolved, $notification] = round_service::submit_term_guess(
             $state,
             $instance,
             $cm->cmid,
             $this->user->id,
-            $clueid,
+            $termid,
             'erradodois'
         );
 
         $this->assertFalse($resolved);
-        $this->assertTrue($state['clues'][0]['exhausted']);
-        $this->assertFalse($state['clues'][0]['resolved']);
+        $this->assertTrue($state['terms'][0]['exhausted']);
+        $this->assertFalse($state['terms'][0]['resolved']);
         $this->assertTrue($state['finished']);
         $this->assertFalse($state['won']);
-        $this->assertTrue($state['cluesexhausted']);
-        $this->assertSame(get_string('feedback_cluesexhausted', 'mod_playercross'), $notification);
+        $this->assertTrue($state['termsexhausted']);
+        $this->assertSame(get_string('feedback_termsexhausted', 'mod_playercross'), $notification);
     }
 
     /**
-     * PLAYERCROSS_WINCONDITION_FINALONLY: a clue running out of attempts never ends
+     * PLAYERCROSS_WINCONDITION_FINALONLY: a term running out of attempts never ends
      * the round by itself — the mystery phrase alone can still win it.
      *
      * @return void
      */
-    public function test_clue_exhaustion_does_not_end_round_under_finalonly(): void {
+    public function test_term_exhaustion_does_not_end_round_under_finalonly(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
-            'max_attempts_per_clue' => 2,
+            'max_attempts_per_term' => 2,
             'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
         ]);
         $state = round_service::ensure_round_state(
@@ -818,31 +818,31 @@ final class round_service_test extends \advanced_testcase {
             $this->user->id
         );
         [$state] = round_service::start_round($state, $instance, $this->user->id);
-        $clueid = (int)$state['clues'][0]['wordid'];
+        $termid = (int)$state['terms'][0]['wordid'];
 
-        [$state] = round_service::submit_clue_guess($state, $instance, $cm->cmid, $this->user->id, $clueid, 'erradoum');
-        [$state] = round_service::submit_clue_guess($state, $instance, $cm->cmid, $this->user->id, $clueid, 'erradodois');
+        [$state] = round_service::submit_term_guess($state, $instance, $cm->cmid, $this->user->id, $termid, 'erradoum');
+        [$state] = round_service::submit_term_guess($state, $instance, $cm->cmid, $this->user->id, $termid, 'erradodois');
 
-        $this->assertTrue($state['clues'][0]['exhausted']);
-        $this->assertFalse($state['clues'][0]['resolved']);
+        $this->assertTrue($state['terms'][0]['exhausted']);
+        $this->assertFalse($state['terms'][0]['resolved']);
         $this->assertFalse($state['finished']);
     }
 
     /**
-     * PLAYERCROSS_WINCONDITION_FINALONLY: resolving every clue never finishes the
+     * PLAYERCROSS_WINCONDITION_FINALONLY: resolving every term never finishes the
      * round on its own — only a direct guess of the mystery phrase does.
      *
-     * num_clues/reveal_uncovered_slots overridden the same way and for the same reason
-     * as test_resolving_all_clues_alone_does_not_finish_round(): otherwise resolving
-     * every clue would incidentally reveal the whole phrase too, and under
+     * num_terms/reveal_uncovered_slots overridden the same way and for the same reason
+     * as test_resolving_all_terms_alone_does_not_finish_round(): otherwise resolving
+     * every term would incidentally reveal the whole phrase too, and under
      * PLAYERCROSS_WINCONDITION_FINALONLY that alone is enough to finish the round —
      * exactly the outcome this test means to rule out.
      *
      * @return void
      */
-    public function test_finalonly_resolving_all_clues_does_not_finish_round(): void {
+    public function test_finalonly_resolving_all_terms_does_not_finish_round(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 2,
+            'num_terms' => 2,
             'theme_min_length' => 6,
             'reveal_uncovered_slots' => 0,
             'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
@@ -856,34 +856,34 @@ final class round_service_test extends \advanced_testcase {
         [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         $lasttoast = null;
-        foreach ($state['clues'] as $clue) {
-            [$state, , , , $lasttoast] = round_service::submit_clue_guess(
+        foreach ($state['terms'] as $term) {
+            [$state, , , , $lasttoast] = round_service::submit_term_guess(
                 $state,
                 $instance,
                 $cm->cmid,
                 $this->user->id,
-                (int)$clue['wordid'],
-                $clue['word']
+                (int)$term['wordid'],
+                $term['word']
             );
         }
 
-        $this->assertSame(2, $state['cluesresolved']);
+        $this->assertSame(2, $state['termsresolved']);
         $this->assertFalse($state['finished']);
-        // The last clue resolves them all, triggering cluescompleteneedsfinal instead of the
-        // ordinary per-clue message — still toast-worthy like every other round-flow message
-        // (see test_submit_clue_guess_correct_resolves_and_reveals_slots).
+        // The last term resolves them all, triggering termscompleteneedsfinal instead of the
+        // ordinary per-term message — still toast-worthy like every other round-flow message
+        // (see test_submit_term_guess_correct_resolves_and_reveals_slots).
         $this->assertTrue($lasttoast);
     }
 
     /**
      * PLAYERCROSS_WINCONDITION_FINALONLY: a correct direct guess wins the round
-     * immediately, even with every clue still pending.
+     * immediately, even with every term still pending.
      *
      * @return void
      */
     public function test_finalonly_final_guess_wins_round_immediately(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
         ]);
@@ -910,13 +910,13 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * Forfeiting ends the round as a loss without resolving remaining clues.
+     * Forfeiting ends the round as a loss without resolving remaining terms.
      *
      * @return void
      */
     public function test_forfeit_ends_round_as_loss(): void {
         global $DB;
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -945,7 +945,7 @@ final class round_service_test extends \advanced_testcase {
      */
     public function test_forfeit_rejected_when_round_not_started(): void {
         global $DB;
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -969,7 +969,7 @@ final class round_service_test extends \advanced_testcase {
      */
     public function test_timeout_rejected_before_deadline(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'timer_minutes' => 5,
         ]);
@@ -991,7 +991,7 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * Regression test: submit_clue_guess() must close an expired round itself instead
+     * Regression test: submit_term_guess() must close an expired round itself instead
      * of processing the guess — a client that never calls end_round(timeout) (or
      * reloads after the deadline, since the timer is only ever armed client-side once
      * it first sees timeleft > 0) would otherwise keep scoring indefinitely past the
@@ -999,10 +999,10 @@ final class round_service_test extends \advanced_testcase {
      *
      * @return void
      */
-    public function test_submit_clue_guess_closes_round_once_deadline_has_passed(): void {
+    public function test_submit_term_guess_closes_round_once_deadline_has_passed(): void {
         global $DB;
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'timer_minutes' => 1,
         ]);
@@ -1014,35 +1014,35 @@ final class round_service_test extends \advanced_testcase {
         );
         [$state] = round_service::start_round($state, $instance, $this->user->id);
         $state['starttime'] = time() - 120;
-        $clue = $state['clues'][0];
+        $term = $state['terms'][0];
 
-        [$state, $resolved, $notification] = round_service::submit_clue_guess(
+        [$state, $resolved, $notification] = round_service::submit_term_guess(
             $state,
             $instance,
             $cm->cmid,
             $this->user->id,
-            (int)$clue['wordid'],
-            $clue['word']
+            (int)$term['wordid'],
+            $term['word']
         );
 
         $this->assertFalse($resolved);
         $this->assertTrue($state['finished']);
         $this->assertTrue($state['timedout']);
         $this->assertNotEmpty($notification);
-        $this->assertFalse($state['clues'][0]['resolved']);
+        $this->assertFalse($state['terms'][0]['resolved']);
         $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
         $this->assertSame(0, (int)$attempt->completed);
     }
 
     /**
-     * Same regression as test_submit_clue_guess_closes_round_once_deadline_has_passed(),
+     * Same regression as test_submit_term_guess_closes_round_once_deadline_has_passed(),
      * for a direct guess of the mystery phrase.
      *
      * @return void
      */
     public function test_submit_final_guess_closes_round_once_deadline_has_passed(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'timer_minutes' => 1,
         ]);
@@ -1071,14 +1071,14 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * Same regression as test_submit_clue_guess_closes_round_once_deadline_has_passed(),
+     * Same regression as test_submit_term_guess_closes_round_once_deadline_has_passed(),
      * for revealing a hint.
      *
      * @return void
      */
     public function test_reveal_hint_closes_round_once_deadline_has_passed(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'timer_minutes' => 1,
         ]);
@@ -1110,7 +1110,7 @@ final class round_service_test extends \advanced_testcase {
      */
     public function test_close_if_expired_only_closes_a_genuinely_expired_round(): void {
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'timer_minutes' => 1,
         ]);
@@ -1143,7 +1143,7 @@ final class round_service_test extends \advanced_testcase {
     public function test_timeout_rejected_when_round_not_started(): void {
         global $DB;
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'timer_minutes' => 5,
         ]);
@@ -1170,7 +1170,7 @@ final class round_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_new_round_resets_state(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -1208,7 +1208,7 @@ final class round_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_ensure_round_state_fires_round_started_event(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $sink = $this->redirectEvents();
 
         $state = round_service::ensure_round_state(
@@ -1221,27 +1221,27 @@ final class round_service_test extends \advanced_testcase {
         $events = array_values(array_filter($sink->get_events(), fn($e) => $e instanceof round_started));
         $this->assertCount(1, $events);
         $this->assertSame($state['themewordid'], $events[0]->objectid);
-        $this->assertSame(3, $events[0]->other['cluestotal']);
+        $this->assertSame(3, $events[0]->other['termstotal']);
     }
 
     /**
-     * Winning a round — resolving every clue — fires round_completed exactly once,
+     * Winning a round — resolving every term — fires round_completed exactly once,
      * with the outcome recorded in its "other" payload.
      *
-     * num_clues defaults to 3 here, and with theme_min_length 6 the fixed word pool
+     * num_terms defaults to 3 here, and with theme_min_length 6 the fixed word pool
      * (casa/lobo/mel) always happens to cover every theme letter between the three of
-     * them (see test_resolving_all_clues_alone_does_not_finish_round()) — so the round
-     * already finishes as a side effect of the last clue, before the trailing
+     * them (see test_resolving_all_terms_alone_does_not_finish_round()) — so the round
+     * already finishes as a side effect of the last term, before the trailing
      * submit_final_guess() call below is ever reached. That call is kept anyway to
      * confirm it is a harmless no-op once the round is already finished (it returns
      * early without touching state or firing a second event) — and, since the win came
-     * from clue resolution and not a typed-and-submitted guess, "other.finalguessed"
+     * from term resolution and not a typed-and-submitted guess, "other.finalguessed"
      * must read false, not true.
      *
      * @return void
      */
     public function test_winning_the_round_fires_round_completed_event(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -1251,14 +1251,14 @@ final class round_service_test extends \advanced_testcase {
         [$state] = round_service::start_round($state, $instance, $this->user->id);
 
         $sink = $this->redirectEvents();
-        foreach ($state['clues'] as $clue) {
-            [$state] = round_service::submit_clue_guess(
+        foreach ($state['terms'] as $term) {
+            [$state] = round_service::submit_term_guess(
                 $state,
                 $instance,
                 $cm->cmid,
                 $this->user->id,
-                (int)$clue['wordid'],
-                $clue['word']
+                (int)$term['wordid'],
+                $term['word']
             );
         }
         [$state] = round_service::submit_final_guess(
@@ -1273,8 +1273,8 @@ final class round_service_test extends \advanced_testcase {
         $this->assertCount(1, $events);
         $this->assertTrue($events[0]->other['completed']);
         $this->assertFalse($events[0]->other['finalguessed']);
-        $this->assertSame(3, $events[0]->other['cluesresolved']);
-        $this->assertSame(3, $events[0]->other['cluestotal']);
+        $this->assertSame(3, $events[0]->other['termsresolved']);
+        $this->assertSame(3, $events[0]->other['termstotal']);
     }
 
     /**
@@ -1319,7 +1319,7 @@ final class round_service_test extends \advanced_testcase {
      * restriction, even when the session state already looks like a fresh lobby
      * (themewordid=0, finished=false) — the exact shape a brand-new session, or a
      * blocked new_round() call, leaves behind. Before this guard, a direct call to
-     * start_round, submit_clue_guess, submit_final_guess or reveal_hint from that state
+     * start_round, submit_term_guess, submit_final_guess or reveal_hint from that state
      * would build a puzzle and (once finished) insert an attempt row past max_rounds,
      * ignoring the cooldown entirely.
      *
@@ -1335,7 +1335,7 @@ final class round_service_test extends \advanced_testcase {
         $state = round_service::ensure_round_state($state, $instance, $cm->cmid, $this->user->id);
 
         $this->assertSame(0, $state['themewordid']);
-        $this->assertSame([], $state['clues']);
+        $this->assertSame([], $state['terms']);
         $this->assertSame(1, round_service::count_rounds_played($instance, $this->user->id));
     }
 
@@ -1352,7 +1352,7 @@ final class round_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_start_round_revalidates_restriction_for_a_puzzle_armed_before_the_limit_hit(): void {
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6, 'max_rounds' => 1]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6, 'max_rounds' => 1]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -1385,7 +1385,7 @@ final class round_service_test extends \advanced_testcase {
     public function test_finish_round_revalidates_restriction_inside_lock_before_inserting(): void {
         global $DB;
 
-        [$instance, $cm] = $this->make_ready_instance(['num_clues' => 3, 'theme_min_length' => 6, 'max_rounds' => 1]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6, 'max_rounds' => 1]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -1422,7 +1422,7 @@ final class round_service_test extends \advanced_testcase {
         $biid = $this->make_block_instance($this->course);
         $itemid = $this->make_item($biid, 30);
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues'           => 3,
+            'num_terms'           => 3,
             'theme_min_length'    => 6,
             'max_rounds'          => 1,
             'win_condition'       => PLAYERCROSS_WINCONDITION_FINALONLY,
@@ -1569,7 +1569,7 @@ final class round_service_test extends \advanced_testcase {
         $biid = $this->make_block_instance($this->course);
         $itemid = $this->make_item($biid, 30);
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'max_rounds' => 5,
             'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
@@ -1612,7 +1612,7 @@ final class round_service_test extends \advanced_testcase {
         $itemid = $this->make_item($biid, 30);
         // The max_rounds override is omitted — make_ready_instance() defaults it to 0 (unlimited).
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
             'hud_win_reward_item' => $itemid,
@@ -1743,7 +1743,7 @@ final class round_service_test extends \advanced_testcase {
         $this->skip_if_no_playerhud();
 
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'hud_hint_cost_item' => 999999,
             'hud_hint_cost_qty' => 1,
@@ -1812,7 +1812,7 @@ final class round_service_test extends \advanced_testcase {
         $biid = $this->make_block_instance($this->course);
         $itemid = $this->make_item($biid);
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues'           => 3,
+            'num_terms'           => 3,
             'theme_min_length'    => 6,
             'hud_round_cost_item' => $itemid,
             'hud_round_cost_qty'  => 1,
@@ -1845,7 +1845,7 @@ final class round_service_test extends \advanced_testcase {
         $biid = $this->make_block_instance($this->course);
         $itemid = $this->make_item($biid);
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues'          => 3,
+            'num_terms'          => 3,
             'theme_min_length'   => 6,
             'hud_hint_cost_item' => $itemid,
             'hud_hint_cost_qty'  => 1,
@@ -1883,7 +1883,7 @@ final class round_service_test extends \advanced_testcase {
         $biid = $this->make_block_instance($this->course);
         $itemid = $this->make_item($biid, 30);
         [$instance, $cm] = $this->make_ready_instance([
-            'num_clues'           => 3,
+            'num_terms'           => 3,
             'theme_min_length'    => 6,
             'win_condition'       => PLAYERCROSS_WINCONDITION_FINALONLY,
             'hud_win_reward_item' => $itemid,

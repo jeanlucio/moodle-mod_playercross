@@ -55,7 +55,7 @@ final class view_page_service_test extends \advanced_testcase {
 
     /**
      * Creates a playercross instance with a deterministic two-word pool: a theme
-     * candidate ("escola") and the sole clue ("livro").
+     * candidate ("escola") and the sole term ("livro").
      *
      * @param array $overrides Instance field overrides.
      * @return array{0: \stdClass, 1: \stdClass, 2: context_module} [instance, cm, context]
@@ -64,7 +64,7 @@ final class view_page_service_test extends \advanced_testcase {
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
         $record = array_merge([
             'course'           => $this->course->id,
-            'num_clues'        => 1,
+            'num_terms'        => 1,
             'theme_min_length' => 6,
             'min_length'       => 3,
             'max_length'       => 15,
@@ -134,14 +134,14 @@ final class view_page_service_test extends \advanced_testcase {
         $state = round_service::load_state((int)$cm->id, $this->user->id);
         $state = round_service::ensure_round_state($state, $instance, (int)$cm->id, $this->user->id);
         [$state] = round_service::start_round($state, $instance, $this->user->id);
-        $clue = $state['clues'][0];
-        [$state] = round_service::submit_clue_guess(
+        $term = $state['terms'][0];
+        [$state] = round_service::submit_term_guess(
             $state,
             $instance,
             (int)$cm->id,
             $this->user->id,
-            (int)$clue['wordid'],
-            $clue['word']
+            (int)$term['wordid'],
+            $term['word']
         );
         [$state] = round_service::submit_final_guess($state, $instance, (int)$cm->id, $this->user->id, 'escola');
         round_service::save_state((int)$cm->id, $this->user->id, $state);
@@ -268,7 +268,7 @@ final class view_page_service_test extends \advanced_testcase {
     public function test_build_page_data_hides_inactive_words_for_non_manager(): void {
         [$instance, $cm, $context] = $this->make_instance();
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
-        // Two letters: below both the clue range (min_length 3) and theme_min_length (6).
+        // Two letters: below both the term range (min_length 3) and theme_min_length (6).
         $modgenerator->create_word($instance->id, 'oi');
 
         $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
@@ -382,46 +382,46 @@ final class view_page_service_test extends \advanced_testcase {
         $ctx = $pagedata['templatecontext'];
 
         $this->assertSame(get_string('help_wincondition_finalonly', 'mod_playercross'), $ctx['winconditiontext']);
-        $this->assertFalse($ctx['showclueloss']);
+        $this->assertFalse($ctx['showtermloss']);
     }
 
     /**
      * The help modal warns about the automatic-loss risk only when it can actually
      * happen: "both required" win condition combined with a limited number of
-     * attempts per clue.
+     * attempts per term.
      *
      * @return void
      */
-    public function test_build_page_data_shows_clue_loss_warning_when_relevant(): void {
+    public function test_build_page_data_shows_term_loss_warning_when_relevant(): void {
         [$instance, $cm, $context] = $this->make_instance([
             'win_condition' => PLAYERCROSS_WINCONDITION_BOTH,
-            'max_attempts_per_clue' => 3,
+            'max_attempts_per_term' => 3,
         ]);
 
         $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
         $ctx = $pagedata['templatecontext'];
 
-        $this->assertTrue($ctx['showclueloss']);
-        $this->assertNotEmpty($ctx['cluelosstext']);
+        $this->assertTrue($ctx['showtermloss']);
+        $this->assertNotEmpty($ctx['termlosstext']);
     }
 
     /**
-     * The help modal hides the automatic-loss warning when clue attempts are
-     * unlimited, since a clue can then never run out of attempts.
+     * The help modal hides the automatic-loss warning when term attempts are
+     * unlimited, since a term can then never run out of attempts.
      *
      * @return void
      */
-    public function test_build_page_data_hides_clue_loss_warning_when_attempts_unlimited(): void {
+    public function test_build_page_data_hides_term_loss_warning_when_attempts_unlimited(): void {
         [$instance, $cm, $context] = $this->make_instance([
             'win_condition' => PLAYERCROSS_WINCONDITION_BOTH,
-            'max_attempts_per_clue' => 0,
+            'max_attempts_per_term' => 0,
         ]);
 
         $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
         $ctx = $pagedata['templatecontext'];
 
-        $this->assertFalse($ctx['showclueloss']);
-        $this->assertSame('', $ctx['cluelosstext']);
+        $this->assertFalse($ctx['showtermloss']);
+        $this->assertSame('', $ctx['termlosstext']);
     }
 
     /**
@@ -494,14 +494,14 @@ final class view_page_service_test extends \advanced_testcase {
         $state = round_service::load_state((int)$cm->id, $this->user->id);
         $state = round_service::ensure_round_state($state, $instance, (int)$cm->id, $this->user->id);
         [$state] = round_service::start_round($state, $instance, $this->user->id);
-        $clue = $state['clues'][0];
-        [$state] = round_service::submit_clue_guess(
+        $term = $state['terms'][0];
+        [$state] = round_service::submit_term_guess(
             $state,
             $instance,
             (int)$cm->id,
             $this->user->id,
-            (int)$clue['wordid'],
-            $clue['word']
+            (int)$term['wordid'],
+            $term['word']
         );
         [$state] = round_service::submit_final_guess($state, $instance, (int)$cm->id, $this->user->id, 'escola');
         round_service::save_state((int)$cm->id, $this->user->id, $state);

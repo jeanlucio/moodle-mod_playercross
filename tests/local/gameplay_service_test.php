@@ -32,59 +32,59 @@ namespace mod_playercross\local;
  */
 final class gameplay_service_test extends \basic_testcase {
     /**
-     * Builds a minimal instance stub with the given grade and max_attempts_per_clue.
+     * Builds a minimal instance stub with the given grade and max_attempts_per_term.
      *
      * @param float $grade Activity maximum grade.
-     * @param int $maxattemptsperclue Maximum attempts per clue, 0 for unlimited.
+     * @param int $maxattemptsperterm Maximum attempts per term, 0 for unlimited.
      * @return \stdClass
      */
-    private function make_instance(float $grade, int $maxattemptsperclue): \stdClass {
-        return (object)['grade' => $grade, 'max_attempts_per_clue' => $maxattemptsperclue];
+    private function make_instance(float $grade, int $maxattemptsperterm): \stdClass {
+        return (object)['grade' => $grade, 'max_attempts_per_term' => $maxattemptsperterm];
     }
 
     /**
-     * Each clue is worth an even share of the round's grade.
+     * Each term is worth an even share of the round's grade.
      *
      * @return void
      */
-    public function test_max_points_per_clue_splits_grade_evenly(): void {
+    public function test_max_points_per_term_splits_grade_evenly(): void {
         $instance = $this->make_instance(100.0, 0);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::max_points_per_clue($instance, 5), 0.00001);
+        $this->assertEqualsWithDelta(20.0, gameplay_service::max_points_per_term($instance, 5), 0.00001);
     }
 
     /**
-     * With zero clues there is nothing to split the grade across.
+     * With zero terms there is nothing to split the grade across.
      *
      * @return void
      */
-    public function test_max_points_per_clue_zero_clues_returns_zero(): void {
+    public function test_max_points_per_term_zero_terms_returns_zero(): void {
         $instance = $this->make_instance(100.0, 0);
-        $this->assertSame(0.0, gameplay_service::max_points_per_clue($instance, 0));
+        $this->assertSame(0.0, gameplay_service::max_points_per_term($instance, 0));
     }
 
     /**
-     * With max_attempts_per_clue unlimited (0), a resolved clue always earns full
+     * With max_attempts_per_term unlimited (0), a resolved term always earns full
      * credit regardless of attempts used — there is no natural denominator to decay
      * against.
      *
      * @return void
      */
-    public function test_calculate_clue_points_unlimited_always_full_credit(): void {
+    public function test_calculate_term_points_unlimited_always_full_credit(): void {
         $instance = $this->make_instance(100.0, 0);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_clue_points($instance, 5, 1), 0.00001);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_clue_points($instance, 5, 9), 0.00001);
+        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_term_points($instance, 5, 1), 0.00001);
+        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_term_points($instance, 5, 9), 0.00001);
     }
 
     /**
-     * The first two attempts on a clue always earn full credit, mirroring the same
+     * The first two attempts on a term always earn full credit, mirroring the same
      * plateau PlayerWords uses for its whole round.
      *
      * @return void
      */
-    public function test_calculate_clue_points_full_credit_within_first_two_attempts(): void {
+    public function test_calculate_term_points_full_credit_within_first_two_attempts(): void {
         $instance = $this->make_instance(100.0, 6);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_clue_points($instance, 5, 1), 0.00001);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_clue_points($instance, 5, 2), 0.00001);
+        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_term_points($instance, 5, 1), 0.00001);
+        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_term_points($instance, 5, 2), 0.00001);
     }
 
     /**
@@ -92,17 +92,17 @@ final class gameplay_service_test extends \basic_testcase {
      *
      * @return void
      */
-    public function test_calculate_clue_points_decreases_linearly_after_second_attempt(): void {
+    public function test_calculate_term_points_decreases_linearly_after_second_attempt(): void {
         $instance = $this->make_instance(100.0, 6);
         // Maxpoints = 20; at attempt 6 (the last allowed): 20 * (6-6+1)/(6-1) = 4.
-        $this->assertEqualsWithDelta(4.0, gameplay_service::calculate_clue_points($instance, 5, 6), 0.00001);
+        $this->assertEqualsWithDelta(4.0, gameplay_service::calculate_term_points($instance, 5, 6), 0.00001);
         // Never goes below the floor even if more attempts than allowed are passed in.
-        $this->assertEqualsWithDelta(4.0, gameplay_service::calculate_clue_points($instance, 5, 99), 0.00001);
+        $this->assertEqualsWithDelta(4.0, gameplay_service::calculate_term_points($instance, 5, 99), 0.00001);
     }
 
     /**
-     * Guessing the mystery phrase before resolving any clue earns the full grade as a
-     * bonus — equivalent to having resolved every clue at full credit.
+     * Guessing the mystery phrase before resolving any term earns the full grade as a
+     * bonus — equivalent to having resolved every term at full credit.
      *
      * @return void
      */
@@ -112,12 +112,12 @@ final class gameplay_service_test extends \basic_testcase {
     }
 
     /**
-     * The bonus shrinks as more clues are already resolved, reaching zero once every
-     * clue has already been credited.
+     * The bonus shrinks as more terms are already resolved, reaching zero once every
+     * term has already been credited.
      *
      * @return void
      */
-    public function test_final_guess_bonus_shrinks_with_resolved_clues(): void {
+    public function test_final_guess_bonus_shrinks_with_resolved_terms(): void {
         $instance = $this->make_instance(100.0, 0);
         $this->assertEqualsWithDelta(40.0, gameplay_service::calculate_final_guess_bonus($instance, 5, 3), 0.00001);
         $this->assertEqualsWithDelta(0.0, gameplay_service::calculate_final_guess_bonus($instance, 5, 5), 0.00001);

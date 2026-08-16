@@ -49,7 +49,7 @@ final class puzzle_builder_test extends \advanced_testcase {
     }
 
     /**
-     * A clue pool that jointly contains every distinct letter of the mystery phrase,
+     * A term pool that jointly contains every distinct letter of the mystery phrase,
      * and no letter outside it, leaves no slot always-revealed and introduces no extra
      * slots beyond the theme's own — regardless of the order ties are broken in.
      *
@@ -58,7 +58,7 @@ final class puzzle_builder_test extends \advanced_testcase {
     public function test_build_round_full_slot_coverage(): void {
         $instance = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
         ]);
 
@@ -71,39 +71,39 @@ final class puzzle_builder_test extends \advanced_testcase {
 
         $this->assertSame(6, $puzzle->slotcount);
         $this->assertCount(6, $puzzle->themeslots);
-        $this->assertCount(3, $puzzle->clues);
+        $this->assertCount(3, $puzzle->terms);
         $this->assertSame([], $puzzle->alwaysrevealedslots);
     }
 
     /**
-     * Two clue words that share a letter which does not appear in the mystery phrase
+     * Two term words that share a letter which does not appear in the mystery phrase
      * at all must still be assigned the very same slot number for it — the round-wide
      * slot map (SCOPE.md §20.2 v1.7) covers every letter in the round, not just the
-     * theme's own, so resolving one such clue cross-reveals that letter directly in
+     * theme's own, so resolving one such term cross-reveals that letter directly in
      * the other, without going through the mystery phrase.
      *
      * @return void
      */
-    public function test_build_round_shares_slot_for_letter_exclusive_to_clues(): void {
+    public function test_build_round_shares_slot_for_letter_exclusive_to_terms(): void {
         $instance = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 2,
+            'num_terms' => 2,
             'theme_min_length' => 4,
         ]);
 
-        // Theme word "casa" (c,a,s) never contains the letter e; both clue candidates
+        // Theme word "casa" (c,a,s) never contains the letter e; both term candidates
         // below do, and only those two candidates exist in the pool, so the pool
-        // exactly fills num_clues and clue selection order cannot affect this test.
+        // exactly fills num_terms and term selection order cannot affect this test.
         $this->modgenerator->create_word($instance->id, 'casa');
         $this->modgenerator->create_word($instance->id, 'mel');
         $this->modgenerator->create_word($instance->id, 'fez');
 
         $puzzle = puzzle_builder::build_round($instance);
 
-        $this->assertCount(2, $puzzle->clues);
+        $this->assertCount(2, $puzzle->terms);
         $byword = [];
-        foreach ($puzzle->clues as $clue) {
-            $byword[$clue->word] = $clue;
+        foreach ($puzzle->terms as $term) {
+            $byword[$term->word] = $term;
         }
         $this->assertArrayHasKey('mel', $byword);
         $this->assertArrayHasKey('fez', $byword);
@@ -123,7 +123,7 @@ final class puzzle_builder_test extends \advanced_testcase {
     }
 
     /**
-     * When no clue in the pool contains a given theme letter, that letter's slot must
+     * When no term in the pool contains a given theme letter, that letter's slot must
      * be marked always-revealed instead of blocking generation — the graceful
      * degradation rule from SCOPE.md §4.
      *
@@ -132,11 +132,11 @@ final class puzzle_builder_test extends \advanced_testcase {
     public function test_build_round_graceful_degradation(): void {
         $instance = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
         ]);
 
-        // Quixote contains q and x, letters none of the clue words below ever use.
+        // Quixote contains q and x, letters none of the term words below ever use.
         $this->modgenerator->create_word($instance->id, 'quixote');
         $this->modgenerator->create_word($instance->id, 'bola');
         $this->modgenerator->create_word($instance->id, 'fita');
@@ -144,11 +144,11 @@ final class puzzle_builder_test extends \advanced_testcase {
 
         $puzzle = puzzle_builder::build_round($instance);
 
-        $this->assertCount(3, $puzzle->clues);
+        $this->assertCount(3, $puzzle->terms);
         $this->assertNotEmpty($puzzle->alwaysrevealedslots);
 
         // The uncoverable letters (q, x) must both resolve to always-revealed slots.
-        // The theme word's default hint (see the generator's create_word()) is the
+        // The theme word's default clue (see the generator's create_word()) is the
         // word itself, so the phrase here is that single word.
         $chars = word_normalizer::chars($puzzle->themewords[0]);
         $slotsbyletter = [];
@@ -169,13 +169,13 @@ final class puzzle_builder_test extends \advanced_testcase {
     public function test_build_round_graceful_degradation_can_be_disabled(): void {
         $instance = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
             'reveal_uncovered_slots' => 0,
         ]);
 
         // Same fixture as test_build_round_graceful_degradation(): q and x are never
-        // covered by any of the three clue candidates.
+        // covered by any of the three term candidates.
         $this->modgenerator->create_word($instance->id, 'quixote');
         $this->modgenerator->create_word($instance->id, 'bola');
         $this->modgenerator->create_word($instance->id, 'fita');
@@ -183,28 +183,28 @@ final class puzzle_builder_test extends \advanced_testcase {
 
         $puzzle = puzzle_builder::build_round($instance);
 
-        $this->assertCount(3, $puzzle->clues);
+        $this->assertCount(3, $puzzle->terms);
         $this->assertSame([], $puzzle->alwaysrevealedslots);
     }
 
     /**
-     * A word picked as the theme concept exposes its own hint as the multi-word
+     * A word picked as the theme concept exposes its own clue as the multi-word
      * mystery phrase (SCOPE.md §20.2 v1.9), flattened into one per-position slot
      * array across every word (no entry for the gaps between them) — not the word
      * itself, which becomes the concept caption instead, shown openly and never tiled.
      *
      * @return void
      */
-    public function test_build_round_theme_phrase_comes_from_hint(): void {
+    public function test_build_round_theme_phrase_comes_from_clue(): void {
         $instance = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 2,
+            'num_terms' => 2,
             'theme_min_length' => 5,
             'min_length' => 3,
             'max_length' => 15,
         ]);
 
-        // Words "casa" and "gato" default to a hint equal to themselves (4 letters,
+        // Words "casa" and "gato" default to a clue equal to themselves (4 letters,
         // see the generator's create_word()) — too short at theme_min_length 5, so
         // only "administracao" is eligible as the theme concept, and its pick is
         // deterministic.
@@ -222,58 +222,58 @@ final class puzzle_builder_test extends \advanced_testcase {
     }
 
     /**
-     * A clue word and the theme's own hint keep their original accented spelling
-     * available (originalword, themehint) alongside the normalized ones used for slot
+     * A term word and the theme's own clue keep their original accented spelling
+     * available (originalword, themeclue) alongside the normalized ones used for slot
      * matching (word, themewords) — matching stays accent-insensitive throughout (see
      * word_normalizer::normalize()), but the post-round reveal (round_presenter::
-     * build_clue_rows()/build_round_result_context()) needs the real spelling, which
-     * would otherwise never survive past this method — see select_clues() and
-     * build_round()'s own themehint field.
+     * build_term_rows()/build_round_result_context()) needs the real spelling, which
+     * would otherwise never survive past this method — see select_terms() and
+     * build_round()'s own themeclue field.
      *
      * @return void
      */
     public function test_build_round_preserves_original_accented_spelling(): void {
         $instance = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 2,
+            'num_terms' => 2,
             'theme_min_length' => 5,
             'min_length' => 3,
             'max_length' => 15,
         ]);
 
-        // Theme: hint carries a real accent ("área"), too short to be picked as a clue
+        // Theme: clue carries a real accent ("área"), too short to be picked as a term
         // itself since it is the only theme candidate (theme_min_length 5).
         $this->modgenerator->create_word($instance->id, 'administracao', 'área de gestão');
-        // Clue: the word itself carries a real accent.
+        // Term: the word itself carries a real accent.
         $this->modgenerator->create_word($instance->id, 'café');
         $this->modgenerator->create_word($instance->id, 'casa');
 
         $puzzle = puzzle_builder::build_round($instance);
 
         $this->assertSame('area de gestao', implode(' ', $puzzle->themewords));
-        $this->assertSame('área de gestão', $puzzle->themehint);
+        $this->assertSame('área de gestão', $puzzle->themeclue);
 
         $byword = [];
-        foreach ($puzzle->clues as $clue) {
-            $byword[$clue->word] = $clue;
+        foreach ($puzzle->terms as $term) {
+            $byword[$term->word] = $term;
         }
         $this->assertArrayHasKey('cafe', $byword);
         $this->assertSame('café', $byword['cafe']->originalword);
     }
 
     /**
-     * A pool smaller than num_clues + 1 approved words must never start a round.
+     * A pool smaller than num_terms + 1 approved words must never start a round.
      *
      * @return void
      */
     public function test_build_round_hard_failure_on_insufficient_pool(): void {
         $instance = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 5,
+            'num_terms' => 5,
             'theme_min_length' => 6,
         ]);
 
-        // Only 3 approved words total, but num_clues + 1 = 6 are required.
+        // Only 3 approved words total, but num_terms + 1 = 6 are required.
         $this->modgenerator->create_word($instance->id, 'escola');
         $this->modgenerator->create_word($instance->id, 'casa');
         $this->modgenerator->create_word($instance->id, 'lobo');
@@ -292,7 +292,7 @@ final class puzzle_builder_test extends \advanced_testcase {
     public function test_build_round_shared_wordmode_is_deterministic(): void {
         $instance = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 2,
+            'num_terms' => 2,
             'theme_min_length' => 6,
             'wordmode' => PLAYERCROSS_WORDMODE_SHARED,
         ]);
@@ -310,8 +310,8 @@ final class puzzle_builder_test extends \advanced_testcase {
     }
 
     /**
-     * The crc32-based tie-break in the greedy clue selection must be deterministic:
-     * repeated builds over an identical pool always select the same clues in the same
+     * The crc32-based tie-break in the greedy term selection must be deterministic:
+     * repeated builds over an identical pool always select the same terms in the same
      * order, never an arbitrary one.
      *
      * @return void
@@ -319,13 +319,13 @@ final class puzzle_builder_test extends \advanced_testcase {
     public function test_build_round_greedy_tie_break_is_deterministic(): void {
         $instance = $this->modgenerator->create_instance([
             'course' => $this->course->id,
-            'num_clues' => 2,
+            'num_terms' => 2,
             'theme_min_length' => 6,
             'wordmode' => PLAYERCROSS_WORDMODE_SHARED,
         ]);
 
         // A single theme candidate keeps the theme pick itself deterministic, isolating
-        // the clue tie-break as the only remaining source of variation.
+        // the term tie-break as the only remaining source of variation.
         $this->modgenerator->create_word($instance->id, 'escola');
         // Casa and cola both cover exactly 2 never-before-covered theme letters on
         // the first greedy pass (c,a and c,o,l,a respectively overlap identically in size).
@@ -336,8 +336,8 @@ final class puzzle_builder_test extends \advanced_testcase {
         $second = puzzle_builder::build_round($instance, 0);
 
         $this->assertSame(
-            array_map(fn($clue) => $clue->wordid, $first->clues),
-            array_map(fn($clue) => $clue->wordid, $second->clues)
+            array_map(fn($term) => $term->wordid, $first->terms),
+            array_map(fn($term) => $term->wordid, $second->terms)
         );
     }
 }

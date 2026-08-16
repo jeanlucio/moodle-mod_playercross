@@ -85,7 +85,7 @@ final class count_eligible_words_test extends \advanced_testcase {
             'playercrossid' => $instanceid,
             'word'          => $word,
             'concept'       => $word,
-            'hint'          => $word,
+            'clue'          => $word,
             'source'        => 'manual',
             'glossaryid'    => 0,
             'approved'      => $approved,

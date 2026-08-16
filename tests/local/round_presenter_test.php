@@ -66,7 +66,7 @@ final class round_presenter_test extends \advanced_testcase {
      * Returns a minimal default state array for a theme concept whose own mystery
      * phrase is the single word "escola" (6 distinct letters, cipher slots 1..6 in
      * order — a phrase of just one word ciphers identically to the pre-v1.9 single
-     * theme word, see puzzle_builder::cipher_phrase_slots()) and one clue "livro",
+     * theme word, see puzzle_builder::cipher_phrase_slots()) and one term "livro",
      * overridable per test.
      *
      * "livro" shares l (slot 5) and o (slot 4) with the phrase; its own i, v, r do not
@@ -82,24 +82,24 @@ final class round_presenter_test extends \advanced_testcase {
             'themewordid'      => 1,
             'themeconcept'     => 'Escola',
             'themewords'       => ['escola'],
-            'themehint'        => 'escola',
+            'themeclue'        => 'escola',
             'themeslots'       => [1, 2, 3, 4, 5, 6],
             'slotcount'        => 9,
             'revealedslots'    => [],
-            'clues'            => [
+            'terms'            => [
                 [
                     'wordid'       => 2,
                     'word'         => 'livro',
                     'originalword' => 'livro',
-                    'hint'         => 'dica',
+                    'clue'         => 'dica',
                     'slots'        => [5, 7, 8, 9, 4],
                     'resolved'     => false,
                     'attemptsused' => 0,
                     'exhausted'    => false,
                 ],
             ],
-            'cluestotal'       => 1,
-            'cluesresolved'    => 0,
+            'termstotal'       => 1,
+            'termsresolved'    => 0,
             'scoreaccumulated' => 0.0,
             'attemptsused'     => 0,
             'starttime'        => 0,
@@ -109,7 +109,7 @@ final class round_presenter_test extends \advanced_testcase {
             'forfeited'        => false,
             'timedout'         => false,
             'finalguessed'     => false,
-            'cluesexhausted'   => false,
+            'termsexhausted'   => false,
         ], $overrides);
     }
 
@@ -135,7 +135,7 @@ final class round_presenter_test extends \advanced_testcase {
 
     /**
      * Tests that a hidden phrase tile carries its own slot number, and a revealed one
-     * carries none — the number is what lets a student tell which clue would reveal
+     * carries none — the number is what lets a student tell which term would reveal
      * that position before it happens.
      *
      * @return void
@@ -200,7 +200,7 @@ final class round_presenter_test extends \advanced_testcase {
      * A revealed phrase tile shows the letter in its true original spelling (with
      * accent), not the accent-stripped form used for slot matching and guess
      * comparison — themewords/themeslots carry the normalized "cafe" (4 letters,
-     * matching the accent-insensitive c/a/f/e slot cipher), while themehint keeps the
+     * matching the accent-insensitive c/a/f/e slot cipher), while themeclue keeps the
      * original "café" the word was actually authored with.
      *
      * @return void
@@ -208,7 +208,7 @@ final class round_presenter_test extends \advanced_testcase {
     public function test_build_phrase_tiles_shows_original_accent_when_revealed(): void {
         $state = $this->make_state([
             'themewords' => ['cafe'],
-            'themehint' => 'café',
+            'themeclue' => 'café',
             'themeslots' => [1, 2, 3, 4],
             'revealedslots' => [1, 2, 3, 4],
         ]);
@@ -219,19 +219,19 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that an unresolved clue never reveals its word, and can still be guessed.
+     * Tests that an unresolved term never reveals its word, and can still be guessed.
      * Every position in its tile row carries a slot number while hidden — both the
      * letters shared with the mystery phrase (l, slot 5; o, slot 4) and the letters
-     * exclusive to this clue (i, v, r; slots 7, 8, 9), since the round-wide slot map
+     * exclusive to this term (i, v, r; slots 7, 8, 9), since the round-wide slot map
      * covers every letter in the round, not just the theme's own (SCOPE.md §20.2
      * v1.7) — none of them revealed while revealedslots is empty.
      *
      * @return void
      */
-    public function test_build_clue_rows_hides_unresolved_word(): void {
+    public function test_build_term_rows_hides_unresolved_word(): void {
         $state = $this->make_state();
 
-        $rows = round_presenter::build_clue_rows($state, false);
+        $rows = round_presenter::build_term_rows($state, false);
 
         $this->assertCount(1, $rows);
         $this->assertSame('', $rows[0]['revealword']);
@@ -245,17 +245,17 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that a clue the student never resolved still reveals its own answer word
+     * Tests that a term the student never resolved still reveals its own answer word
      * once the round has finished — the round-result recap (templates/round_result.
-     * mustache) relies on this to show every clue's answer, not only the ones actually
+     * mustache) relies on this to show every term's answer, not only the ones actually
      * solved during play.
      *
      * @return void
      */
-    public function test_build_clue_rows_reveals_unresolved_word_when_round_finished(): void {
+    public function test_build_term_rows_reveals_unresolved_word_when_round_finished(): void {
         $state = $this->make_state();
 
-        $rows = round_presenter::build_clue_rows($state, true);
+        $rows = round_presenter::build_term_rows($state, true);
 
         $this->assertFalse($rows[0]['resolved']);
         $this->assertSame('LIVRO', $rows[0]['revealword']);
@@ -263,17 +263,17 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that a resolved clue reveals its word in uppercase and can no longer be
+     * Tests that a resolved term reveals its word in uppercase and can no longer be
      * guessed — including its own tiles, even the letters not shared with the mystery
      * phrase, since the full word is already known once resolved.
      *
      * @return void
      */
-    public function test_build_clue_rows_reveals_resolved_word(): void {
+    public function test_build_term_rows_reveals_resolved_word(): void {
         $state = $this->make_state();
-        $state['clues'][0]['resolved'] = true;
+        $state['terms'][0]['resolved'] = true;
 
-        $rows = round_presenter::build_clue_rows($state, false);
+        $rows = round_presenter::build_term_rows($state, false);
 
         $this->assertSame('LIVRO', $rows[0]['revealword']);
         $this->assertFalse($rows[0]['canguess']);
@@ -284,74 +284,74 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * A resolved clue's own tiles show the letter in its true original spelling
+     * A resolved term's own tiles show the letter in its true original spelling
      * (accent or cedilla kept), the same as revealword already does — not the
      * accent-stripped form guess comparison and slot matching use internally.
      *
      * @return void
      */
-    public function test_build_clue_rows_tiles_show_original_accent_when_resolved(): void {
+    public function test_build_term_rows_tiles_show_original_accent_when_resolved(): void {
         $state = $this->make_state();
-        $state['clues'][0]['word'] = 'pacoca';
-        $state['clues'][0]['originalword'] = 'paçoca';
-        $state['clues'][0]['slots'] = [1, 2, 3, 4, 5, 6];
-        $state['clues'][0]['resolved'] = true;
+        $state['terms'][0]['word'] = 'pacoca';
+        $state['terms'][0]['originalword'] = 'paçoca';
+        $state['terms'][0]['slots'] = [1, 2, 3, 4, 5, 6];
+        $state['terms'][0]['resolved'] = true;
 
-        $rows = round_presenter::build_clue_rows($state, false);
+        $rows = round_presenter::build_term_rows($state, false);
 
         $this->assertSame('PAÇOCA', $rows[0]['revealword']);
         $this->assertSame(['P', 'A', 'Ç', 'O', 'C', 'A'], array_column($rows[0]['tiles'], 'letter'));
     }
 
     /**
-     * Tests that an exhausted clue carries a human-readable exhaustedlabel — not just
+     * Tests that an exhausted term carries a human-readable exhaustedlabel — not just
      * the bare attemptsused count the template used to print directly.
      *
      * @return void
      */
-    public function test_build_clue_rows_exhausted_label(): void {
+    public function test_build_term_rows_exhausted_label(): void {
         $state = $this->make_state();
-        $state['clues'][0]['exhausted'] = true;
-        $state['clues'][0]['attemptsused'] = 3;
+        $state['terms'][0]['exhausted'] = true;
+        $state['terms'][0]['attemptsused'] = 3;
 
-        $rows = round_presenter::build_clue_rows($state, false);
+        $rows = round_presenter::build_term_rows($state, false);
 
-        $this->assertSame(get_string('clueexhaustedlabel', 'mod_playercross', 3), $rows[0]['exhaustedlabel']);
+        $this->assertSame(get_string('termexhaustedlabel', 'mod_playercross', 3), $rows[0]['exhaustedlabel']);
     }
 
     /**
-     * Tests that a clue not (yet) exhausted carries a blank exhaustedlabel.
+     * Tests that a term not (yet) exhausted carries a blank exhaustedlabel.
      *
      * @return void
      */
-    public function test_build_clue_rows_exhausted_label_blank_when_not_exhausted(): void {
-        $rows = round_presenter::build_clue_rows($this->make_state(), false);
+    public function test_build_term_rows_exhausted_label_blank_when_not_exhausted(): void {
+        $rows = round_presenter::build_term_rows($this->make_state(), false);
 
         $this->assertSame('', $rows[0]['exhaustedlabel']);
     }
 
     /**
-     * Tests that the clue's phrase is always present in the row — it is the question
+     * Tests that the term's phrase is always present in the row — it is the question
      * itself, never gated behind any reveal state.
      *
      * @return void
      */
-    public function test_build_clue_rows_phrase_always_shown(): void {
-        $rows = round_presenter::build_clue_rows($this->make_state(), false);
+    public function test_build_term_rows_phrase_always_shown(): void {
+        $rows = round_presenter::build_term_rows($this->make_state(), false);
 
         $this->assertSame('dica', $rows[0]['phrase']);
     }
 
     /**
-     * Tests that a shared letter already revealed via another clue (or the global
-     * hint) shows through in a still-unresolved clue's own tile row.
+     * Tests that a shared letter already revealed via another term (or the global
+     * hint) shows through in a still-unresolved term's own tile row.
      *
      * @return void
      */
-    public function test_build_clue_rows_shows_cross_revealed_shared_letter(): void {
+    public function test_build_term_rows_shows_cross_revealed_shared_letter(): void {
         $state = $this->make_state(['revealedslots' => [5]]);
 
-        $rows = round_presenter::build_clue_rows($state, false);
+        $rows = round_presenter::build_term_rows($state, false);
 
         $this->assertTrue($rows[0]['tiles'][0]['revealed']);
         $this->assertSame('L', $rows[0]['tiles'][0]['letter']);
@@ -386,7 +386,7 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that forfeited, timed-out, clues-exhausted, final-guessed and plain-
+     * Tests that forfeited, timed-out, terms-exhausted, final-guessed and plain-
      * won/lost rounds each produce their own distinct message.
      *
      * @return void
@@ -394,8 +394,8 @@ final class round_presenter_test extends \advanced_testcase {
     public function test_build_feedback_message_varies_by_outcome(): void {
         $forfeited = round_presenter::build_feedback_message($this->make_state(['finished' => true, 'forfeited' => true]));
         $timedout = round_presenter::build_feedback_message($this->make_state(['finished' => true, 'timedout' => true]));
-        $cluesexhausted = round_presenter::build_feedback_message(
-            $this->make_state(['finished' => true, 'cluesexhausted' => true])
+        $termsexhausted = round_presenter::build_feedback_message(
+            $this->make_state(['finished' => true, 'termsexhausted' => true])
         );
         $finalguessed = round_presenter::build_feedback_message(
             $this->make_state(['finished' => true, 'won' => true, 'finalguessed' => true])
@@ -403,39 +403,39 @@ final class round_presenter_test extends \advanced_testcase {
         $won = round_presenter::build_feedback_message($this->make_state(['finished' => true, 'won' => true]));
         $lost = round_presenter::build_feedback_message($this->make_state(['finished' => true]));
 
-        $messages = [$forfeited, $timedout, $cluesexhausted, $finalguessed, $won, $lost];
+        $messages = [$forfeited, $timedout, $termsexhausted, $finalguessed, $won, $lost];
         $this->assertSame($messages, array_unique($messages));
     }
 
     /**
      * feedback_finalguessed only fires when it tells the player something feedback_won
-     * would not — a direct guess that won the round while clues were still pending
-     * (PLAYERCROSS_WINCONDITION_FINALONLY, or any win reached with cluesresolved short
-     * of cluestotal). Once every clue was also resolved, "you solved every clue" is
+     * would not — a direct guess that won the round while terms were still pending
+     * (PLAYERCROSS_WINCONDITION_FINALONLY, or any win reached with termsresolved short
+     * of termstotal). Once every term was also resolved, "you solved every term" is
      * already true regardless of the direct guess, and the player already saw a
      * dedicated toast the moment they guessed correctly — repeating it in the
      * end-of-round summary would just be the same fact stated twice.
      *
      * @return void
      */
-    public function test_build_feedback_message_prefers_won_once_every_clue_is_also_resolved(): void {
-        $finalguessedwithcluespending = round_presenter::build_feedback_message($this->make_state([
+    public function test_build_feedback_message_prefers_won_once_every_term_is_also_resolved(): void {
+        $finalguessedwithtermspending = round_presenter::build_feedback_message($this->make_state([
             'finished' => true,
             'won' => true,
             'finalguessed' => true,
-            'cluestotal' => 3,
-            'cluesresolved' => 1,
+            'termstotal' => 3,
+            'termsresolved' => 1,
         ]));
-        $finalguessedwitheveryclueresolved = round_presenter::build_feedback_message($this->make_state([
+        $finalguessedwitheverytermresolved = round_presenter::build_feedback_message($this->make_state([
             'finished' => true,
             'won' => true,
             'finalguessed' => true,
-            'cluestotal' => 3,
-            'cluesresolved' => 3,
+            'termstotal' => 3,
+            'termsresolved' => 3,
         ]));
 
-        $this->assertSame(get_string('feedback_finalguessed', 'mod_playercross'), $finalguessedwithcluespending);
-        $this->assertSame(get_string('feedback_won', 'mod_playercross'), $finalguessedwitheveryclueresolved);
+        $this->assertSame(get_string('feedback_finalguessed', 'mod_playercross'), $finalguessedwithtermspending);
+        $this->assertSame(get_string('feedback_won', 'mod_playercross'), $finalguessedwitheverytermresolved);
     }
 
     /**
@@ -631,18 +631,18 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * The lobby always shows the clues-this-round summary, driven by the puzzle state.
+     * The lobby always shows the terms-this-round summary, driven by the puzzle state.
      *
      * @return void
      */
-    public function test_build_lobby_context_shows_clues_this_round(): void {
+    public function test_build_lobby_context_shows_terms_this_round(): void {
         $instance = $this->make_instance();
-        $state = $this->make_state(['cluestotal' => 5]);
+        $state = $this->make_state(['termstotal' => 5]);
         $user = $this->getDataGenerator()->create_user();
 
         $context = round_presenter::build_lobby_context($instance, $state, $user->id);
 
-        $this->assertStringContainsString('5', $context['cluesthisround']);
+        $this->assertStringContainsString('5', $context['termsthisround']);
     }
 
     /**
@@ -683,7 +683,7 @@ final class round_presenter_test extends \advanced_testcase {
      * The theme concept caption is uppercased for display, the same as every other
      * revealed word in the round (revealword, themedisplayword, revealthemeword) —
      * puzzle_builder stores it exactly as the admin typed it in the word bank
-     * (puzzle_builder_test.php::test_build_round_theme_phrase_comes_from_hint()
+     * (puzzle_builder_test.php::test_build_round_theme_phrase_comes_from_clue()
      * asserts the raw lowercase value survives that layer unchanged), so normalising
      * the casing is this presentation layer's job.
      *
@@ -702,8 +702,8 @@ final class round_presenter_test extends \advanced_testcase {
 
     /**
      * A correct direct guess collapses the mystery-phrase tiles into resolved text
-     * immediately — mirroring an individual solved clue — even with the round still
-     * active (clues pending under PLAYERCROSS_WINCONDITION_BOTH), instead of only once
+     * immediately — mirroring an individual solved term — even with the round still
+     * active (terms pending under PLAYERCROSS_WINCONDITION_BOTH), instead of only once
      * the whole round finishes.
      *
      * @return void
@@ -724,7 +724,7 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * A round lost via forfeit/timeout/cluesexhausted still collapses the mystery-phrase
+     * A round lost via forfeit/timeout/termsexhausted still collapses the mystery-phrase
      * tiles into text once finished, even though the phrase itself was never correctly
      * guessed — but without the checkmark a genuine win gets, since the player did not
      * actually solve it.
@@ -786,7 +786,7 @@ final class round_presenter_test extends \advanced_testcase {
         $this->assertGreaterThan(time(), $context['cooldownuntil']);
         $this->assertTrue($context['cooldownactive']);
         $this->assertSame("Rounds played: 1 / \u{221E}.", $context['roundsplayedlabel']);
-        $this->assertNotSame('', $context['resultclueslabel']);
+        $this->assertNotSame('', $context['resulttermslabel']);
     }
 
     /**
@@ -821,7 +821,7 @@ final class round_presenter_test extends \advanced_testcase {
 
     /**
      * The round-wide hint action is offered while at least one slot anywhere in the
-     * round is still hidden — including a clue-exclusive slot that never appears in
+     * round is still hidden — including a term-exclusive slot that never appears in
      * the mystery phrase at all (SCOPE.md §20.2 v1.8) — and withdrawn only once every
      * slot in the round is already revealed.
      *
@@ -837,7 +837,7 @@ final class round_presenter_test extends \advanced_testcase {
             $cm,
             // Every theme slot (1..6) revealed, but slots 7..9 (livro's own i, v, r)
             // stay hidden — the hint must still be offered, since it can still reveal
-            // one of those clue-exclusive letters.
+            // one of those term-exclusive letters.
             $this->make_state(['revealedslots' => [1, 2, 3, 4, 5, 6]]),
             $user->id
         );
@@ -1060,7 +1060,7 @@ final class round_presenter_test extends \advanced_testcase {
             'playercrossid' => $instance->id,
             'word'          => 'cabeça',
             'concept'       => 'cabeça',
-            'hint'          => 'cabeça',
+            'clue'          => 'cabeça',
             'source'        => 'manual',
             'glossaryid'    => 0,
             'approved'      => 1,

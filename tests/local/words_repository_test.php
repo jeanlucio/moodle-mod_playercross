@@ -78,10 +78,10 @@ final class words_repository_test extends \advanced_testcase {
             'max_length'            => 30,
             'theme_min_length'      => 1,
             'theme_max_length'      => 0,
-            'num_clues'             => 5,
+            'num_terms'             => 5,
             'reveal_uncovered_slots' => 1,
             'win_condition'         => 1,
-            'max_attempts_per_clue' => 0,
+            'max_attempts_per_term' => 0,
             'timer_seconds'         => 0,
             'show_ranking'          => 1,
             'wordmode'              => PLAYERCROSS_WORDMODE_RANDOM,
@@ -144,7 +144,7 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * With theme_max_length set to a real ceiling, a hint whose total letter count
+     * With theme_max_length set to a real ceiling, a clue whose total letter count
      * exceeds it is excluded from theme eligibility, even though it clears
      * theme_min_length comfortably.
      *
@@ -166,7 +166,7 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * Clue candidates are bounded by min_length/max_length, same rule as PlayerWords.
+     * Term candidates are bounded by min_length/max_length, same rule as PlayerWords.
      *
      * @return void
      */
@@ -176,16 +176,16 @@ final class words_repository_test extends \advanced_testcase {
             'min_length' => 3,
             'max_length' => 5,
         ]);
-        $this->modgenerator->create_word($instance->id, 'floresta'); // 8 letters, too long for a clue.
+        $this->modgenerator->create_word($instance->id, 'floresta'); // 8 letters, too long for a term.
         $this->modgenerator->create_word($instance->id, 'gato');     // 4 letters, within range.
 
-        $cluecandidates = words_repository::get_candidate_words($instance);
-        $this->assertCount(1, $cluecandidates);
-        $this->assertSame('gato', reset($cluecandidates)->word);
+        $termcandidates = words_repository::get_candidate_words($instance);
+        $this->assertCount(1, $termcandidates);
+        $this->assertSame('gato', reset($termcandidates)->word);
     }
 
     /**
-     * Regression test ported from mod_playerwords: an unapproved word is never a clue
+     * Regression test ported from mod_playerwords: an unapproved word is never a term
      * candidate, regardless of otherwise fitting the length range.
      *
      * @return void
@@ -201,7 +201,7 @@ final class words_repository_test extends \advanced_testcase {
 
     /**
      * Regression test ported from mod_playerwords: a word containing non-letter
-     * characters is never a clue candidate.
+     * characters is never a term candidate.
      *
      * @return void
      */
@@ -213,27 +213,27 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * A word saved with a blank hint is never a clue candidate — a clue's own phrase
-     * (its hint) is always shown to the player as the question itself, so a blank one
-     * would render as a clue with nothing to ask. manualhint is optional on the
+     * A word saved with a blank clue is never a term candidate — a term's own phrase
+     * (its clue) is always shown to the player as the question itself, so a blank one
+     * would render as a term with nothing to ask. manualclue is optional on the
      * manage-words form (add_manual_word()/update_word() both accept an empty string),
      * so this is reachable through ordinary admin use, not just direct DB tampering —
-     * the test generator itself defaults hint to the word when none is given, which is
+     * the test generator itself defaults clue to the word when none is given, which is
      * exactly why this gap went untested until now.
      *
      * @return void
      */
-    public function test_get_candidate_words_excludes_blank_hint(): void {
+    public function test_get_candidate_words_excludes_blank_clue(): void {
         global $DB;
         $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
         $blank = $this->modgenerator->create_word($instance->id, 'teste');
-        $DB->set_field('playercross_words', 'hint', '', ['id' => $blank->id]);
+        $DB->set_field('playercross_words', 'clue', '', ['id' => $blank->id]);
         $this->modgenerator->create_word($instance->id, 'gato');
 
-        $cluecandidates = words_repository::get_candidate_words($instance);
+        $termcandidates = words_repository::get_candidate_words($instance);
 
-        $this->assertCount(1, $cluecandidates);
-        $this->assertSame('gato', reset($cluecandidates)->word);
+        $this->assertCount(1, $termcandidates);
+        $this->assertSame('gato', reset($termcandidates)->word);
     }
 
     /**
@@ -510,7 +510,7 @@ final class words_repository_test extends \advanced_testcase {
         $record = $DB->get_record('playercross_words', ['playercrossid' => $instance->id], '*', MUST_EXIST);
         $this->assertSame('gato', $record->word);
         $this->assertSame('gato', $record->concept);
-        $this->assertSame('felino domestico', $record->hint);
+        $this->assertSame('felino domestico', $record->clue);
         $this->assertSame('manual', $record->source);
         $this->assertEquals(1, $record->approved);
         $this->assertEquals($this->user->id, $record->addedby);
@@ -569,7 +569,7 @@ final class words_repository_test extends \advanced_testcase {
         $record = $DB->get_record('playercross_words', ['id' => $word->id], '*', MUST_EXIST);
         $this->assertSame('novo', $record->word);
         $this->assertSame('novo', $record->concept);
-        $this->assertSame('dica nova', $record->hint);
+        $this->assertSame('dica nova', $record->clue);
         $this->assertGreaterThan(100, $record->timemodified);
     }
 
@@ -827,7 +827,7 @@ final class words_repository_test extends \advanced_testcase {
         $this->assertSame('planeta', $record->word);
         $this->assertSame('glossary', $record->source);
         $this->assertEquals(1, $record->approved);
-        $this->assertSame('corpo celeste que orbita uma estrela', $record->hint);
+        $this->assertSame('corpo celeste que orbita uma estrela', $record->clue);
     }
 
     /**
@@ -861,9 +861,9 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * A glossary entry saved with a blank definition is never imported as a clue: its
-     * hint is shown verbatim to the student as the clue's own phrase
-     * (round_play.mustache), so a blank one would be an unplayable clue with nothing
+     * A glossary entry saved with a blank definition is never imported as a term: its
+     * clue is shown verbatim to the student as the term's own phrase
+     * (round_play.mustache), so a blank one would be an unplayable term with nothing
      * to ask. Mirrors the same guard get_candidate_words() applies defensively for
      * words already in the pool — this one stops the word from being written at all.
      *
@@ -883,13 +883,13 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * A later resync must not blank out a word's already-imported hint just because
+     * A later resync must not blank out a word's already-imported clue just because
      * the glossary entry's own definition was since edited down to empty — the
      * existing row is left untouched rather than overwritten with nothing to ask.
      *
      * @return void
      */
-    public function test_sync_glossary_words_does_not_blank_existing_hint_on_resync(): void {
+    public function test_sync_glossary_words_does_not_blank_existing_clue_on_resync(): void {
         global $DB;
         [$glossary, $entry] = $this->make_glossary_entry('planeta', 'corpo celeste que orbita uma estrela');
         $instance = $this->make_full_instance(['glossaryid' => $glossary->id]);
@@ -900,28 +900,28 @@ final class words_repository_test extends \advanced_testcase {
 
         $this->assertSame(0, $imported);
         $record = $DB->get_record('playercross_words', ['playercrossid' => $instance->id, 'word' => 'planeta'], '*', MUST_EXIST);
-        $this->assertSame('corpo celeste que orbita uma estrela', $record->hint);
+        $this->assertSame('corpo celeste que orbita uma estrela', $record->clue);
     }
 
     /**
      * Regression test for the sanitization-order bug: a glossary definition whose
      * markup arrives entity-encoded (exactly how the Moodle editor stores an escaped
      * `<img src=x onerror=...>` typed literally into a FORMAT_HTML field) must not
-     * survive as live HTML in the imported hint. The old strip_tags() then
+     * survive as live HTML in the imported clue. The old strip_tags() then
      * html_entity_decode() order let the decode step re-introduce the very markup
      * strip_tags() was meant to remove; content_to_text() converts HTML to plain text
      * instead, so no tag survives regardless of encoding.
      *
      * The payload carries real text alongside the malicious markup (unlike a
      * markup-only payload, which strip_tags() would legitimately reduce to an empty
-     * hint, and the blank-hint guard from test_sync_glossary_words_skips_blank_definition()
+     * clue, and the blank-clue guard from test_sync_glossary_words_skips_blank_definition()
      * would then correctly skip importing altogether) — this test is specifically
-     * about what survives sanitization, not about the blank-hint guard, so the
+     * about what survives sanitization, not about the blank-clue guard, so the
      * payload needs a real word left over for the import to even happen.
      *
      * @return void
      */
-    public function test_sync_glossary_words_strips_entity_encoded_markup_from_hint(): void {
+    public function test_sync_glossary_words_strips_entity_encoded_markup_from_clue(): void {
         global $DB;
         $payload = 'Corpo celeste. &lt;img src=x onerror=alert(document.domain)&gt;';
         [$glossary] = $this->make_glossary_entry('planeta', $payload);
@@ -930,9 +930,9 @@ final class words_repository_test extends \advanced_testcase {
         words_repository::sync_glossary_words($instance);
 
         $record = $DB->get_record('playercross_words', ['playercrossid' => $instance->id], '*', MUST_EXIST);
-        $this->assertStringContainsString('Corpo celeste', $record->hint);
-        $this->assertStringNotContainsString('<img', $record->hint);
-        $this->assertStringNotContainsString('onerror', $record->hint);
+        $this->assertStringContainsString('Corpo celeste', $record->clue);
+        $this->assertStringNotContainsString('<img', $record->clue);
+        $this->assertStringNotContainsString('onerror', $record->clue);
     }
 
     /**
@@ -972,11 +972,11 @@ final class words_repository_test extends \advanced_testcase {
 
     /**
      * Re-syncing after the glossary definition changed updates the existing word's
-     * hint in place, instead of creating a duplicate.
+     * clue in place, instead of creating a duplicate.
      *
      * @return void
      */
-    public function test_sync_glossary_words_updates_hint_on_resync(): void {
+    public function test_sync_glossary_words_updates_clue_on_resync(): void {
         global $DB;
         [$glossary, $entry] = $this->make_glossary_entry('planeta', 'definicao original');
         $instance = $this->make_full_instance(['glossaryid' => $glossary->id]);
@@ -989,7 +989,7 @@ final class words_repository_test extends \advanced_testcase {
         $this->assertSame(0, $imported);
         $this->assertSame(1, $DB->count_records('playercross_words', ['playercrossid' => $instance->id]));
         $record = $DB->get_record('playercross_words', ['playercrossid' => $instance->id], '*', MUST_EXIST);
-        $this->assertSame('definicao atualizada', $record->hint);
+        $this->assertSame('definicao atualizada', $record->clue);
     }
 
     /**
@@ -1060,7 +1060,7 @@ final class words_repository_test extends \advanced_testcase {
 
     /**
      * A glossary concept whose text already belongs to a manually added word is
-     * skipped: no duplicate row is inserted, and the manual word's own hint is left
+     * skipped: no duplicate row is inserted, and the manual word's own clue is left
      * untouched.
      *
      * @return void
@@ -1078,7 +1078,7 @@ final class words_repository_test extends \advanced_testcase {
         $this->assertCount(1, $records);
         $record = reset($records);
         $this->assertSame('manual', $record->source);
-        $this->assertSame('dica do professor', $record->hint);
+        $this->assertSame('dica do professor', $record->clue);
     }
 
     /**
@@ -1145,7 +1145,7 @@ final class words_repository_test extends \advanced_testcase {
 
     /**
      * A word with no issues never appears in get_inactive_words() — here it fits the
-     * clue length range even though it is shorter than the theme range, which is
+     * term length range even though it is shorter than the theme range, which is
      * enough on its own (the two ranges are checked with OR, see
      * words_repository::get_inactive_words()).
      *
@@ -1159,7 +1159,7 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * An approved word outside both the clue and the theme length range is reported
+     * An approved word outside both the term and the theme length range is reported
      * with reason "length".
      *
      * @return void
@@ -1176,10 +1176,10 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * A word too long for the clue range is not reported when it is long enough for
+     * A word too long for the term range is not reported when it is long enough for
      * the theme range instead — the two length checks in get_inactive_words() are
      * combined with OR, since a word only needs to be eligible for one of the two
-     * roles (clue or theme concept) to still be usable.
+     * roles (term or theme concept) to still be usable.
      *
      * @return void
      */

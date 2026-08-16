@@ -29,7 +29,7 @@ namespace mod_playercross\local;
  * Tests for ai_word_generator — no database or network access needed.
  *
  * The AI provider always returns raw, untrusted text. These tests exercise
- * parse_words() (response-shape parsing) and is_valid_term()/is_valid_hint()
+ * parse_words() (response-shape parsing) and is_valid_term()/is_valid_clue()
  * (the safety filters applied before anything is saved to the word pool)
  * directly via reflection, since all three are intentionally kept protected:
  * they are internal parsing helpers, not part of the class's public contract.
@@ -62,15 +62,15 @@ final class ai_word_generator_test extends \basic_testcase {
     }
 
     /**
-     * Invokes the protected static is_valid_hint() method.
+     * Invokes the protected static is_valid_clue() method.
      *
-     * @param string $hint Candidate hint.
+     * @param string $clue Candidate clue.
      * @return bool
      */
-    private function is_valid_hint(string $hint): bool {
-        $method = new \ReflectionMethod(ai_word_generator::class, 'is_valid_hint');
+    private function is_valid_clue(string $clue): bool {
+        $method = new \ReflectionMethod(ai_word_generator::class, 'is_valid_clue');
         $method->setAccessible(true);
-        return $method->invoke(null, $hint);
+        return $method->invoke(null, $clue);
     }
 
     /**
@@ -89,16 +89,16 @@ final class ai_word_generator_test extends \basic_testcase {
     }
 
     /**
-     * The documented "words" wrapper is parsed into term/hint pairs.
+     * The documented "words" wrapper is parsed into term/clue pairs.
      *
      * @return void
      */
     public function test_parse_words_words_wrapper(): void {
-        $response = '{"words":[{"term":"planeta","hint":"orbita uma estrela"}]}';
+        $response = '{"words":[{"term":"planeta","clue":"orbita uma estrela"}]}';
 
         $items = $this->parse_words($response);
 
-        $this->assertSame([['term' => 'planeta', 'hint' => 'orbita uma estrela']], $items);
+        $this->assertSame([['term' => 'planeta', 'clue' => 'orbita uma estrela']], $items);
     }
 
     /**
@@ -107,11 +107,11 @@ final class ai_word_generator_test extends \basic_testcase {
      * @return void
      */
     public function test_parse_words_legacy_concepts_wrapper(): void {
-        $response = '{"concepts":[{"term":"atomo","hint":"unidade da materia"}]}';
+        $response = '{"concepts":[{"term":"atomo","clue":"unidade da materia"}]}';
 
         $items = $this->parse_words($response);
 
-        $this->assertSame([['term' => 'atomo', 'hint' => 'unidade da materia']], $items);
+        $this->assertSame([['term' => 'atomo', 'clue' => 'unidade da materia']], $items);
     }
 
     /**
@@ -120,11 +120,11 @@ final class ai_word_generator_test extends \basic_testcase {
      * @return void
      */
     public function test_parse_words_bare_list(): void {
-        $response = '[{"term":"rio","hint":"curso de agua"}]';
+        $response = '[{"term":"rio","clue":"curso de agua"}]';
 
         $items = $this->parse_words($response);
 
-        $this->assertSame([['term' => 'rio', 'hint' => 'curso de agua']], $items);
+        $this->assertSame([['term' => 'rio', 'clue' => 'curso de agua']], $items);
     }
 
     /**
@@ -134,11 +134,11 @@ final class ai_word_generator_test extends \basic_testcase {
      */
     public function test_parse_words_strips_markdown_code_fence(): void {
         $fence = str_repeat(chr(96), 3);
-        $response = $fence . "json\n" . '{"words":[{"term":"lua","hint":"satelite natural"}]}' . "\n" . $fence;
+        $response = $fence . "json\n" . '{"words":[{"term":"lua","clue":"satelite natural"}]}' . "\n" . $fence;
 
         $items = $this->parse_words($response);
 
-        $this->assertSame([['term' => 'lua', 'hint' => 'satelite natural']], $items);
+        $this->assertSame([['term' => 'lua', 'clue' => 'satelite natural']], $items);
     }
 
     /**
@@ -165,16 +165,16 @@ final class ai_word_generator_test extends \basic_testcase {
     }
 
     /**
-     * An entry using "definition" instead of "hint" still yields a hint value.
+     * An entry using "definition" instead of "clue" still yields a clue value.
      *
      * @return void
      */
-    public function test_parse_words_hint_falls_back_to_definition(): void {
+    public function test_parse_words_clue_falls_back_to_definition(): void {
         $response = '{"words":[{"term":"estrela","definition":"corpo celeste luminoso"}]}';
 
         $items = $this->parse_words($response);
 
-        $this->assertSame([['term' => 'estrela', 'hint' => 'corpo celeste luminoso']], $items);
+        $this->assertSame([['term' => 'estrela', 'clue' => 'corpo celeste luminoso']], $items);
     }
 
     /**
@@ -183,11 +183,11 @@ final class ai_word_generator_test extends \basic_testcase {
      * @return void
      */
     public function test_parse_words_skips_non_array_entries(): void {
-        $response = '{"words":["not an object",{"term":"campo","hint":"area aberta"}]}';
+        $response = '{"words":["not an object",{"term":"campo","clue":"area aberta"}]}';
 
         $items = $this->parse_words($response);
 
-        $this->assertSame([['term' => 'campo', 'hint' => 'area aberta']], $items);
+        $this->assertSame([['term' => 'campo', 'clue' => 'area aberta']], $items);
     }
 
     /**
@@ -255,25 +255,25 @@ final class ai_word_generator_test extends \basic_testcase {
     }
 
     /**
-     * A non-blank hint is accepted.
+     * A non-blank clue is accepted.
      *
      * @return void
      */
-    public function test_is_valid_hint_accepts_non_blank_text(): void {
-        $this->assertTrue($this->is_valid_hint('Corpo celeste que orbita uma estrela.'));
+    public function test_is_valid_clue_accepts_non_blank_text(): void {
+        $this->assertTrue($this->is_valid_clue('Corpo celeste que orbita uma estrela.'));
     }
 
     /**
-     * An empty hint is rejected — the AI response is untrusted text, and the prompt
-     * asking for a hint on every item is an instruction, not a guarantee. Unlike
-     * mod_playerwords (where the hint is an optional assist), a PlayerCross clue's
-     * hint is always shown to the student as the clue's own question, so a blank one
+     * An empty clue is rejected — the AI response is untrusted text, and the prompt
+     * asking for a clue on every item is an instruction, not a guarantee. Unlike
+     * mod_playerwords (where the hint is an optional assist), a PlayerCross term's
+     * clue is always shown to the student as the term's own question, so a blank one
      * must never reach add_ai_word().
      *
      * @return void
      */
-    public function test_is_valid_hint_rejects_empty_string(): void {
-        $this->assertFalse($this->is_valid_hint(''));
+    public function test_is_valid_clue_rejects_empty_string(): void {
+        $this->assertFalse($this->is_valid_clue(''));
     }
 
     /**

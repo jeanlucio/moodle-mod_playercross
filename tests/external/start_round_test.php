@@ -68,7 +68,7 @@ final class start_round_test extends \advanced_testcase {
 
     /**
      * Creates a playercross instance with a deterministic two-word pool (one theme
-     * candidate, one clue), timer enabled.
+     * candidate, one term), timer enabled.
      *
      * @param array $overrides Instance field overrides.
      * @return \stdClass Instance record with the ->cmid field added.
@@ -77,7 +77,7 @@ final class start_round_test extends \advanced_testcase {
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
         $record = array_merge([
             'course'           => $this->course->id,
-            'num_clues'        => 1,
+            'num_terms'        => 1,
             'theme_min_length' => 6,
             'min_length'       => 3,
             'max_length'       => 15,
@@ -168,11 +168,11 @@ final class start_round_test extends \advanced_testcase {
         $this->assertTrue($result['data']['panel']['timerenabled']);
         $this->assertFalse($result['data']['panel']['roundfinished']);
         // A field missing from panel_structure() is silently stripped by the external
-        // API's return-value cleaning (see submit_clue_guess_test::
+        // API's return-value cleaning (see submit_term_guess_test::
         // test_panel_structure_declares_every_build_round_panel_context_key() for the
         // exhaustive guard against that) — this only confirms the one field this test
         // already cares about actually made it through with real content.
-        $this->assertNotEmpty($result['data']['panel']['cluesprogresslabel']);
+        $this->assertNotEmpty($result['data']['panel']['termsprogresslabel']);
 
         $state = round_service::load_state($instance->cmid, $this->student->id);
         $this->assertTrue($state['roundstarted']);

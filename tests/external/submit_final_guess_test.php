@@ -32,10 +32,10 @@ use mod_playercross\local\round_service;
  * Tests for the mod_playercross_submit_final_guess web service.
  *
  * The invariant under test (SCOPE.md §7): a wrong direct guess never reveals the
- * mystery phrase, and no unresolved clue's word leaks either.
+ * mystery phrase, and no unresolved term's word leaks either.
  *
  * @covers \mod_playercross\external\submit_final_guess
- * @covers \mod_playercross\external\submit_clue_guess
+ * @covers \mod_playercross\external\submit_term_guess
  */
 final class submit_final_guess_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -83,7 +83,7 @@ final class submit_final_guess_test extends \advanced_testcase {
     private function make_ready_instance(array $overrides = []): array {
         $cm = $this->modgenerator->create_instance($overrides + [
             'course' => $this->course->id,
-            'num_clues' => 3,
+            'num_terms' => 3,
             'theme_min_length' => 6,
         ]);
         global $DB;
@@ -143,7 +143,7 @@ final class submit_final_guess_test extends \advanced_testcase {
     }
 
     /**
-     * A wrong direct guess never reveals the mystery phrase or any clue word.
+     * A wrong direct guess never reveals the mystery phrase or any term word.
      *
      * @return void
      */
@@ -165,18 +165,18 @@ final class submit_final_guess_test extends \advanced_testcase {
         $this->assertFalse($result['correct']);
         $this->assertFalse($result['finished']);
         $this->assertSame('', $result['panel']['revealthemeword']);
-        foreach ($result['panel']['clues'] as $cluerow) {
-            $this->assertSame('', $cluerow['revealword']);
+        foreach ($result['panel']['terms'] as $termrow) {
+            $this->assertSame('', $termrow['revealword']);
         }
     }
 
     /**
-     * A correct direct guess with clues still pending does not win the round on its
-     * own — winning always requires every clue resolved too — and does not reveal the
+     * A correct direct guess with terms still pending does not win the round on its
+     * own — winning always requires every term resolved too — and does not reveal the
      * mystery phrase's readable text (revealthemeword) until the round actually
      * finishes. Its tile-by-tile grid (themetiles), however, lights up immediately: the
      * player just demonstrated they know the whole phrase, so nothing is left blank
-     * pending the still-unsolved clues.
+     * pending the still-unsolved terms.
      *
      * @return void
      */
@@ -208,12 +208,12 @@ final class submit_final_guess_test extends \advanced_testcase {
     }
 
     /**
-     * A correct direct guess, followed by resolving every remaining clue, wins the
+     * A correct direct guess, followed by resolving every remaining term, wins the
      * round and reveals the mystery phrase only in that final response.
      *
      * @return void
      */
-    public function test_final_guess_then_all_clues_wins_and_reveals_theme_word(): void {
+    public function test_final_guess_then_all_terms_wins_and_reveals_theme_word(): void {
         [$instance, $cm] = $this->make_ready_instance();
         $this->setUser($this->student);
 
@@ -230,8 +230,8 @@ final class submit_final_guess_test extends \advanced_testcase {
         submit_final_guess::execute($cm->cmid, $themephrase);
 
         $result = null;
-        foreach ($state['clues'] as $clue) {
-            $result = submit_clue_guess::execute($cm->cmid, (int)$clue['wordid'], $clue['word']);
+        foreach ($state['terms'] as $term) {
+            $result = submit_term_guess::execute($cm->cmid, (int)$term['wordid'], $term['word']);
         }
 
         $this->assertTrue($result['finished']);
@@ -281,7 +281,7 @@ final class submit_final_guess_test extends \advanced_testcase {
 
         $cm = $this->modgenerator->create_instance([
             'course'              => $this->course->id,
-            'num_clues'           => 1,
+            'num_terms'           => 1,
             'theme_min_length'    => 6,
             'win_condition'       => PLAYERCROSS_WINCONDITION_FINALONLY,
             'hud_win_reward_item' => $itemid,
