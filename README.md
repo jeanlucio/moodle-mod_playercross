@@ -26,7 +26,7 @@ The activity integrates with the course **Glossary** (words and definitions are 
 
 Designed around **retrieval practice** and **spaced repetition**, with an added layer of **associative learning** — the student must hold several concepts in mind at once and notice how they connect through shared letters.
 
-📚 **[Full documentation](https://jeanlucio.github.io/moodle-mod_playercross/)** — features, educational purpose, the PlayerGames ecosystem, usage guide, grading & ranking model, the full 367-case PHPUnit suite (81% line coverage) plus a 34-scenario Behat suite, and security details.
+📚 **[Full documentation](https://jeanlucio.github.io/moodle-mod_playercross/)** — features, educational purpose, the PlayerGames ecosystem, usage guide, grading & ranking model, the full 421-case PHPUnit suite (87% line coverage) plus a 35-scenario Behat suite, and security details.
 
 ### 🔒 Third-party Service Disclosure
 
@@ -50,7 +50,7 @@ Full disclosure:
 
 | Component | Version |
 |-----------|---------|
-| Moodle    | 4.5+    |
+| Moodle    | 4.5 – 5.2 |
 | PHP       | 8.1+    |
 
 ### 🛠️ Installation & Configuration
@@ -63,11 +63,13 @@ Full disclosure:
 4. Visit **Site administration > Notifications** to complete installation.
 5. Add a **PlayerCross** activity to any course.
 
-This plugin has no separate site-level settings to configure after installation — every
-setting (mystery-phrase length, win condition, grading, PlayerHUD costs, etc.) is configured
+This plugin has no site-level settings for an admin to configure — every setting
+(mystery-phrase length, win condition, grading, PlayerHUD costs, etc.) is configured
 by the teacher when adding the activity to a course, as covered in the
 [Usage](https://jeanlucio.github.io/moodle-mod_playercross/#usage) section of the full
-documentation.
+documentation. If `block_playerhud` isn't installed on the site, the plugin's own settings
+page under *Site administration → Plugins → Activity modules → PlayerCross* shows an
+informational notice about it — there's nothing to configure there either way.
 
 ### 🆘 Support
 
@@ -98,7 +100,7 @@ A atividade integra-se com o **Glossário** do curso (palavras e definições s�
 
 Baseado na **prática de recuperação** e na **repetição espaçada**, com uma camada adicional de **aprendizagem associativa** — o estudante precisa manter vários conceitos em mente ao mesmo tempo e perceber como se conectam por meio de letras compartilhadas.
 
-📚 **[Documentação completa](https://jeanlucio.github.io/moodle-mod_playercross/pt.html)** — funcionalidades, finalidade educacional, ecossistema PlayerGames, guia de uso, modelo de nota e ranking, a suíte completa de 367 testes PHPUnit (81% de cobertura de linhas) mais uma suíte Behat de 34 cenários, e detalhes de segurança.
+📚 **[Documentação completa](https://jeanlucio.github.io/moodle-mod_playercross/pt.html)** — funcionalidades, finalidade educacional, ecossistema PlayerGames, guia de uso, modelo de nota e ranking, a suíte completa de 421 testes PHPUnit (87% de cobertura de linhas) mais uma suíte Behat de 35 cenários, e detalhes de segurança.
 
 ### 🔒 Divulgação de Serviço de Terceiros
 
@@ -122,7 +124,7 @@ Divulgação completa:
 
 | Componente | Versão |
 |------------|--------|
-| Moodle     | 4.5+   |
+| Moodle     | 4.5 – 5.2 |
 | PHP        | 8.1+   |
 
 ### 🛠️ Instalação e Configuração
@@ -135,11 +137,14 @@ Divulgação completa:
 4. Acesse **Administração do site > Notificações** para concluir a instalação.
 5. Adicione uma atividade **PlayerCross** a qualquer curso.
 
-Este plugin não tem configurações separadas em nível de site após a instalação — toda
+Este plugin não tem configurações de nível de site para o administrador ajustar — toda
 configuração (comprimento da frase-mistério, condição de vitória, avaliação, custos do
 PlayerHUD etc.) é feita pelo professor ao adicionar a atividade a um curso, conforme
 explicado na seção [Como Usar](https://jeanlucio.github.io/moodle-mod_playercross/pt.html#usage)
-da documentação completa.
+da documentação completa. Se o `block_playerhud` não estiver instalado no site, a própria
+página de configurações do plugin em *Administração do site → Plugins → Módulos de atividade
+→ PlayerCross* mostra um aviso informativo sobre isso — não há nada a configurar ali de
+qualquer forma.
 
 ### 🆘 Suporte
 

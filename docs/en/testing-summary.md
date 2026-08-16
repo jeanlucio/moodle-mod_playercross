@@ -13,27 +13,28 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `cross_instance_security_test.php` | 4 |
 | `lib_grant_potential_test.php` | 6 |
 | `lib_reset_userdata_test.php` | 4 |
+| `lib_supports_test.php` | 2 |
 | `completion/custom_completion_test.php` | 6 |
-| `privacy/provider_test.php` | 16 |
-| **Subtotal** | **43** |
+| `privacy/provider_test.php` | 21 |
+| **Subtotal** | **50** |
 
 ### Local Business-Logic Tests (`tests/local/`)
 
 | Test file | Cases |
 |-----------|------:|
-| `ai_word_generator_test.php` | 14 |
-| `attempts_history_service_test.php` | 12 |
+| `ai_word_generator_test.php` | 19 |
+| `attempts_history_service_test.php` | 16 |
 | `gameplay_service_test.php` | 8 |
 | `hud_service_test.php` | 27 |
 | `intro_service_test.php` | 5 |
 | `puzzle_builder_test.php` | 9 |
 | `ranking_service_test.php` | 8 |
-| `round_presenter_test.php` | 39 |
-| `round_service_test.php` | 45 |
+| `round_presenter_test.php` | 46 |
+| `round_service_test.php` | 54 |
 | `view_page_service_test.php` | 23 |
-| `word_normalizer_test.php` | 29 |
-| `words_repository_test.php` | 58 |
-| **Subtotal** | **277** |
+| `word_normalizer_test.php` | 38 |
+| `words_repository_test.php` | 66 |
+| **Subtotal** | **319** |
 
 ### Web Services Tests (`tests/external/`)
 
@@ -42,21 +43,21 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `count_eligible_theme_words_test.php` | 5 |
 | `count_eligible_words_test.php` | 5 |
 | `count_glossary_candidates_test.php` | 4 |
-| `end_round_test.php` | 4 |
+| `end_round_test.php` | 6 |
 | `new_round_test.php` | 5 |
-| `reveal_hint_test.php` | 7 |
+| `reveal_hint_test.php` | 8 |
 | `start_round_test.php` | 7 |
-| `submit_clue_guess_test.php` | 5 |
+| `submit_clue_guess_test.php` | 7 |
 | `submit_final_guess_test.php` | 5 |
-| **Subtotal** | **47** |
+| **Subtotal** | **52** |
 
-| **Grand Total** | **367** |
+| **Grand Total** | **421** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross
 ```
 
-**Overall line coverage** (`moodle-coverage`, PHPUnit + Xdebug): **81%**.
+**Overall line coverage** (`moodle-coverage`, PHPUnit + Xdebug): **87%**.
 
 ### Behat — End-to-End Tests
 
@@ -67,7 +68,7 @@ vendor/bin/phpunit --testsuite mod_playercross
 | `mod_playercross_playerhud.feature` | 4 |
 | `mod_playercross_reports.feature` | 5 |
 | `mod_playercross_settings.feature` | 4 |
-| `mod_playercross_toolbar.feature` | 8 |
-| **Subtotal** | **34** |
+| `mod_playercross_toolbar.feature` | 9 |
+| **Subtotal** | **35** |
 
 [Full test-by-test breakdown and coverage table →]({{ '/testing.html' | relative_url }})

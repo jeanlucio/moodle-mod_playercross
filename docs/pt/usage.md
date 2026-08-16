@@ -4,7 +4,8 @@
 2. Configure:
    * Intervalo de comprimento da frase-mistério (independente do intervalo das próprias palavras-pista) e número de pistas por rodada
    * Condição de vitória (pistas e frase-mistério obrigatórias, ou só o acerto da frase-mistério) e se letras não cobertas da frase-mistério são reveladas automaticamente
-   * Máximo de tentativas por pista, máximo de dicas por rodada (0 = ilimitado), intervalo entre rodadas e limite de rodadas
+   * Máximo de tentativas por pista, intervalo entre rodadas e limite de rodadas
+   * Se dicas são permitidas, e se sim, o máximo de revelações por rodada (padrão 3, ou ilimitado)
    * Modo de palavra (aleatório ou sequência compartilhada)
    * Método de avaliação e configurações do diário de notas
    * Fontes de palavras (manual, Glossário, IA), glossário de origem, e uma lista de stopwords a ignorar ao dividir conceitos de glossário com várias palavras (todos opcionais)
