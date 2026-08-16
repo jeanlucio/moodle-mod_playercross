@@ -17,9 +17,9 @@
 /**
  * Puzzle assembly for one PlayerCross round.
  *
- * @package mod_playercross
+ * @package    mod_playercross
  * @copyright  2026 Jean Lúcio
- * @license https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace mod_playercross\local;
