@@ -2,7 +2,7 @@
 
 ![Moodle](https://img.shields.io/badge/Moodle-4.5%2B-orange?style=flat&logo=moodle&logoColor=white)
 ![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat)
-![Status](https://img.shields.io/badge/Status-Alpha-red?style=flat)
+![Status](https://img.shields.io/badge/Status-Stable-green?style=flat)
 [![Latest Release](https://img.shields.io/github/v/release/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/releases)
 [![PlayerGames Ecosystem](https://img.shields.io/badge/PlayerGames-Ecosystem-6f42c1?style=flat&logo=gamepad&logoColor=white)](https://jeanlucio.github.io/playergames/)
 ![Game Activity](https://img.shields.io/badge/Role-Game_Activity-198754?style=flat)
@@ -19,8 +19,6 @@
 ## English
 
 **PlayerCross** is a deduction crossword-style vocabulary activity for Moodle. Each round draws a **mystery phrase** (a course concept's own hint) and a set of **clues** (other concepts whose words share letters with it). Solving a clue reveals its shared letters everywhere they occur — in every pending clue and in the mystery phrase itself.
-
-⚠️ **Alpha / pre-release:** this plugin is under active early development (`v0.1.0`) and has not yet been tagged or published to the Moodle Plugins Directory. The mechanics below are implemented and covered by the automated test suite.
 
 The activity integrates with the course **Glossary** (words and definitions are imported automatically), can generate word candidates through **AI**, and integrates with the **PlayerHUD** gamification block (items can be required to start a round or to reveal a clue's hint, and an item can be granted for each round won).
 
@@ -93,8 +91,6 @@ Maintained by [Jean Lúcio](https://github.com/jeanlucio).
 ## Português
 
 O **PlayerCross** é uma atividade de palavras cruzadas por dedução para o Moodle. Cada rodada sorteia uma **frase-mistério** (a própria dica de um conceito do curso) e um conjunto de **pistas** (outros conceitos cujas palavras compartilham letras com ela). Resolver uma pista revela suas letras compartilhadas em todo lugar onde ocorrem — em todas as pistas pendentes e na própria frase-mistério.
-
-⚠️ **Alfa / pré-lançamento:** este plugin está em desenvolvimento ativo e inicial (`v0.1.0`) e ainda não foi lançado nem publicado no Moodle Plugins Directory. As mecânicas abaixo já estão implementadas e cobertas pela suíte automatizada de testes.
 
 A atividade integra-se com o **Glossário** do curso (palavras e definições são importadas automaticamente), pode gerar candidatas a palavra por **IA**, e integra-se com o bloco de gamificação **PlayerHUD** (itens podem ser exigidos para iniciar uma rodada ou revelar a dica de uma pista, e um item pode ser concedido a cada rodada vencida).
 
