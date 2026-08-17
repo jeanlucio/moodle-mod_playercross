@@ -210,6 +210,27 @@
     line-height: 1;
 }
 
+/*
+ * Neutral pill for the per-term/phrase attempts-remaining count — same shape as
+ * hint-count above, but gray rather than warning-yellow: this is informational, not
+ * an affordance competing for attention with the (clickable) hint button. Previously
+ * plain text-muted small, which left it nearly invisible next to the term/phrase.
+ */
+.path-mod-playercross .mod-playercross-attempts-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 1.25rem;
+    padding: 0 0.375rem;
+    border-radius: 999px;
+    background-color: var(--gray-300, #dee2e6);
+    color: var(--body-color, #212529);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
 .path-mod-playercross .mod-playercross-concept {
     margin-bottom: 0.5rem;
 }
