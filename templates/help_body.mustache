@@ -20,6 +20,12 @@
     How-to-play help content for a PlayerCross activity, shown inside a modal
     opened from the in-game toolbar (see amd/src/game.js).
 
+    The termloss/finalguessloss paragraphs each end with a static example of the
+    real attempts-remaining pill (.mod-playercross-attempts-count, styled in
+    styles.css) shown during play — a fixed illustrative number, not real round
+    data, so it is aria-hidden; the paragraph text right before it already
+    explains what the count means for anyone using a screen reader.
+
     Example context (json):
     {
         "introtext": "Solve terms about course concepts. Each correct answer reveals letters the term shares with the mystery phrase, in every pending term and in the mystery phrase itself.",
@@ -56,10 +62,10 @@
     <p>{{finalguesstext}}</p>
     <p>{{winconditiontext}}</p>
     {{#showtermloss}}
-        <p>{{termlosstext}}</p>
+        <p>{{termlosstext}} <span class="mod-playercross-attempts-count" aria-hidden="true">×3</span></p>
     {{/showtermloss}}
     {{#showfinalguessloss}}
-        <p>{{finalguesslosstext}}</p>
+        <p>{{finalguesslosstext}} <span class="mod-playercross-attempts-count" aria-hidden="true">×1</span></p>
     {{/showfinalguessloss}}
     <p>{{timertext}}</p>
     {{#showhud}}
