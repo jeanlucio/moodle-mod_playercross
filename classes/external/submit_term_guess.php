@@ -297,7 +297,6 @@ class submit_term_guess extends external_api {
                 PARAM_TEXT,
                 'Virtual keyboard backspace key accessible label'
             ),
-            'showcedilla'        => new external_value(PARAM_BOOL, 'Whether the Ç key should be shown'),
             'revealedlettersjson' => new external_value(
                 PARAM_RAW,
                 'JSON array of round-wide revealed letters, for marking the virtual keyboard'

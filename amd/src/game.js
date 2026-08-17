@@ -947,16 +947,21 @@ const handleKeyboardKey = (key) => {
  * Accent variants offered by the long-press popup, keyed by the base letter's own
  * keyboard key. Matching is accent-insensitive throughout the game (see
  * word_normalizer::normalize()) — this is purely a typing convenience so students can
- * practise proper Portuguese spelling, never a requirement to guess correctly.
+ * practise proper accented spelling, never a requirement to guess correctly. Covers
+ * Portuguese, Spanish, French, Italian and German diacritics; other alphabets (Nordic,
+ * Slavic, Turkish, Icelandic...) are out of scope, see mod_playercross's SCOPE.md §3.2.
  *
  * @type {Object<string, string[]>}
  */
 const ACCENT_VARIANTS = {
-    A: ['Á', 'À', 'Â', 'Ã'],
-    E: ['É', 'Ê'],
-    I: ['Í'],
-    O: ['Ó', 'Ô', 'Õ'],
-    U: ['Ú'],
+    A: ['Á', 'À', 'Â', 'Ã', 'Ä'],
+    E: ['É', 'È', 'Ê', 'Ë'],
+    I: ['Í', 'Ì', 'Î', 'Ï'],
+    O: ['Ó', 'Ò', 'Ô', 'Õ', 'Ö'],
+    U: ['Ú', 'Ù', 'Û', 'Ü'],
+    C: ['Ç'],
+    N: ['Ñ'],
+    S: ['ß'],
 };
 
 /** @type {number} Touch hold duration, in ms, before the accent popup appears. */

@@ -445,57 +445,6 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that has_cedilla_word is false when no approved word contains one.
-     *
-     * @return void
-     */
-    public function test_has_cedilla_word_false_when_absent(): void {
-        $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
-        $this->modgenerator->create_word($instance->id, 'gato');
-
-        $this->assertFalse(words_repository::has_cedilla_word($instance->id));
-    }
-
-    /**
-     * Tests that has_cedilla_word is true once any approved word contains one.
-     *
-     * @return void
-     */
-    public function test_has_cedilla_word_true_when_present(): void {
-        $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
-        $this->modgenerator->create_word($instance->id, 'gato');
-        $this->modgenerator->create_word($instance->id, 'começar');
-
-        $this->assertTrue(words_repository::has_cedilla_word($instance->id));
-    }
-
-    /**
-     * Tests that has_cedilla_word ignores unapproved (pending) words.
-     *
-     * @return void
-     */
-    public function test_has_cedilla_word_ignores_unapproved(): void {
-        $instance = $this->modgenerator->create_instance(['course' => $this->course->id]);
-        words_repository::add_ai_word($instance->id, $this->user->id, 'começar', 'iniciar algo');
-
-        $this->assertFalse(words_repository::has_cedilla_word($instance->id));
-    }
-
-    /**
-     * Tests that has_cedilla_word is scoped to its own activity, never a sibling one.
-     *
-     * @return void
-     */
-    public function test_has_cedilla_word_is_scoped_to_its_own_activity(): void {
-        $instancea = $this->modgenerator->create_instance(['course' => $this->course->id]);
-        $instanceb = $this->modgenerator->create_instance(['course' => $this->course->id]);
-        $this->modgenerator->create_word($instanceb->id, 'começar');
-
-        $this->assertFalse(words_repository::has_cedilla_word($instancea->id));
-        $this->assertTrue(words_repository::has_cedilla_word($instanceb->id));
-    }
-
-    /**
      * A manually added word is trimmed, saved pre-approved, and attributed to its
      * author.
      *

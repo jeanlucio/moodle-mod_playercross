@@ -292,27 +292,6 @@ class words_repository {
     }
 
     /**
-     * Whether any approved word in this activity contains a cedilla (ç).
-     *
-     * Used to decide whether the on-screen keyboard needs its extra Ç key at all —
-     * word matching already ignores accents (word_normalizer::normalize()), so hiding
-     * the key never blocks a correct guess; it is purely a decluttering decision.
-     *
-     * @param int $instanceid Activity instance id.
-     * @return bool
-     */
-    public static function has_cedilla_word(int $instanceid): bool {
-        global $DB;
-
-        $select = 'playercrossid = :instanceid AND approved = 1 AND ' . $DB->sql_like('word', ':pattern', false);
-
-        return $DB->record_exists_select('playercross_words', $select, [
-            'instanceid' => $instanceid,
-            'pattern' => '%ç%',
-        ]);
-    }
-
-    /**
      * Whether a word with the given text already exists in this activity's pool.
      *
      * Case-insensitive, scoped to the activity and checked across every source (manual,

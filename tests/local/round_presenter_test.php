@@ -839,55 +839,6 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Revealing the slot for "ç" (which word_normalizer::normalize() collapses to "c"
-     * before puzzle_builder ever assigns slots — there is no slot of "ç"'s own) marks
-     * both the base "C" key and the keyboard's separate showcedilla "Ç" key, since both
-     * represent the exact same round-wide letter identity.
-     *
-     * @return void
-     */
-    public function test_build_round_panel_context_revealed_letters_json_mirrors_cedilla_onto_c(): void {
-        $instance = $this->make_instance();
-        $cm = (object)['id' => 5];
-        $user = $this->getDataGenerator()->create_user();
-        // Word "paçoca" normalizes to "pacoca" (p,a,c,o,c,a) — slots by first
-        // appearance: p=1, a=2, c=3, o=4, then c and a repeat their existing slots.
-        $state = $this->make_state([
-            'themewords'    => ['pacoca'],
-            'themeclue'     => 'paçoca',
-            'themeslots'    => [1, 2, 3, 4, 3, 2],
-            'slotcount'     => 4,
-            'terms'         => [],
-            'revealedslots' => [3],
-        ]);
-
-        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
-
-        $this->assertSame(['C', 'Ç'], json_decode($context['revealedlettersjson'], true));
-    }
-
-    /**
-     * A round whose own words never spell a "c" with a cedilla (the default fixture's
-     * phrase "escola" and term "livro") must not mirror "C" onto "Ç" — the showcedilla
-     * key can still be on screen (it reflects the activity's whole word bank, see
-     * words_repository::has_cedilla_word()), but lighting it up here would claim a
-     * cedilla the player never actually sees revealed anywhere in this round.
-     *
-     * @return void
-     */
-    public function test_build_round_panel_context_revealed_letters_json_no_cedilla_mirror_without_one(): void {
-        $instance = $this->make_instance();
-        $cm = (object)['id' => 5];
-        $user = $this->getDataGenerator()->create_user();
-        // Slot 3 is 'c', the phrase "escola"'s own third letter — plain, no cedilla.
-        $state = $this->make_state(['revealedslots' => [3]]);
-
-        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
-
-        $this->assertSame(['C'], json_decode($context['revealedlettersjson'], true));
-    }
-
-    /**
      * Tests that the round-result context is structurally blank while the round is
      * active, never exposing the mystery phrase sitting in session state.
      *
@@ -1326,39 +1277,6 @@ final class round_presenter_test extends \advanced_testcase {
 
         $this->assertFalse($context['hudhintcost']);
         $this->assertSame('', $context['hudhintcostlabel']);
-    }
-
-    /**
-     * The keyboard's Ç key only shows up when the activity's own word pool actually
-     * needs it — many languages never use the letter.
-     *
-     * @return void
-     */
-    public function test_build_round_panel_context_showcedilla_reflects_word_pool(): void {
-        global $DB;
-        $instance = $this->make_instance();
-        $cm = (object)['id' => 5];
-        $user = $this->getDataGenerator()->create_user();
-        $state = $this->make_state();
-
-        $without = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
-        $this->assertFalse($without['showcedilla']);
-
-        $DB->insert_record('playercross_words', (object)[
-            'playercrossid' => $instance->id,
-            'word'          => 'cabeça',
-            'concept'       => 'cabeça',
-            'clue'          => 'cabeça',
-            'source'        => 'manual',
-            'glossaryid'    => 0,
-            'approved'      => 1,
-            'timecreated'   => time(),
-            'timemodified'  => time(),
-            'addedby'       => $user->id,
-        ]);
-
-        $with = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
-        $this->assertTrue($with['showcedilla']);
     }
 
     /**
