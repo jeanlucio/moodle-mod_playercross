@@ -46,6 +46,44 @@ class ai_word_generator {
     private const MAX_AVOID_WORDS = 200;
 
     /**
+     * Extra generation calls attempted when the first response leaves the request
+     * short, on top of the initial call (so 3 means up to 4 calls total).
+     *
+     * A model that only returns part of what was asked is common with weaker
+     * providers; local_aihub's own ladder already fails over to the next
+     * registered provider on an outright error, but it has no notion of a
+     * "successful but incomplete" response. This is the layer that fills that gap.
+     */
+    private const MAX_TOPUP_ATTEMPTS = 3;
+
+    /**
+     * Ceiling on the raw word count requested from the AI in a single call,
+     * regardless of how many are still missing.
+     *
+     * Verified against live provider behaviour: a single call asking for 90 raw
+     * words made every registered provider fail — Groq rejected its own output as
+     * invalid JSON, DeepSeek and the OpenAI-compatible endpoint both timed out at
+     * 30s. 60 is the largest raw count observed to complete successfully, so a
+     * request for more than this is spread across extra top-up attempts (see
+     * MAX_TOPUP_ATTEMPTS) instead of one larger call.
+     */
+    private const MAX_RAW_WORDS_PER_ATTEMPT = 60;
+
+    /**
+     * PHP execution time, in seconds, guaranteed for a full generate_and_save() run.
+     *
+     * Bounds the true worst case: (MAX_TOPUP_ATTEMPTS + 1) calls, each potentially
+     * cascading through every provider local_aihub's client has registered
+     * (4 today) at its 30-second HTTP timeout apiece — observed directly on this
+     * host during a run where 3 of 4 site providers were failing (see the class
+     * comment history). Without raising the limit, that worst case comfortably
+     * exceeds this site's default max_execution_time and PHP kills the request
+     * mid-run, discarding the response even though every word already saved to
+     * that point remains in the database.
+     */
+    private const TIME_LIMIT_SECONDS = 600;
+
+    /**
      * Returns true when an AI source (hub key or core_ai) is available.
      *
      * local_aihub is a site-wide BYOK service with no per-course scoping of its own, so
@@ -73,13 +111,20 @@ class ai_word_generator {
      * existing words, and this is the actual enforcement of that, independent of
      * whether the AI follows the instruction.
      *
+     * When one call comes back short (a weaker model answering fewer than asked, or
+     * losses to the validity/duplicate filters below), up to MAX_TOPUP_ATTEMPTS more
+     * calls are made asking only for the remaining amount, until $count is reached
+     * or the attempts run out. Each call goes back through the full local_aihub
+     * provider ladder, so a top-up can land on a different registered API than the
+     * first call did.
+     *
      * @param \stdClass $instance Activity instance record.
      * @param int $userid ID of the user triggering the generation.
      * @param string $topic Subject area or theme for the AI prompt.
-     * @param int $count Number of words to request (1–20).
+     * @param int $count Number of words to request.
      * @param \context $context Context of the activity requesting generation.
      * @return int Number of words saved as pending.
-     * @throws \moodle_exception If no AI source is available or the request fails.
+     * @throws \moodle_exception If no AI source is available or every attempt fails.
      */
     public static function generate_and_save(
         \stdClass $instance,
@@ -88,50 +133,65 @@ class ai_word_generator {
         int $count,
         \context $context
     ): int {
+        \core_php_time_limit::raise(self::TIME_LIMIT_SECONDS);
+
         $existingwords = words_repository::get_all_word_texts((int)$instance->id);
         $seen = [];
         foreach ($existingwords as $existingword) {
             $seen[core_text::strtolower(trim($existingword))] = true;
         }
+        $avoidpool = $existingwords;
 
         $language = get_string('thislanguage', 'langconfig');
-        $requestcount = min(60, $count * 3);
-        $avoidwords = array_slice($existingwords, 0, self::MAX_AVOID_WORDS);
-        $prompt = self::build_prompt($topic, $language, $requestcount, $avoidwords);
         $description = get_string('aiusage', 'mod_playercross', $topic);
 
-        $result = self::call_ai($prompt, $description, $context);
-        if (empty($result['success'])) {
-            throw new \moodle_exception('aigenerateerror', 'mod_playercross');
+        $saved = 0;
+        $anysuccess = false;
+
+        for ($attempt = 0; $attempt <= self::MAX_TOPUP_ATTEMPTS && $saved < $count; $attempt++) {
+            $remaining = $count - $saved;
+            $requestcount = min(self::MAX_RAW_WORDS_PER_ATTEMPT, $remaining * 3);
+            $avoidwords = array_slice($avoidpool, 0, self::MAX_AVOID_WORDS);
+            $prompt = self::build_prompt($topic, $language, $requestcount, $avoidwords);
+
+            $result = self::call_ai($prompt, $description, $context);
+            if (empty($result['success'])) {
+                continue;
+            }
+            $anysuccess = true;
+
+            $items = self::parse_words((string)($result['data'] ?? ''));
+
+            foreach ($items as $item) {
+                if ($saved >= $count) {
+                    break;
+                }
+
+                $term = trim($item['term'] ?? '');
+                $clue = trim(strip_tags($item['clue'] ?? ''));
+
+                if (!self::is_valid_term($term) || !self::is_valid_clue($clue)) {
+                    continue;
+                }
+
+                // The prompt already asks the AI to avoid the activity's existing words,
+                // but that is an instruction, not a guarantee — this is the actual gate
+                // that keeps a duplicate from ever being written, and also catches the
+                // AI repeating a term within its own response or across top-up attempts.
+                $key = core_text::strtolower($term);
+                if (isset($seen[$key])) {
+                    continue;
+                }
+
+                words_repository::add_ai_word((int)$instance->id, $userid, $term, $clue);
+                $seen[$key] = true;
+                $avoidpool[] = $term;
+                $saved++;
+            }
         }
 
-        $items = self::parse_words((string)($result['data'] ?? ''));
-
-        $saved = 0;
-        foreach ($items as $item) {
-            if ($saved >= $count) {
-                break;
-            }
-
-            $term = trim($item['term'] ?? '');
-            $clue = trim(strip_tags($item['clue'] ?? ''));
-
-            if (!self::is_valid_term($term) || !self::is_valid_clue($clue)) {
-                continue;
-            }
-
-            // The prompt already asks the AI to avoid the activity's existing words,
-            // but that is an instruction, not a guarantee — this is the actual gate
-            // that keeps a duplicate from ever being written, and also catches the
-            // AI repeating a term within its own response.
-            $key = core_text::strtolower($term);
-            if (isset($seen[$key])) {
-                continue;
-            }
-
-            words_repository::add_ai_word((int)$instance->id, $userid, $term, $clue);
-            $seen[$key] = true;
-            $saved++;
+        if (!$anysuccess) {
+            throw new \moodle_exception('aigenerateerror', 'mod_playercross');
         }
 
         return $saved;

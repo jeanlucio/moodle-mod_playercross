@@ -29,6 +29,7 @@ $string['activewordscount'] = 'Palavras ativas neste jogo: {$a}.';
 $string['addwordbutton'] = 'Adicionar palavra';
 $string['aigeneratebutton'] = 'Gerar com IA';
 $string['aigeneratecount'] = 'Quantidade de palavras';
+$string['aigeneratecounthint'] = 'Quantidades maiores podem demorar mais: o sistema faz várias chamadas de IA em sequência para completar o pedido.';
 $string['aigeneratednone'] = 'Nenhuma palavra elegível foi gerada para este tema.';
 $string['aigeneratedsaved'] = '{$a} palavra(s) gerada(s) e salva(s) para revisão.';
 $string['aigenerateerror'] = 'Falha na geração de palavras. Verifique as configurações de IA na administração do site.';

@@ -37,6 +37,7 @@
         "aigeneratetitle": "Generate words with AI",
         "aigeneratetopic": "Topic",
         "aigeneratecount": "Number of words",
+        "aigeneratecounthint": "Higher counts may take longer: the system makes several AI calls in a row to complete the request.",
         "aigeneratebutton": "Generate with AI",
         "aigenerating": "Generating with AI…",
         "recentwordslabel": "Word pool",
@@ -239,8 +240,9 @@
                 class="form-control"
                 value="10"
                 min="1"
-                max="20"
+                max="50"
             >
+            <div class="form-text">{{aigeneratecounthint}}</div>
 
             <button
                 type="submit"

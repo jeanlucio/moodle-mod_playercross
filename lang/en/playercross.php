@@ -29,6 +29,7 @@ $string['activewordscount'] = 'Active words in this game: {$a}.';
 $string['addwordbutton'] = 'Add word';
 $string['aigeneratebutton'] = 'Generate with AI';
 $string['aigeneratecount'] = 'Number of words';
+$string['aigeneratecounthint'] = 'Higher counts may take longer: the system makes several AI calls in a row to complete the request.';
 $string['aigeneratednone'] = 'No eligible words were generated for this topic.';
 $string['aigeneratedsaved'] = '{$a} word(s) generated and pending review.';
 $string['aigenerateerror'] = 'Word generation failed. Check the AI settings in site administration.';

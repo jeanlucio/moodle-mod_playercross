@@ -163,7 +163,7 @@ if ($bulkaction !== '') {
 if (optional_param('generateai', 0, PARAM_BOOL)) {
     require_sesskey();
     $topic = trim(optional_param('aitopic', '', PARAM_TEXT));
-    $count = max(1, min(20, (int)optional_param('aicount', 10, PARAM_INT)));
+    $count = max(1, min(50, (int)optional_param('aicount', 10, PARAM_INT)));
     if ($topic !== '') {
         try {
             $saved = ai_word_generator::generate_and_save($instance, (int)$USER->id, $topic, $count, $context);
@@ -291,6 +291,7 @@ $templatecontext = [
     'aigeneratetitle'        => get_string('aigeneratetitle', 'mod_playercross'),
     'aigeneratetopic'        => get_string('aigeneratetopic', 'mod_playercross'),
     'aigeneratecount'        => get_string('aigeneratecount', 'mod_playercross'),
+    'aigeneratecounthint'    => get_string('aigeneratecounthint', 'mod_playercross'),
     'aigeneratebutton'       => get_string('aigeneratebutton', 'mod_playercross'),
     'aigenerating'           => get_string('aigenerating', 'mod_playercross'),
     'recentwordslabel'       => get_string('recentwordslabel', 'mod_playercross'),
