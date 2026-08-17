@@ -64,6 +64,7 @@ class provider implements
                 'score'         => 'privacy:metadata:playercross_attempts:score',
                 'rankingpoints' => 'privacy:metadata:playercross_attempts:rankingpoints',
                 'timecreated'   => 'privacy:metadata:playercross_attempts:timecreated',
+                'timefinished'  => 'privacy:metadata:playercross_attempts:timefinished',
             ],
             'privacy:metadata:playercross_attempts'
         );
@@ -314,6 +315,7 @@ class provider implements
                         'score'         => (float)$a->score,
                         'rankingpoints' => (float)$a->rankingpoints,
                         'timecreated'   => transform::datetime($a->timecreated),
+                        'timefinished'  => $a->timefinished > 0 ? transform::datetime($a->timefinished) : null,
                     ];
                 }, $attempts));
 

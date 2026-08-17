@@ -507,12 +507,23 @@ class mod_playercross_mod_form extends moodleform_mod {
      * exists and has_grades() never fires; this is a strict superset of that trigger,
      * since has_grades() being true already implies at least one attempt exists.
      *
+     * Filters on timefinished > 0, not completed = 1: a lost round under Linear scoring
+     * still writes a real, nonzero rankingpoints at the current scale, so "finished"
+     * (win or lose) is the condition that actually matches this freeze's own rationale
+     * above — a still-open reservation (timefinished = 0) carries no real outcome yet
+     * and must not trigger it.
+     *
      * @return void
      */
     private function freeze_ranking_scoring_mode(): void {
         global $DB;
 
-        if (!$DB->record_exists('playercross_attempts', ['playercrossid' => $this->_instance])) {
+        $hasfinished = $DB->record_exists_select(
+            'playercross_attempts',
+            'playercrossid = :playercrossid AND timefinished > 0',
+            ['playercrossid' => $this->_instance]
+        );
+        if (!$hasfinished) {
             return;
         }
 

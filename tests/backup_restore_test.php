@@ -194,6 +194,7 @@ final class backup_restore_test extends \advanced_testcase {
         $this->assertSame(42, (int)$newattempt->time_used);
         $this->assertEqualsWithDelta(91.5, (float)$newattempt->score, 0.001);
         $this->assertEqualsWithDelta(96.5, (float)$newattempt->rankingpoints, 0.001);
+        $this->assertGreaterThan(0, (int)$newattempt->timefinished);
     }
 
     /**

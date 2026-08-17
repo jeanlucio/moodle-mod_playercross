@@ -44,9 +44,9 @@ class ranking_service {
      * own — a teacher previewing the activity should not pollute the student-facing ranking.
      * Returns up to TOP_N rows plus the current user's row when outside the top.
      *
-     * Unlike mod_playerwords, playercross_attempts is append-only and only ever gains a row
-     * once a round is fully finished (see SCOPE.md §5), so every row already qualifies — there
-     * is no "reserved but unfinished" state to filter out here.
+     * Filters out any still-open reservation (timefinished = 0): a round in progress or
+     * abandoned without finishing has no real outcome yet and must not drag the average
+     * or total towards a rankingpoints of 0 the student never actually earned.
      *
      * @param \stdClass $instance Activity instance record.
      * @param \stdClass $cm Course module record.
@@ -88,6 +88,7 @@ class ranking_service {
                   FROM {playercross_attempts} pa
                   JOIN {user} u ON u.id = pa.userid
                  WHERE pa.playercrossid = :instanceid
+                       AND pa.timefinished > 0
                        $userwhere
               GROUP BY u.id, {$namefields->selects}
               ORDER BY SUM(pa.rankingpoints) DESC, AVG(pa.attempts_used) ASC, AVG(pa.time_used) ASC,

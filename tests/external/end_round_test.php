@@ -129,15 +129,20 @@ final class end_round_test extends \advanced_testcase {
      * @return void
      */
     public function test_forfeit_finishes_round(): void {
+        global $DB;
         $instance = $this->make_instance();
         $this->setUser($this->student);
         $this->start_round_for_student($instance);
+        $reservedid = round_service::load_state($instance->cmid, $this->student->id)['attemptid'];
 
         $result = $this->call_end_round($instance->cmid, 'forfeit');
 
         $this->assertFalse($result['error']);
         $this->assertTrue($result['data']['finished']);
         $this->assertSame('ESCOLA', $result['data']['panel']['revealthemeword']);
+        $this->assertSame(1, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
+        $record = $DB->get_record('playercross_attempts', ['id' => $reservedid], '*', MUST_EXIST);
+        $this->assertGreaterThan(0, (int)$record->timefinished);
     }
 
     /**

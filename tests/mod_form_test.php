@@ -101,11 +101,47 @@ final class mod_form_test extends \advanced_testcase {
             'score'         => 0,
             'rankingpoints' => 100,
             'timecreated'   => $now,
+            'timefinished'  => $now,
         ]);
 
         $mform = $this->build_form_after_data($instance, $cm);
 
         $this->assertTrue($mform->isElementFrozen('rankingscoringmode'));
+    }
+
+    /**
+     * A still-open reservation (round started but not yet finished, timefinished=0)
+     * carries no real ranking outcome yet and must not freeze rankingscoringmode —
+     * only a genuinely finished round does.
+     *
+     * @return void
+     */
+    public function test_rankingscoringmode_not_frozen_by_a_pending_reservation(): void {
+        global $DB;
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $instance = $generator->create_instance(['course' => $this->course->id, 'grade' => 0]);
+        $cm = get_coursemodule_from_instance('playercross', $instance->id);
+
+        $DB->insert_record('playercross_attempts', (object)[
+            'playercrossid' => $instance->id,
+            'userid'        => 2,
+            'themewordid'   => 0,
+            'termstotal'    => 0,
+            'termsresolved' => 0,
+            'finalguessed'  => 0,
+            'attempts_used' => 0,
+            'time_used'     => 0,
+            'completed'     => 0,
+            'score'         => 0,
+            'rankingpoints' => 0,
+            'timecreated'   => time(),
+            'timefinished'  => 0,
+        ]);
+
+        $mform = $this->build_form_after_data($instance, $cm);
+
+        $this->assertFalse($mform->isElementFrozen('rankingscoringmode'));
     }
 
     /**
@@ -152,6 +188,7 @@ final class mod_form_test extends \advanced_testcase {
             'score'         => 0,
             'rankingpoints' => 100,
             'timecreated'   => $now,
+            'timefinished'  => $now,
         ]);
 
         $mform = $this->build_form_after_data($instance, $cm);

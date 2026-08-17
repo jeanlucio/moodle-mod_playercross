@@ -102,6 +102,7 @@ class backup_playercross_activity_structure_step extends backup_activity_structu
             'score',
             'rankingpoints',
             'timecreated',
+            'timefinished',
         ]);
 
         // Build the tree.

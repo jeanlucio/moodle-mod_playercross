@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/playercross/db" VERSION="20260817" COMMENT="XMLDB file for mod_playercross"
+<XMLDB PATH="mod/playercross/db" VERSION="20260818" COMMENT="XMLDB file for mod_playercross"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -111,7 +111,7 @@
         <INDEX NAME="approved_ix" UNIQUE="false" FIELDS="approved"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="playercross_attempts" COMMENT="Append-only log of one row per completed round">
+    <TABLE NAME="playercross_attempts" COMMENT="One row per round, reserved when the round starts and finalized when it ends">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="playercrossid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -130,6 +130,8 @@
         <FIELD NAME="rankingpoints" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0.00000" SEQUENCE="false"
             DECIMALS="5" COMMENT="Points this round contributes to the ranking total; independent from score"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timefinished" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="0 while the round is reserved but not yet finished; the finish epoch otherwise"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

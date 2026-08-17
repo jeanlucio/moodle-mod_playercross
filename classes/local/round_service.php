@@ -32,10 +32,12 @@ use completion_info;
  * This is the single source of truth for what happens on each transition, shared by
  * the classic page render and by the AJAX external functions.
  *
- * Unlike mod_playerwords, PlayerCross has no ephemeral DB table and no reserve-on-start
- * attempt row: the whole puzzle (mystery phrase, term list, revealed slots) lives only
- * in session state for the duration of the round, and playercross_attempts only ever
- * gains a row once the round actually finishes (see SCOPE.md §5).
+ * Like mod_playerwords, PlayerCross reserves a playercross_attempts row the moment a
+ * round starts (timefinished=0) and finalizes that same row when it ends
+ * (timefinished=time()) — start_round() inserts, finish_round() updates by attemptid.
+ * The puzzle content itself (mystery phrase, term list, revealed slots) still lives
+ * only in session state; only the reservation/outcome row is persisted early. Every
+ * reader that must ignore a still-open reservation filters on timefinished > 0.
  */
 class round_service {
     /**
@@ -136,6 +138,7 @@ class round_service {
             'finalguesseddirectly' => false,
             'earlybonuseligible' => false,
             'termsexhausted' => false,
+            'attemptid'     => 0,
         ];
     }
 
@@ -184,9 +187,11 @@ class round_service {
             return 0;
         }
 
+        // A still-open reservation (timefinished = 0) must not start the cooldown clock —
+        // only a genuinely finished round can.
         $lastattempttime = $DB->get_field_sql(
             "SELECT MAX(timecreated) FROM {playercross_attempts}"
-            . " WHERE playercrossid = :pid AND userid = :uid",
+            . " WHERE playercrossid = :pid AND userid = :uid AND timefinished > 0",
             ['pid' => $instance->id, 'uid' => $userid]
         );
         if (empty($lastattempttime)) {
@@ -198,7 +203,12 @@ class round_service {
     }
 
     /**
-     * Counts how many rounds a user has completed for this instance.
+     * Counts how many rounds count against a user's round limit for this instance.
+     *
+     * Deliberately unfiltered by timefinished: a reservation still open right now (in
+     * progress, or abandoned without ever finishing) already counts, exactly like
+     * mod_playerwords' own count_rounds_played(). Without this, a student could abandon
+     * a losing round for free and start over indefinitely.
      *
      * @param \stdClass $instance Activity instance.
      * @param int $userid User id.
@@ -305,21 +315,27 @@ class round_service {
     }
 
     /**
-     * Starts the round timer, optionally consuming a PlayerHUD item cost.
+     * Starts the round timer, reserving a playercross_attempts row and optionally
+     * consuming a PlayerHUD item cost.
      *
-     * Revalidates get_round_restriction_notice() again here, not just at the point
-     * ensure_round_state() picked the puzzle: a puzzle can sit armed in session state
-     * for a while (the student never reaching "Iniciar rodada"), and a second
-     * concurrent session for the same user can reach that same armed state — e.g. two
-     * open tabs, or the round limit being hit in one session while another already
-     * loaded the lobby. Without this check, the second session could still commit the
-     * reservation and PlayerHUD cost after the limit/cooldown became active.
+     * The restriction re-check, the PlayerHUD cost charge and the reservation insert are
+     * serialised per (playercrossid, userid) with \core\lock\lock_config: a puzzle can
+     * sit armed in session state for a while (the student never reaching "Iniciar
+     * rodada"), and a second concurrent session for the same user can reach that same
+     * armed state — e.g. two open tabs, or the round limit being hit in one session
+     * while another already loaded the lobby. Without the lock, two sessions could both
+     * pass the restriction check — neither has reserved yet — and then both charge their
+     * own PlayerHUD cost and insert their own row, each ending up past
+     * max_rounds/cooldown. Reserving here, inside the lock, is also what makes
+     * finish_round() itself lock-free: any concurrent session must acquire this same
+     * lock before it can reserve, and will already see this reservation via
+     * count_rounds_played() the moment it does.
      *
-     * The guest account is exempt from the PlayerHUD cost: a course's guest-access
-     * visitors all share the single guest user record, so nothing charged here could be
-     * safely attributed to one specific person. See finish_round() for the matching
-     * exemption on the persistence side, which is what actually keeps a guest from
-     * leaving any trace in {playercross_attempts}.
+     * The guest account is exempt from the lock, the reservation and the PlayerHUD cost:
+     * a course's guest-access visitors all share the single guest user record, so
+     * nothing here could be safely attributed to one specific person. Guests play a free
+     * demo that leaves no {playercross_attempts} row behind — see finish_round() for the
+     * matching exemption on the completion side.
      *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
@@ -327,32 +343,71 @@ class round_service {
      * @return array [$state, $notification, $notificationtype, $toast]
      */
     public static function start_round(array $state, \stdClass $instance, int $userid): array {
-        $isguest = isguestuser();
+        global $DB;
 
-        if (!$isguest) {
+        if (isguestuser()) {
+            $state['starttime'] = time();
+            $state['roundstarted'] = true;
+            return [$state, null, null, true];
+        }
+
+        $lockfactory = \core\lock\lock_config::get_lock_factory('mod_playercross');
+        $lock = $lockfactory->get_lock('start_round_' . $instance->id . '_' . $userid, 5);
+        if (!$lock) {
+            // Could not serialise against a concurrent session within the timeout —
+            // refuse to start rather than risk two sessions reserving past the limit.
+            return [$state, get_string('roundstartbusy', 'mod_playercross'), 'warning', true];
+        }
+
+        try {
             $restrictionnotice = self::get_round_restriction_notice($instance, $userid);
             if ($restrictionnotice !== null) {
                 return [$state, $restrictionnotice, 'warning', true];
             }
-        }
 
-        $roundcostitem = (int)($instance->hud_round_cost_item ?? 0);
-        if (!$isguest && $roundcostitem > 0) {
-            $blockinstanceid = hud_service::resolve_block_instance_id($instance);
-            $consumed = hud_service::consume_items(
-                $blockinstanceid,
-                $userid,
-                $roundcostitem,
-                max(1, (int)($instance->hud_round_cost_qty ?? 1))
-            );
-            if (!$consumed) {
-                $itemname = hud_service::get_item_name($blockinstanceid, $roundcostitem);
-                return [$state, get_string('hud_insufficient_round', 'mod_playercross', $itemname), 'warning', true];
+            $roundcostitem = (int)($instance->hud_round_cost_item ?? 0);
+            if ($roundcostitem > 0) {
+                $blockinstanceid = hud_service::resolve_block_instance_id($instance);
+                $consumed = hud_service::consume_items(
+                    $blockinstanceid,
+                    $userid,
+                    $roundcostitem,
+                    max(1, (int)($instance->hud_round_cost_qty ?? 1))
+                );
+                if (!$consumed) {
+                    $itemname = hud_service::get_item_name($blockinstanceid, $roundcostitem);
+                    return [
+                        $state,
+                        get_string('hud_insufficient_round', 'mod_playercross', $itemname),
+                        'warning',
+                        true,
+                    ];
+                }
             }
-        }
 
-        $state['starttime'] = time();
-        $state['roundstarted'] = true;
+            $state['starttime'] = time();
+            $state['roundstarted'] = true;
+
+            if (empty($state['attemptid'])) {
+                $state['attemptid'] = $DB->insert_record('playercross_attempts', (object)[
+                    'playercrossid' => $instance->id,
+                    'userid'        => $userid,
+                    'themewordid'   => (int)$state['themewordid'],
+                    'termstotal'    => (int)$state['termstotal'],
+                    'termsresolved' => 0,
+                    'finalguessed'  => 0,
+                    'attempts_used' => 0,
+                    'time_used'     => 0,
+                    'completed'     => 0,
+                    'score'         => 0,
+                    'rankingpoints' => 0,
+                    'timecreated'   => time(),
+                    'timefinished'  => 0,
+                ]);
+            }
+        } finally {
+            $lock->release();
+        }
 
         return [$state, null, null, true];
     }
@@ -962,16 +1017,10 @@ class round_service {
      * The score/rankingpoints computation happens before that cut too, so a guest still
      * sees a correct score in the UI even though nothing is persisted.
      *
-     * The persistence block is serialised per (playercrossid, userid) with
-     * \core\lock\lock_config and re-checks get_round_restriction_notice() immediately
-     * before the insert. start_round() already revalidates the same restriction, but
-     * that check and this insert are not otherwise atomic: two concurrent sessions of
-     * the same user (two open tabs) can both pass start_round()'s check — neither has
-     * inserted an attempt yet — and then both reach this insert, each ending up past
-     * max_rounds/cooldown and each granting its own PlayerHUD item. The lock closes
-     * that window; a session that loses the race ends its round without persisting an
-     * attempt or a grant, the same outcome get_round_restriction_notice() already
-     * produces elsewhere when the limit is genuinely reached.
+     * Unlike start_round(), no lock is needed here: start_round() already reserved this
+     * round's row (via $state['attemptid']) inside its own lock, so no other session can
+     * be racing to write to that specific row — it is only ever known to this one
+     * session's own state. This just updates it by id.
      *
      * @return array Updated state.
      */
@@ -1011,91 +1060,85 @@ class round_service {
         );
 
         if (isguestuser()) {
+            $state['attemptid'] = 0;
             return $state;
         }
 
-        $lockfactory = \core\lock\lock_config::get_lock_factory('mod_playercross');
-        $lock = $lockfactory->get_lock('finish_round_' . $instance->id . '_' . $userid, 5);
-        if (!$lock) {
-            // Could not serialise against a concurrent session within the timeout —
-            // degrade the same way a genuinely reached restriction does below, rather
-            // than risk two sessions inserting past the limit anyway.
-            return $state;
+        $timeused = max(0, time() - (int)$state['starttime']);
+
+        $data = (object)[
+            'themewordid'   => (int)$state['themewordid'],
+            'termstotal'    => (int)$state['termstotal'],
+            'termsresolved' => (int)$state['termsresolved'],
+            'finalguessed'  => $finalguessed ? 1 : 0,
+            'attempts_used' => (int)$state['attemptsused'],
+            'time_used'     => $timeused,
+            'completed'     => $won ? 1 : 0,
+            'score'         => $state['score'],
+            'rankingpoints' => $state['rankingpoints'],
+            'timefinished'  => time(),
+        ];
+
+        $attemptid = (int)($state['attemptid'] ?? 0);
+        if ($attemptid > 0) {
+            $data->id = $attemptid;
+            $DB->update_record('playercross_attempts', $data);
+        } else {
+            // No reservation in session state — only reachable for a round that was
+            // already mid-play, in a session predating this reservation mechanism, at
+            // the moment the plugin was upgraded. Insert fresh, exactly as start_round()
+            // would have, so an in-flight session still finishes correctly.
+            $data->playercrossid = $instance->id;
+            $data->userid = $userid;
+            $data->timecreated = time();
+            $attemptid = $DB->insert_record('playercross_attempts', $data);
         }
+        $state['attemptid'] = 0;
 
-        try {
-            if (self::get_round_restriction_notice($instance, $userid) !== null) {
-                // A concurrent session already consumed the last available round or
-                // cooldown slot between this round's start_round() check and this
-                // insert. The round still shows its outcome to this player (flags set
-                // above), it just is not counted a second time.
-                return $state;
-            }
-
-            $timeused = max(0, time() - (int)$state['starttime']);
-
-            $attemptid = $DB->insert_record('playercross_attempts', (object)[
-                'playercrossid' => $instance->id,
-                'userid'        => $userid,
-                'themewordid'   => (int)$state['themewordid'],
-                'termstotal'    => (int)$state['termstotal'],
-                'termsresolved' => (int)$state['termsresolved'],
-                'finalguessed'  => $finalguessed ? 1 : 0,
-                'attempts_used' => (int)$state['attemptsused'],
-                'time_used'     => $timeused,
-                'completed'     => $won ? 1 : 0,
+        $event = \mod_playercross\event\round_completed::create([
+            'objectid' => $attemptid,
+            'context'  => \context_module::instance($cmid),
+            'other'    => [
+                'completed'     => $won,
+                'finalguessed'  => $finalguessed,
                 'score'         => $state['score'],
-                'rankingpoints' => $state['rankingpoints'],
-                'timecreated'   => time(),
-            ]);
+                'termsresolved' => (int)$state['termsresolved'],
+                'termstotal'    => (int)$state['termstotal'],
+                'attemptsused'  => (int)$state['attemptsused'],
+                'timeused'      => $timeused,
+                'themewordid'   => (int)$state['themewordid'],
+            ],
+        ]);
+        $event->trigger();
 
-            $event = \mod_playercross\event\round_completed::create([
-                'objectid' => $attemptid,
-                'context'  => \context_module::instance($cmid),
-                'other'    => [
-                    'completed'     => $won,
-                    'finalguessed'  => $finalguessed,
-                    'score'         => $state['score'],
-                    'termsresolved' => (int)$state['termsresolved'],
-                    'termstotal'    => (int)$state['termstotal'],
-                    'attemptsused'  => (int)$state['attemptsused'],
-                    'timeused'      => $timeused,
-                    'themewordid'   => (int)$state['themewordid'],
-                ],
-            ]);
-            $event->trigger();
+        playercross_update_grades($instance, $userid);
 
-            playercross_update_grades($instance, $userid);
-
-            // Grants only on a genuine win, never on forfeit/timeout. Items are still
-            // granted on an unlimited-rounds activity, but their XP is withheld — the
-            // same anti-farming rule block_playerhud itself applies to its own infinite
-            // drops, replicated here since this grant never goes through a real drop.
-            if ($won) {
-                $grantitem = (int)($instance->hud_win_reward_item ?? 0);
-                if ($grantitem > 0) {
-                    hud_service::grant_items(
-                        hud_service::resolve_block_instance_id($instance),
-                        $userid,
-                        $grantitem,
-                        max(1, (int)($instance->hud_win_reward_qty ?? 1)),
-                        (int)$instance->max_rounds === 0
-                    );
-                }
+        // Grants only on a genuine win, never on forfeit/timeout. Items are still
+        // granted on an unlimited-rounds activity, but their XP is withheld — the
+        // same anti-farming rule block_playerhud itself applies to its own infinite
+        // drops, replicated here since this grant never goes through a real drop.
+        if ($won) {
+            $grantitem = (int)($instance->hud_win_reward_item ?? 0);
+            if ($grantitem > 0) {
+                hud_service::grant_items(
+                    hud_service::resolve_block_instance_id($instance),
+                    $userid,
+                    $grantitem,
+                    max(1, (int)($instance->hud_win_reward_qty ?? 1)),
+                    (int)$instance->max_rounds === 0
+                );
             }
+        }
 
-            // Automatic completion (e.g. the "require completed rounds" custom rule)
-            // is only recomputed and persisted when something explicitly asks for it —
-            // Moodle has no cron sweep for this, unlike grading. Trigger it here so the
-            // activity page's completion badge reflects a finished round immediately.
-            $cm = get_coursemodule_from_id('playercross', $cmid, 0, false, MUST_EXIST);
-            $course = get_course($instance->course);
-            $completioninfo = new completion_info($course);
-            if ($completioninfo->is_enabled($cm)) {
-                $completioninfo->update_state($cm, COMPLETION_COMPLETE, $userid);
-            }
-        } finally {
-            $lock->release();
+        // Automatic completion (e.g. the "require completed rounds" custom rule)
+        // is only recomputed and persisted when something explicitly asks for it —
+        // Moodle has no cron sweep for this, unlike grading. Trigger it here so the
+        // activity page's completion badge reflects a finished round immediately.
+        $cm = get_coursemodule_from_id('playercross', $cmid, 0, false, MUST_EXIST);
+        $course = get_course($instance->course);
+        $completioninfo = new completion_info($course);
+        if ($completioninfo->is_enabled($cm)) {
+            $completioninfo->update_state($cm, COMPLETION_COMPLETE, $userid);
         }
 
         return $state;

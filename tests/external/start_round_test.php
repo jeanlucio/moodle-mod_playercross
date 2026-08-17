@@ -176,6 +176,11 @@ final class start_round_test extends \advanced_testcase {
 
         $state = round_service::load_state($instance->cmid, $this->student->id);
         $this->assertTrue($state['roundstarted']);
+        $this->assertGreaterThan(0, $state['attemptid']);
+
+        global $DB;
+        $record = $DB->get_record('playercross_attempts', ['id' => $state['attemptid']], '*', MUST_EXIST);
+        $this->assertSame(0, (int)$record->timefinished);
     }
 
     /**

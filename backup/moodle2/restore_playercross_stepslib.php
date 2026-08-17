@@ -170,6 +170,7 @@ class restore_playercross_activity_structure_step extends restore_activity_struc
 
         $data->playercrossid = $this->get_new_parentid('playercross');
         $data->timecreated = $this->apply_date_offset($data->timecreated);
+        $data->timefinished = $this->apply_date_offset($data->timefinished);
 
         $data->userid = (int)$this->get_mappingid('user', $data->userid);
         $data->themewordid = (int)$this->get_mappingid('playercross_words', $data->themewordid);

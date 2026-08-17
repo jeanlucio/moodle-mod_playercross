@@ -68,6 +68,7 @@ class attempts_history_service {
              LEFT JOIN {playercross_words} pw ON pw.id = pa.themewordid
                  WHERE pa.playercrossid = :instanceid
                        AND pa.userid = :userid
+                       AND pa.timefinished > 0
               ORDER BY pa.timecreated ASC";
         $attemptsasc = array_values($DB->get_records_sql($sql, [
             'instanceid' => (int)$instance->id,
@@ -247,6 +248,7 @@ class attempts_history_service {
         }
 
         $wheresql = "pa.playercrossid = :instanceid
+                       AND pa.timefinished > 0
                        $userwhere
                        $managerwhere
                        $groupwhere";
@@ -329,6 +331,7 @@ class attempts_history_service {
                   FROM {playercross_attempts} pa
                   JOIN {user} u ON u.id = pa.userid
                  WHERE pa.playercrossid = :instanceid
+                       AND pa.timefinished > 0
                        $managerwhere
                        $groupwhere
               ORDER BY sortname ASC";

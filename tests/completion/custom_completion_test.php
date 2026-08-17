@@ -64,6 +64,7 @@ final class custom_completion_test extends advanced_testcase {
     private function add_attempt(int $playercrossid, int $userid): void {
         global $DB;
 
+        $now = time();
         $DB->insert_record('playercross_attempts', (object)[
             'playercrossid' => $playercrossid,
             'userid'        => $userid,
@@ -75,7 +76,8 @@ final class custom_completion_test extends advanced_testcase {
             'time_used'     => 5,
             'completed'     => 1,
             'score'         => 100,
-            'timecreated'   => time(),
+            'timecreated'   => $now,
+            'timefinished'  => $now,
         ]);
     }
 

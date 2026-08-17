@@ -131,15 +131,18 @@ class mod_playercross_generator extends testing_module_generator {
      * @param int $userid Student user id.
      * @param int $themewordid Word id used as the mystery phrase for this round.
      * @param array $data Optional field overrides: termstotal, termsresolved, finalguessed,
-     *     attempts_used, time_used, completed, score, rankingpoints, timecreated. When
-     *     rankingpoints is omitted, it mirrors whatever score resolves to (explicit
-     *     override or the 100.0 default) — most tests never diverge the two.
+     *     attempts_used, time_used, completed, score, rankingpoints, timecreated,
+     *     timefinished. When rankingpoints is omitted, it mirrors whatever score resolves
+     *     to (explicit override or the 100.0 default) — most tests never diverge the two.
+     *     timefinished defaults to the same value as timecreated (a genuinely finished
+     *     round); pass timefinished => 0 to simulate an open reservation instead.
      * @return \stdClass Created playercross_attempts record.
      */
     public function create_attempt(int $playercrossid, int $userid, int $themewordid, array $data = []): \stdClass {
         global $DB;
 
         $score = (float)($data['score'] ?? 100.0);
+        $now = time();
 
         $record = (object) array_merge([
             'playercrossid' => $playercrossid,
@@ -153,7 +156,8 @@ class mod_playercross_generator extends testing_module_generator {
             'completed'     => 1,
             'score'         => $score,
             'rankingpoints' => $score,
-            'timecreated'   => time(),
+            'timecreated'   => $now,
+            'timefinished'  => $now,
         ], $data);
         $record->id = $DB->insert_record('playercross_attempts', $record);
 

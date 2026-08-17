@@ -239,12 +239,14 @@ function playercross_update_grades(stdClass $instance, int $userid = 0): void {
     global $CFG, $DB;
     require_once($CFG->libdir . '/gradelib.php');
 
-    // The playercross_attempts table is append-only and only ever gains a row once a
-    // round is fully finished (see SCOPE.md §5) — every row already qualifies, unlike
-    // PlayerWords' timefinished > 0 filter for its "reserved but unfinished" state.
+    // Excludes rounds that are still an open reservation (either genuinely in progress
+    // right now, or abandoned without ever finishing) — neither has a real outcome yet,
+    // so counting either would incorrectly drag a "highest" or "average" grade toward a
+    // 0 the student never actually earned.
     $sql = "SELECT a.id, a.userid, a.score, a.timecreated
               FROM {playercross_attempts} a
-             WHERE a.playercrossid = :instanceid";
+             WHERE a.playercrossid = :instanceid
+                   AND a.timefinished > 0";
     $params = ['instanceid' => $instance->id];
 
     if ($userid > 0) {

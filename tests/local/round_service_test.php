@@ -1703,18 +1703,42 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
-     * Regression test for the race between start_round()'s revalidation and
-     * finish_round()'s own insert: start_round() can pass its own check and a
-     * concurrent session can still finish first, reaching max_rounds before this
-     * session's own finish_round() call runs. finish_round() must re-check the
-     * restriction inside its lock immediately before inserting, and skip the attempt
-     * row entirely when it is now restricted — not just skip it in start_round().
+     * start_round() reserves a playercross_attempts row immediately, before any guess
+     * is submitted: attemptid is set, exactly one row exists with timefinished still 0,
+     * and that reservation already counts against the round limit.
      *
      * @return void
      */
-    public function test_finish_round_revalidates_restriction_inside_lock_before_inserting(): void {
+    public function test_start_round_reserves_attempt_row(): void {
         global $DB;
 
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        [$state, $notification] = round_service::start_round($state, $instance, $this->user->id);
+
+        $this->assertNull($notification);
+        $this->assertGreaterThan(0, $state['attemptid']);
+
+        $record = $DB->get_record('playercross_attempts', ['id' => $state['attemptid']], '*', MUST_EXIST);
+        $this->assertSame(0, (int)$record->timefinished);
+        $this->assertSame(1, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
+        $this->assertSame(1, round_service::count_rounds_played($instance, $this->user->id));
+    }
+
+    /**
+     * The core regression test for round reservation: a round that is started and then
+     * never finished (tab closed, session abandoned) still counts against max_rounds —
+     * a student cannot abandon a losing round for free and start over indefinitely.
+     *
+     * @return void
+     */
+    public function test_abandoned_round_counts_towards_max_rounds(): void {
         [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6, 'max_rounds' => 1]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
@@ -1722,43 +1746,25 @@ final class round_service_test extends \advanced_testcase {
             $cm->cmid,
             $this->user->id
         );
+
         [$state] = round_service::start_round($state, $instance, $this->user->id);
+        $this->assertTrue($state['roundstarted']);
 
-        // Simulates a second, concurrent session for the same user finishing its own
-        // round in the meantime, reaching max_rounds — strictly between this
-        // session's own start_round() call above and the forfeit() call below.
-        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+        $notice = round_service::get_round_restriction_notice($instance, $this->user->id);
 
-        [$state] = round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
-
-        $this->assertTrue($state['finished']);
-        // Still just the one row the concurrent session inserted — this session's own
-        // forfeit must not add a second one past max_rounds.
-        $this->assertSame(1, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
+        $this->assertNotNull($notice, 'an abandoned, never-finished round must still count against max_rounds');
     }
 
     /**
-     * Same race as test_finish_round_revalidates_restriction_inside_lock_before_inserting(),
-     * but on a genuine win with a PlayerHUD win-reward item configured: the lock must
-     * also stop the second session from granting an item it never earned a counted
-     * round for.
+     * finish_round() updates the same row start_round() reserved, matched by attemptid,
+     * instead of inserting a second one.
      *
      * @return void
      */
-    public function test_finish_round_revalidates_restriction_inside_lock_before_granting_item(): void {
+    public function test_finish_round_completes_reservation_instead_of_duplicating(): void {
         global $DB;
-        $this->skip_if_no_playerhud();
 
-        $biid = $this->make_block_instance($this->course);
-        $itemid = $this->make_item($biid, 30);
-        [$instance, $cm] = $this->make_ready_instance([
-            'num_terms'           => 3,
-            'theme_min_length'    => 6,
-            'max_rounds'          => 1,
-            'win_condition'       => PLAYERCROSS_WINCONDITION_FINALONLY,
-            'hud_win_reward_item' => $itemid,
-            'hud_win_reward_qty'  => 2,
-        ]);
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
         $state = round_service::ensure_round_state(
             round_service::load_state($cm->cmid, $this->user->id),
             $instance,
@@ -1766,17 +1772,43 @@ final class round_service_test extends \advanced_testcase {
             $this->user->id
         );
         [$state] = round_service::start_round($state, $instance, $this->user->id);
+        $reservedid = $state['attemptid'];
 
-        // Simulates the same concurrent-session race as the forfeit test above.
-        $this->modgenerator->create_attempt($instance->id, $this->user->id, 0);
+        [$state] = round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
 
-        round_service::submit_final_guess($state, $instance, $cm->cmid, $this->user->id, implode(' ', $state['themewords']));
-
+        $this->assertSame(0, $state['attemptid']);
         $this->assertSame(1, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
-        $this->assertSame(0, $DB->count_records('block_playerhud_inventory', [
-            'userid' => $this->user->id,
-            'itemid' => $itemid,
-        ]));
+        $record = $DB->get_record('playercross_attempts', ['id' => $reservedid], '*', MUST_EXIST);
+        $this->assertGreaterThan(0, (int)$record->timefinished);
+    }
+
+    /**
+     * finish_round() falls back to a fresh insert when session state carries no
+     * reservation id — the only real-world way to reach this is a round already
+     * mid-play, in a session predating the reservation mechanism, at the moment the
+     * plugin is upgraded.
+     *
+     * @return void
+     */
+    public function test_finish_round_inserts_fresh_record_when_no_reservation_exists(): void {
+        global $DB;
+
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+        // Simulates a pre-upgrade session: it started this round before attemptid
+        // existed at all.
+        $state['attemptid'] = 0;
+
+        [$state] = round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
+
+        $this->assertSame(0, $state['attemptid']);
+        $this->assertSame(2, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
     }
 
     /**
@@ -2136,7 +2168,8 @@ final class round_service_test extends \advanced_testcase {
      *
      * @return void
      */
-    public function test_start_round_guest_never_charges(): void {
+    public function test_start_round_guest_never_charges_or_reserves(): void {
+        global $DB;
         $this->skip_if_no_playerhud();
 
         $biid = $this->make_block_instance($this->course);
@@ -2160,6 +2193,8 @@ final class round_service_test extends \advanced_testcase {
 
         $this->assertNull($notification);
         $this->assertTrue($state['roundstarted']);
+        $this->assertSame(0, $state['attemptid']);
+        $this->assertSame(0, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
     }
 
     /**

@@ -161,19 +161,24 @@ final class new_round_test extends \advanced_testcase {
         [$state] = round_service::start_round($state, $instance, $this->student->id);
         round_service::save_state($instance->cmid, $this->student->id, $state);
 
+        $reservedid = $state['attemptid'];
+
         $result = $this->call_new_round($instance->cmid);
 
         $this->assertFalse($result['error']);
         $this->assertFalse($result['data']['hastheme']);
         $this->assertNotEmpty($result['data']['notification']);
 
-        // The in-progress round must still be there, untouched: not reset, and no
-        // attempt row inserted (PlayerCross only inserts one when the round actually
-        // finishes — see round_service's class docblock).
+        // The in-progress round must still be there, untouched: not reset, and its
+        // reservation row (inserted by start_round()) still open, not finalized or
+        // duplicated.
         $state = round_service::load_state($instance->cmid, $this->student->id);
         $this->assertFalse($state['finished']);
         $this->assertTrue($state['roundstarted']);
-        $this->assertSame(0, $DB->count_records('playercross_attempts', ['userid' => $this->student->id]));
+        $this->assertSame($reservedid, $state['attemptid']);
+        $this->assertSame(1, $DB->count_records('playercross_attempts', ['userid' => $this->student->id]));
+        $record = $DB->get_record('playercross_attempts', ['id' => $reservedid], '*', MUST_EXIST);
+        $this->assertSame(0, (int)$record->timefinished);
     }
 
     /**

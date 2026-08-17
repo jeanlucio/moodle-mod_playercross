@@ -45,10 +45,11 @@ class custom_completion extends activity_custom_completion {
         $this->validate_rule($rule);
 
         $required = (int)$this->cm->customdata['customcompletionrules']['completionrounds'];
-        // The playercross_attempts table is append-only and only ever gains a row once a
-        // round is fully finished (see SCOPE.md §5) — no "reserved but unfinished" state.
-        $roundscount = $DB->count_records(
+        // Only finished rounds count towards completion — a still-open reservation
+        // (timefinished = 0) is not a completed attempt yet.
+        $roundscount = $DB->count_records_select(
             'playercross_attempts',
+            'playercrossid = :playercrossid AND userid = :userid AND timefinished > 0',
             ['playercrossid' => $this->cm->instance, 'userid' => $this->userid]
         );
 
