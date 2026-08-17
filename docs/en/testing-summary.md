@@ -16,7 +16,8 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `lib_supports_test.php` | 2 |
 | `completion/custom_completion_test.php` | 6 |
 | `privacy/provider_test.php` | 21 |
-| **Subtotal** | **51** |
+| `mod_form_test.php` | 3 |
+| **Subtotal** | **54** |
 
 ### Local Business-Logic Tests (`tests/local/`)
 
@@ -24,17 +25,17 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 |-----------|------:|
 | `ai_word_generator_test.php` | 19 |
 | `attempts_history_service_test.php` | 17 |
-| `gameplay_service_test.php` | 15 |
+| `gameplay_service_test.php` | 16 |
 | `hud_service_test.php` | 27 |
 | `intro_service_test.php` | 5 |
 | `puzzle_builder_test.php` | 9 |
 | `ranking_service_test.php` | 9 |
-| `round_presenter_test.php` | 52 |
-| `round_service_test.php` | 61 |
-| `view_page_service_test.php` | 28 |
+| `round_presenter_test.php` | 58 |
+| `round_service_test.php` | 62 |
+| `view_page_service_test.php` | 36 |
 | `word_normalizer_test.php` | 38 |
 | `words_repository_test.php` | 66 |
-| **Subtotal** | **346** |
+| **Subtotal** | **362** |
 
 ### Web Services Tests (`tests/external/`)
 
@@ -51,7 +52,7 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `submit_final_guess_test.php` | 6 |
 | **Subtotal** | **53** |
 
-| **Grand Total** | **450** |
+| **Grand Total** | **469** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross
