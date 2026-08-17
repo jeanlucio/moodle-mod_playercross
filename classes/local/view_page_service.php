@@ -251,6 +251,7 @@ class view_page_service {
             'legendrevealedlabel' => get_string('help_legend_revealed', 'mod_playercross'),
             'legendhiddenlabel' => get_string('help_legend_hidden', 'mod_playercross'),
             'termstext' => get_string('help_terms', 'mod_playercross'),
+            'accentstext' => get_string('help_accents', 'mod_playercross'),
             'submittext' => get_string('help_submit', 'mod_playercross'),
             'showhint' => $showhint,
             'hinttext' => $showhint ? get_string('help_hint', 'mod_playercross') : '',
