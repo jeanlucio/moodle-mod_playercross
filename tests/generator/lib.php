@@ -50,6 +50,7 @@ class mod_playercross_generator extends testing_module_generator {
             'theme_min_length'      => 6,
             'num_terms'             => 5,
             'max_attempts_per_term' => 0,
+            'max_attempts_final_guess' => 0,
             'timer_minutes'         => 0,
             'show_ranking'          => 1,
             'wordmode'              => 1,
@@ -62,6 +63,8 @@ class mod_playercross_generator extends testing_module_generator {
             'grade'                 => 100,
             'gradepass'             => 0.0,
             'grademethod'           => 1,
+            'gradescoringmode'      => 1,
+            'rankingscoringmode'    => 1,
             'hud_round_cost_item'   => 0,
             'hud_round_cost_qty'    => 1,
             'hud_hint_cost_item'    => 0,
@@ -128,11 +131,15 @@ class mod_playercross_generator extends testing_module_generator {
      * @param int $userid Student user id.
      * @param int $themewordid Word id used as the mystery phrase for this round.
      * @param array $data Optional field overrides: termstotal, termsresolved, finalguessed,
-     *     attempts_used, time_used, completed, score, timecreated.
+     *     attempts_used, time_used, completed, score, rankingpoints, timecreated. When
+     *     rankingpoints is omitted, it mirrors whatever score resolves to (explicit
+     *     override or the 100.0 default) — most tests never diverge the two.
      * @return \stdClass Created playercross_attempts record.
      */
     public function create_attempt(int $playercrossid, int $userid, int $themewordid, array $data = []): \stdClass {
         global $DB;
+
+        $score = (float)($data['score'] ?? 100.0);
 
         $record = (object) array_merge([
             'playercrossid' => $playercrossid,
@@ -144,7 +151,8 @@ class mod_playercross_generator extends testing_module_generator {
             'attempts_used' => 1,
             'time_used'     => 30,
             'completed'     => 1,
-            'score'         => 100.0,
+            'score'         => $score,
+            'rankingpoints' => $score,
             'timecreated'   => time(),
         ], $data);
         $record->id = $DB->insert_record('playercross_attempts', $record);

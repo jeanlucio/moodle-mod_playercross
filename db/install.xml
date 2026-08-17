@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/playercross/db" VERSION="20260816" COMMENT="XMLDB file for mod_playercross"
+<XMLDB PATH="mod/playercross/db" VERSION="20260817" COMMENT="XMLDB file for mod_playercross"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -31,8 +31,10 @@
             COMMENT="Whether mystery-phrase letters not covered by any selected term are revealed from the start of the round"/>
         <FIELD NAME="win_condition" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
             COMMENT="How a round can be won: 1=every term plus the mystery phrase, 2=the mystery phrase alone"/>
-        <FIELD NAME="max_attempts_per_term" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+        <FIELD NAME="max_attempts_per_term" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="3" SEQUENCE="false"
             COMMENT="Maximum guesses per term, 0 means unlimited"/>
+        <FIELD NAME="max_attempts_final_guess" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="3" SEQUENCE="false"
+            COMMENT="Maximum guesses for the mystery phrase, 0 means unlimited"/>
         <FIELD NAME="timer_seconds" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"
             COMMENT="Optional timer in seconds for the whole round; null/0 means disabled"/>
         <FIELD NAME="show_ranking" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
@@ -55,6 +57,10 @@
             DECIMALS="5" COMMENT="Minimum passing grade"/>
         <FIELD NAME="grademethod" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
             COMMENT="Grade aggregation: 1=highest, 2=average, 3=first, 4=last, 5=average over all required rounds"/>
+        <FIELD NAME="gradescoringmode" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Grade scoring mode: 1=binary, 2=linear"/>
+        <FIELD NAME="rankingscoringmode" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
+            COMMENT="Ranking scoring mode: 1=binary, 2=linear"/>
         <FIELD NAME="hud_round_cost_item" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
             COMMENT="block_playerhud_items.id required to start a round; 0 = disabled"/>
         <FIELD NAME="hud_round_cost_qty" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"
@@ -121,6 +127,8 @@
         <FIELD NAME="completed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="score" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0.00000" SEQUENCE="false"
             DECIMALS="5"/>
+        <FIELD NAME="rankingpoints" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0.00000" SEQUENCE="false"
+            DECIMALS="5" COMMENT="Points this round contributes to the ranking total; independent from score"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>

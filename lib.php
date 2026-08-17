@@ -58,6 +58,12 @@ define('PLAYERCROSS_WINCONDITION_BOTH', 1);
  */
 define('PLAYERCROSS_WINCONDITION_FINALONLY', 2);
 
+/** Scoring mode: full credit on a win, zero otherwise. */
+define('PLAYERCROSS_SCORING_BINARY', 1);
+
+/** Scoring mode: credit decreases linearly with every wrong guess, term or final. */
+define('PLAYERCROSS_SCORING_LINEAR', 2);
+
 /**
  * Tells Moodle this plugin uses a branded icon (disables purpose recolour filter).
  *
@@ -157,6 +163,18 @@ function playercross_get_wincondition_options(): array {
     return [
         PLAYERCROSS_WINCONDITION_BOTH      => get_string('win_condition_both', 'mod_playercross'),
         PLAYERCROSS_WINCONDITION_FINALONLY => get_string('win_condition_finalonly', 'mod_playercross'),
+    ];
+}
+
+/**
+ * Returns the available scoring mode options, keyed by their PLAYERCROSS_SCORING_* constant.
+ *
+ * @return array<int, string>
+ */
+function playercross_get_scoring_mode_options(): array {
+    return [
+        PLAYERCROSS_SCORING_BINARY => get_string('scoringmode_binary', 'mod_playercross'),
+        PLAYERCROSS_SCORING_LINEAR => get_string('scoringmode_linear', 'mod_playercross'),
     ];
 }
 

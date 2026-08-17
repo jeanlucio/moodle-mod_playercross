@@ -62,6 +62,7 @@ class provider implements
                 'time_used'     => 'privacy:metadata:playercross_attempts:time_used',
                 'completed'     => 'privacy:metadata:playercross_attempts:completed',
                 'score'         => 'privacy:metadata:playercross_attempts:score',
+                'rankingpoints' => 'privacy:metadata:playercross_attempts:rankingpoints',
                 'timecreated'   => 'privacy:metadata:playercross_attempts:timecreated',
             ],
             'privacy:metadata:playercross_attempts'
@@ -311,6 +312,7 @@ class provider implements
                         'time_used'     => (int)$a->time_used,
                         'completed'     => transform::yesno($a->completed),
                         'score'         => (float)$a->score,
+                        'rankingpoints' => (float)$a->rankingpoints,
                         'timecreated'   => transform::datetime($a->timecreated),
                     ];
                 }, $attempts));

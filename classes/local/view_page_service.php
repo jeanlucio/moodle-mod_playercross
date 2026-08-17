@@ -214,6 +214,19 @@ class view_page_service {
         $showtermloss = $wincondition === PLAYERCROSS_WINCONDITION_BOTH
             && (int)($instance->max_attempts_per_term ?? 0) > 0;
 
+        // Unlike the term-exhaustion risk above, this always ends the round as a loss,
+        // regardless of win_condition — the phrase is unconditionally required to win
+        // under both modes (see round_service::submit_final_guess()).
+        $showfinalguessloss = (int)($instance->max_attempts_final_guess ?? 0) > 0;
+
+        $gradescoringmode = (int)($instance->gradescoringmode ?? PLAYERCROSS_SCORING_BINARY);
+        $rankingscoringmode = (int)($instance->rankingscoringmode ?? PLAYERCROSS_SCORING_BINARY);
+        $showranking = !empty($instance->show_ranking);
+        $showscoringformula = $showgrading && (
+            $gradescoringmode === PLAYERCROSS_SCORING_LINEAR
+            || ($showranking && $rankingscoringmode === PLAYERCROSS_SCORING_LINEAR)
+        );
+
         return [
             'helptitle' => get_string('help_title', 'mod_playercross'),
             'introtext' => get_string('help_intro', 'mod_playercross'),
@@ -226,6 +239,8 @@ class view_page_service {
             'winconditiontext' => get_string($winconditionstring, 'mod_playercross'),
             'showtermloss' => $showtermloss,
             'termlosstext' => $showtermloss ? get_string('help_termexhausted', 'mod_playercross') : '',
+            'showfinalguessloss' => $showfinalguessloss,
+            'finalguesslosstext' => $showfinalguessloss ? get_string('help_finalguessexhausted', 'mod_playercross') : '',
             'timertext' => get_string('help_timer', 'mod_playercross'),
             'showhud' => $showhud,
             'hudtext' => $showhud ? get_string('help_hud', 'mod_playercross') : '',
@@ -233,6 +248,8 @@ class view_page_service {
             'gradingtext' => $showgrading
                 ? get_string('help_grading', 'mod_playercross', round_presenter::grademethod_name($instance))
                 : '',
+            'showscoringformula' => $showscoringformula,
+            'scoringformulatext' => $showscoringformula ? get_string('help_scoringformula', 'mod_playercross') : '',
             'reviewhint' => get_string('help_reviewhint', 'mod_playercross'),
         ];
     }

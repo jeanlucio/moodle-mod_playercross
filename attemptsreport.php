@@ -59,6 +59,7 @@ $history = attempts_history_service::get_all_history(
     $filteruserid
 );
 $players = attempts_history_service::get_players_for_filter($cm, $instance, $context, (int)$USER->id);
+$showranking = !empty($instance->show_ranking);
 
 $columns = [
     ['key' => 'student', 'label' => get_string('myattempts_student', 'mod_playercross'), 'alignend' => false],
@@ -67,8 +68,15 @@ $columns = [
     ['key' => 'attempts', 'label' => get_string('myattempts_attempts', 'mod_playercross'), 'alignend' => true],
     ['key' => 'time', 'label' => get_string('myattempts_time', 'mod_playercross'), 'alignend' => true],
     ['key' => 'score', 'label' => get_string('myattempts_score', 'mod_playercross'), 'alignend' => true],
-    ['key' => 'date', 'label' => get_string('myattempts_date', 'mod_playercross'), 'alignend' => false],
 ];
+if ($showranking) {
+    $columns[] = [
+        'key'      => 'rankingpoints',
+        'label'    => get_string('myattempts_rankingpoints', 'mod_playercross'),
+        'alignend' => true,
+    ];
+}
+$columns[] = ['key' => 'date', 'label' => get_string('myattempts_date', 'mod_playercross'), 'alignend' => false];
 
 foreach ($columns as &$column) {
     $active = ($column['key'] === $sort);
@@ -113,6 +121,7 @@ $templatecontext = [
     'nolabel'           => get_string('no'),
     'rows'              => $history['rows'],
     'isempty'           => $history['isempty'],
+    'showranking'       => $showranking,
     'columns'           => $columns,
     'filterlabel'       => get_string('myattempts_student', 'mod_playercross'),
     'filterbuttonlabel' => get_string('myattempts_filterbutton', 'mod_playercross'),

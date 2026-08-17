@@ -118,8 +118,12 @@ class round_service {
             'terms'         => [],
             'termstotal'    => 0,
             'termsresolved' => 0,
-            'scoreaccumulated' => 0.0,
+            'errorsused'    => 0,
             'attemptsused'  => 0,
+            'finalguessattemptsused' => 0,
+            'finalguessexhausted' => false,
+            'score'         => 0.0,
+            'rankingpoints' => 0.0,
             'starttime'     => 0,
             'endtime'       => 0,
             'roundstarted'  => false,
@@ -130,6 +134,7 @@ class round_service {
             'finalguessed'  => false,
             'finalguesscorrect' => false,
             'finalguesseddirectly' => false,
+            'earlybonuseligible' => false,
             'termsexhausted' => false,
         ];
     }
@@ -399,15 +404,15 @@ class round_service {
      * left for the player to ever submit its own guess through — resolved stays false
      * and the round can never finish under PLAYERCROSS_WINCONDITION_BOTH.
      *
-     * Awarded the same points a direct correct guess would, treated as solved on the
-     * first attempt since none was actually made — the player already demonstrated
-     * full knowledge of every one of its letters.
+     * Treated as solved on the first attempt since none was actually made — the player
+     * already demonstrated full knowledge of every one of its letters. Terms carry no
+     * per-term point value of their own (see gameplay_service), so there is nothing to
+     * award here beyond marking the term resolved.
      *
      * @param array $state Current state.
-     * @param \stdClass $instance Activity instance.
      * @return array Updated state.
      */
-    private static function resolve_fully_revealed_terms(array $state, \stdClass $instance): array {
+    private static function resolve_fully_revealed_terms(array $state): array {
         foreach ($state['terms'] as $index => $term) {
             if ($term['resolved'] || $term['exhausted']) {
                 continue;
@@ -418,11 +423,6 @@ class round_service {
 
             $state['terms'][$index]['resolved'] = true;
             $state['termsresolved']++;
-            $state['scoreaccumulated'] += gameplay_service::calculate_term_points(
-                $instance,
-                (int)$state['termstotal'],
-                (int)$state['terms'][$index]['attemptsused']
-            );
         }
         return $state;
     }
@@ -482,7 +482,7 @@ class round_service {
         int $cmid,
         int $userid
     ): array {
-        $state = self::resolve_fully_revealed_terms($state, $instance);
+        $state = self::resolve_fully_revealed_terms($state);
         $state = self::confirm_fully_revealed_theme($state);
 
         $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
@@ -493,12 +493,12 @@ class round_service {
             return [$state, null];
         }
 
-        $bonus = gameplay_service::calculate_final_guess_bonus(
-            $instance,
-            (int)$state['termstotal'],
-            (int)$state['termsresolved']
-        );
-        $state['scoreaccumulated'] += $bonus;
+        // Earlybonuseligible was captured by submit_final_guess() at the moment of the
+        // direct guess itself, not re-derived here: under PLAYERCROSS_WINCONDITION_BOTH,
+        // winning always requires every term resolved first, so termsresolved would never
+        // read 0 at this later point even for a genuinely early guess.
+        $earlybonuseligible = !empty($state['finalguesseddirectly']) && !empty($state['earlybonuseligible']);
+
         $state = self::finish_round(
             $state,
             $instance,
@@ -507,7 +507,10 @@ class round_service {
             true,
             false,
             false,
-            !empty($state['finalguesseddirectly'])
+            !empty($state['finalguesseddirectly']),
+            false,
+            false,
+            $earlybonuseligible
         );
 
         return [$state, get_string('roundwon', 'mod_playercross')];
@@ -693,6 +696,8 @@ class round_service {
         $state['terms'][$index]['attemptsused']++;
 
         if ($normalizedguess !== $term['word']) {
+            $state['errorsused']++;
+
             $maxattempts = (int)$instance->max_attempts_per_term;
             if ($maxattempts > 0 && $state['terms'][$index]['attemptsused'] >= $maxattempts) {
                 $state['terms'][$index]['exhausted'] = true;
@@ -711,13 +716,6 @@ class round_service {
         $state['terms'][$index]['resolved'] = true;
         $state['termsresolved']++;
         $state['revealedslots'] = array_values(array_unique(array_merge($state['revealedslots'], $term['slots'])));
-
-        $points = gameplay_service::calculate_term_points(
-            $instance,
-            (int)$state['termstotal'],
-            $state['terms'][$index]['attemptsused']
-        );
-        $state['scoreaccumulated'] += $points;
 
         // See reconcile_after_reveal(): this term's own slots can, via shared letters,
         // also complete a different still-open term or the mystery phrase itself —
@@ -757,6 +755,11 @@ class round_service {
      * PLAYERCROSS_WINCONDITION_FINALONLY, a correct guess always finishes the round on
      * the spot, however many terms are still pending.
      *
+     * A wrong guess counts against max_attempts_final_guess. Running out always ends
+     * the round as a loss — unlike a term running out under PLAYERCROSS_WINCONDITION_BOTH,
+     * this is unconditional on win_condition, since the phrase is required to win under
+     * both modes (BOTH needs it directly, FINALONLY needs it exclusively).
+     *
      * @param array $state Current state.
      * @param \stdClass $instance Activity instance.
      * @param int $cmid Course module id.
@@ -793,13 +796,30 @@ class round_service {
         }
 
         $state['attemptsused']++;
+        $state['finalguessattemptsused']++;
 
         if ($guesswords !== $state['themewords']) {
+            $state['errorsused']++;
+
+            $maxattemptsfinal = (int)$instance->max_attempts_final_guess;
+            if ($maxattemptsfinal > 0 && $state['finalguessattemptsused'] >= $maxattemptsfinal) {
+                $state = self::finish_round($state, $instance, $cmid, $userid, false, false, false, false, false, true);
+                return [$state, false, get_string('feedback_finalguessexhausted', 'mod_playercross'), 'warning', true];
+            }
+
             return [$state, false, get_string('finalguesswrong', 'mod_playercross'), 'warning', true];
         }
 
         $state['finalguesscorrect'] = true;
         $state['finalguesseddirectly'] = true;
+
+        // Captured here, at the moment of the direct guess itself — not later, when the
+        // round actually finishes (reconcile_after_reveal()/finish_round()). Under
+        // PLAYERCROSS_WINCONDITION_BOTH, winning always requires every term resolved
+        // first, so termsresolved would never read 0 at that later point even for a
+        // genuinely early guess; capturing it now, before any further term can be
+        // resolved, is the only correct place to read "zero terms resolved yet".
+        $state['earlybonuseligible'] = ((int)$state['termsresolved'] === 0);
 
         // Reveals the mystery phrase's own tiles immediately, independently of whether the
         // round finishes here — a correct guess demonstrates the player already knows every
@@ -929,11 +949,18 @@ class round_service {
      *     attempts under PLAYERCROSS_WINCONDITION_BOTH, making a win impossible. Only
      *     ever used to pick the right feedback message — not persisted to the attempts
      *     table, which already records the loss via $won.
+     * @param bool $finalguessexhausted Whether the round ended because the mystery
+     *     phrase ran out of attempts. Unlike $termsexhausted this always forces a loss,
+     *     regardless of win_condition — only used to pick the right feedback message.
+     * @param bool $earlybonuseligible Whether the phrase was guessed directly before
+     *     resolving any term — feeds the early-guess bonus in gameplay_service.
      *
      * The guest account never reaches the persistence block below: no attempt row, no
      * round_completed event, no grade update, no PlayerHUD grant, no completion update.
      * $state still gets 'finished'/'won'/etc. set above the cut so the UI can show the
      * round's outcome — see start_round() for why guests are exempt in the first place.
+     * The score/rankingpoints computation happens before that cut too, so a guest still
+     * sees a correct score in the UI even though nothing is persisted.
      *
      * The persistence block is serialised per (playercrossid, userid) with
      * \core\lock\lock_config and re-checks get_round_restriction_notice() immediately
@@ -957,7 +984,9 @@ class round_service {
         bool $forfeited,
         bool $timedout,
         bool $finalguessed,
-        bool $termsexhausted = false
+        bool $termsexhausted = false,
+        bool $finalguessexhausted = false,
+        bool $earlybonuseligible = false
     ): array {
         global $CFG, $DB;
         require_once($CFG->dirroot . '/mod/playercross/lib.php');
@@ -967,8 +996,19 @@ class round_service {
         $state['won']          = $won;
         $state['forfeited']    = $forfeited;
         $state['termsexhausted'] = $termsexhausted;
+        $state['finalguessexhausted'] = $finalguessexhausted;
         $state['timedout']     = $timedout;
         $state['finalguessed'] = $finalguessed;
+
+        $errorsused = (int)$state['errorsused'];
+        $state['score'] = round(
+            gameplay_service::calculate_round_score($instance, $errorsused, $won, $earlybonuseligible),
+            5
+        );
+        $state['rankingpoints'] = round(
+            gameplay_service::calculate_ranking_points($instance, $errorsused, $won, $earlybonuseligible),
+            5
+        );
 
         if (isguestuser()) {
             return $state;
@@ -993,7 +1033,6 @@ class round_service {
             }
 
             $timeused = max(0, time() - (int)$state['starttime']);
-            $score = round((float)$state['scoreaccumulated'], 5);
 
             $attemptid = $DB->insert_record('playercross_attempts', (object)[
                 'playercrossid' => $instance->id,
@@ -1005,7 +1044,8 @@ class round_service {
                 'attempts_used' => (int)$state['attemptsused'],
                 'time_used'     => $timeused,
                 'completed'     => $won ? 1 : 0,
-                'score'         => $score,
+                'score'         => $state['score'],
+                'rankingpoints' => $state['rankingpoints'],
                 'timecreated'   => time(),
             ]);
 
@@ -1015,7 +1055,7 @@ class round_service {
                 'other'    => [
                     'completed'     => $won,
                     'finalguessed'  => $finalguessed,
-                    'score'         => $score,
+                    'score'         => $state['score'],
                     'termsresolved' => (int)$state['termsresolved'],
                     'termstotal'    => (int)$state['termstotal'],
                     'attemptsused'  => (int)$state['attemptsused'],

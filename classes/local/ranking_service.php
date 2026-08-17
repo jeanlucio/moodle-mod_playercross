@@ -36,8 +36,10 @@ class ranking_service {
     /**
      * Returns the accumulated ranking for an activity.
      *
-     * One row per student: SUM(score) DESC, AVG(attempts_used) ASC, AVG(time_used) ASC.
-     * Respects SEPARATEGROUPS: filters to members of the current user's group. Excludes anyone
+     * One row per student: SUM(rankingpoints) DESC, AVG(attempts_used) ASC, AVG(time_used) ASC.
+     * rankingpoints is independent from score — its own scoring mode (rankingscoringmode)
+     * and an uncapped early-guess bonus (see gameplay_service) can make it diverge from
+     * the grade. Respects SEPARATEGROUPS: filters to members of the current user's group. Excludes anyone
      * who can manage the activity (editingteacher, manager) even if they have attempts of their
      * own — a teacher previewing the activity should not pollute the student-facing ranking.
      * Returns up to TOP_N rows plus the current user's row when outside the top.
@@ -80,7 +82,7 @@ class ranking_service {
         $sortfullname = $DB->sql_fullname('u.firstname', 'u.lastname');
         $sql = "SELECT u.id,
                        {$namefields->selects},
-                       SUM(pa.score) AS totalscore,
+                       SUM(pa.rankingpoints) AS totalscore,
                        AVG(pa.attempts_used) AS avgattempts,
                        AVG(pa.time_used) AS avgtime
                   FROM {playercross_attempts} pa
@@ -88,7 +90,7 @@ class ranking_service {
                  WHERE pa.playercrossid = :instanceid
                        $userwhere
               GROUP BY u.id, {$namefields->selects}
-              ORDER BY SUM(pa.score) DESC, AVG(pa.attempts_used) ASC, AVG(pa.time_used) ASC,
+              ORDER BY SUM(pa.rankingpoints) DESC, AVG(pa.attempts_used) ASC, AVG(pa.time_used) ASC,
                        $sortfullname ASC";
 
         $records = $DB->get_records_sql($sql, $params);

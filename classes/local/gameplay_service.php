@@ -27,10 +27,12 @@ namespace mod_playercross\local;
 /**
  * Holds the scoring formulas for the puzzle mechanic.
  *
- * Unlike PlayerWords, PlayerCross has no configurable grading/ranking scoring mode —
- * SCOPE.md §4 describes a single fixed shape: points accumulate per term as it is
- * resolved (decreasing with attempts used on that term), plus an optional bonus for
- * guessing the mystery phrase directly before every term is solved.
+ * Grade and ranking each have their own independently configurable scoring mode
+ * (PLAYERCROSS_SCORING_BINARY or PLAYERCROSS_SCORING_LINEAR — see lib.php), mirroring
+ * mod_playerwords. Terms have no per-term point value of their own: a single shared
+ * error pool (every wrong guess, term or final, never the successful resolving one)
+ * feeds the whole round's Linear score. The Linear formula has no grace period —
+ * unlike PlayerWords, the first wrong guess already reduces the score.
  */
 class gameplay_service {
     /**
@@ -45,83 +47,120 @@ class gameplay_service {
     }
 
     /**
-     * The full grade divided evenly across every term in the round — the ceiling a
-     * single resolved term can ever be worth, and the unit the final-guess bonus is
-     * expressed in multiples of.
+     * The highest number of wrong guesses a completed round can absorb while still
+     * reaching every mandatory correct submission (every term, plus the final guess):
+     * each of those submissions gets max_attempts_per_term (or max_attempts_final_guess)
+     * attempts, one of which must be the correct one, so every attempt before that is a
+     * potential error. Used as the denominator of the Linear formula.
      *
      * @param \stdClass $instance Activity instance.
-     * @param int $termstotal Number of terms in the current round.
-     * @return float
+     * @return int
      */
-    public static function max_points_per_term(\stdClass $instance, int $termstotal): float {
-        if ($termstotal <= 0) {
-            return 0.0;
-        }
-        return (float)$instance->grade / $termstotal;
+    public static function calculate_max_errors(\stdClass $instance): int {
+        $numterms = (int)($instance->num_terms ?? 0);
+        $maxperterm = (int)($instance->max_attempts_per_term ?? 0);
+        $maxfinal = (int)($instance->max_attempts_final_guess ?? 0);
+        return $numterms * max(0, $maxperterm - 1) + max(0, $maxfinal - 1);
     }
 
     /**
-     * Calculates the points earned for resolving one term, based on attempts used on
-     * that specific term.
-     *
-     * Full credit on the first two attempts — a confident second guess is not
-     * meaningfully less deserving than a first-try one — then scales down linearly as
-     * max_attempts_per_term is approached, mirroring the curve PlayerWords uses for its
-     * whole round. When max_attempts_per_term is 0 (unlimited), there is no natural
-     * denominator to scale against, so a resolved term always earns full credit
-     * regardless of how many attempts it took.
+     * Calculates the grade points earned for a round, including the early-guess bonus
+     * when eligible — capped at the activity's configured grade, since a gradebook
+     * value should never exceed the nominal maximum.
      *
      * @param \stdClass $instance Activity instance.
-     * @param int $termstotal Number of terms in the current round.
-     * @param int $attemptsusedonterm Attempts used on this term before resolving it.
+     * @param int $errorsused Wrong guesses across every term and the final guess.
+     * @param bool $completed Whether the round was won.
+     * @param bool $earlybonuseligible Whether the phrase was guessed directly before
+     *     resolving any term.
      * @return float
      */
-    public static function calculate_term_points(
+    public static function calculate_round_score(
         \stdClass $instance,
-        int $termstotal,
-        int $attemptsusedonterm
+        int $errorsused,
+        bool $completed,
+        bool $earlybonuseligible
     ): float {
-        $maxpoints = self::max_points_per_term($instance, $termstotal);
-        if ($maxpoints <= 0.0) {
-            return 0.0;
+        $mode = (int)($instance->gradescoringmode ?? PLAYERCROSS_SCORING_BINARY);
+        $base = self::compute_points($instance, $mode, $errorsused, $completed);
+        if (!$completed || !$earlybonuseligible) {
+            return $base;
         }
 
-        $maxattempts = (int)$instance->max_attempts_per_term;
-        if ($maxattempts <= 0) {
-            return $maxpoints;
-        }
-
-        $attemptsusedonterm = min(max($attemptsusedonterm, 1), $maxattempts);
-        if ($attemptsusedonterm <= 2 || $maxattempts <= 2) {
-            return $maxpoints;
-        }
-
-        return $maxpoints * ($maxattempts - $attemptsusedonterm + 1) / ($maxattempts - 1);
+        return min((float)$instance->grade, $base + self::calculate_early_guess_bonus($instance));
     }
 
     /**
-     * Calculates the bonus earned for a correct direct guess of the mystery phrase.
-     *
-     * Inversely proportional to how many terms were already resolved at the moment of
-     * the guess: guessing before solving anything is worth as much as the remaining
-     * terms would have been at full credit each, rewarding early deduction; guessing
-     * after every term is already solved earns no bonus, since full credit was already
-     * collected from the terms themselves. The total a round can ever earn — resolved
-     * term points plus this bonus — is always bounded by the activity's configured grade.
+     * Calculates the ranking points earned for a round, including the early-guess
+     * bonus when eligible — uncapped, so a ranking total can legitimately exceed the
+     * activity's nominal grade.
      *
      * @param \stdClass $instance Activity instance.
-     * @param int $termstotal Number of terms in the current round.
-     * @param int $termsresolved Terms already resolved at the moment of the final guess.
+     * @param int $errorsused Wrong guesses across every term and the final guess.
+     * @param bool $completed Whether the round was won.
+     * @param bool $earlybonuseligible Whether the phrase was guessed directly before
+     *     resolving any term.
      * @return float
      */
-    public static function calculate_final_guess_bonus(
+    public static function calculate_ranking_points(
         \stdClass $instance,
-        int $termstotal,
-        int $termsresolved
+        int $errorsused,
+        bool $completed,
+        bool $earlybonuseligible
     ): float {
-        $maxpoints = self::max_points_per_term($instance, $termstotal);
-        $remaining = max(0, $termstotal - $termsresolved);
+        $mode = (int)($instance->rankingscoringmode ?? PLAYERCROSS_SCORING_BINARY);
+        $base = self::compute_points($instance, $mode, $errorsused, $completed);
+        if (!$completed || !$earlybonuseligible) {
+            return $base;
+        }
 
-        return $maxpoints * $remaining;
+        return $base + self::calculate_early_guess_bonus($instance);
+    }
+
+    /**
+     * Calculates the flat early-guess bonus: 10% of the activity's configured grade.
+     *
+     * @param \stdClass $instance Activity instance.
+     * @return float
+     */
+    public static function calculate_early_guess_bonus(\stdClass $instance): float {
+        return (float)$instance->grade * 0.10;
+    }
+
+    /**
+     * Computes the base score for one scoring mode, before any early-guess bonus.
+     *
+     * Binary always awards full credit on a completed round. Linear scales down
+     * proportionally to errors used against calculate_max_errors(), with no grace
+     * period: even a single wrong guess already reduces the score.
+     *
+     * @param \stdClass $instance Activity instance.
+     * @param int $mode One of the PLAYERCROSS_SCORING_* constants.
+     * @param int $errorsused Wrong guesses across every term and the final guess.
+     * @param bool $completed Whether the round was won.
+     * @return float
+     */
+    private static function compute_points(\stdClass $instance, int $mode, int $errorsused, bool $completed): float {
+        if (!$completed) {
+            return 0.0;
+        }
+
+        $maxpoints = (float)$instance->grade;
+        if ($mode !== PLAYERCROSS_SCORING_LINEAR) {
+            return $maxpoints;
+        }
+
+        $maxperterm = (int)($instance->max_attempts_per_term ?? 0);
+        $maxfinal = (int)($instance->max_attempts_final_guess ?? 0);
+        if ($maxperterm <= 0 || $maxfinal <= 0) {
+            // Defensive: mod_form::validation() blocks saving Linear + unlimited going
+            // forward, but a row persisted before that validation existed could still
+            // reach here. Degrade to full credit, same as PlayerWords' own guard.
+            return $maxpoints;
+        }
+
+        $maxerrors = self::calculate_max_errors($instance);
+        $errorsused = min(max($errorsused, 0), $maxerrors);
+        return $maxpoints * ($maxerrors - $errorsused + 1) / ($maxerrors + 1);
     }
 }

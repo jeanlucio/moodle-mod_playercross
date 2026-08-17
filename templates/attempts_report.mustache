@@ -32,6 +32,8 @@
         "yeslabel": "Yes",
         "nolabel": "No",
         "isempty": false,
+        "showranking": true,
+        "rankingpointslabel": "Ranking points",
         "filterlabel": "Student",
         "filterbuttonlabel": "Filter",
         "filterurl": "https://example.com/mod/playercross/attemptsreport.php",
@@ -61,6 +63,7 @@
                 "timeused": "1:24",
                 "won": true,
                 "score": "85.00",
+                "rankingpoints": "85.00",
                 "datecreated": "14 July 2026, 9:00 AM"
             }
         ],
@@ -114,6 +117,9 @@
                             <td class="text-end">{{attemptsused}}</td>
                             <td class="text-end">{{timeused}}</td>
                             <td class="text-end">{{score}}</td>
+                            {{#showranking}}
+                                <td class="text-end">{{rankingpoints}}</td>
+                            {{/showranking}}
                             <td>{{datecreated}}</td>
                         </tr>
                     {{/rows}}

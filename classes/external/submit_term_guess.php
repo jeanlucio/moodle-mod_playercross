@@ -232,6 +232,18 @@ class submit_term_guess extends external_api {
                         'This term\'s own letter-by-letter tile row'
                     ),
                     'canguess' => new external_value(PARAM_BOOL, 'Whether a guess can still be submitted'),
+                    'showtermattemptsremaining' => new external_value(
+                        PARAM_BOOL,
+                        'Whether this term\'s attempts-remaining badge is shown'
+                    ),
+                    'termattemptsremainingvalue' => new external_value(
+                        PARAM_TEXT,
+                        'Attempts left for this term, or the infinity glyph when unlimited'
+                    ),
+                    'termattemptsremaininglabel' => new external_value(
+                        PARAM_TEXT,
+                        'Accessible label for the term attempts-remaining count'
+                    ),
                 ]),
                 'Term rows'
             ),
@@ -260,6 +272,26 @@ class submit_term_guess extends external_api {
             'canaffordhint'      => new external_value(PARAM_BOOL, 'Whether the user can afford the hint'),
             'canfinalguess'      => new external_value(PARAM_BOOL, 'Whether a final guess can still be submitted'),
             'submitfinalguess'   => new external_value(PARAM_TEXT, 'Submit final guess button label'),
+            'showfinalguessattemptsremaining' => new external_value(
+                PARAM_BOOL,
+                'Whether the final-guess attempts-remaining badge is shown'
+            ),
+            'finalguessattemptsremainingvalue' => new external_value(
+                PARAM_TEXT,
+                'Attempts left for the mystery phrase, or the infinity glyph when unlimited'
+            ),
+            'finalguessattemptsremaininglabel' => new external_value(
+                PARAM_TEXT,
+                'Accessible label for the final-guess attempts-remaining count'
+            ),
+            'finalguessexhausted' => new external_value(
+                PARAM_BOOL,
+                'Whether the mystery phrase ran out of attempts'
+            ),
+            'finalguessexhaustedlabel' => new external_value(
+                PARAM_TEXT,
+                'Human-readable "no success after N attempts" label, empty unless finalguessexhausted'
+            ),
             'keyboardlabel' => new external_value(PARAM_TEXT, 'Virtual keyboard accessible group label'),
             'keyboardbackspacelabel' => new external_value(
                 PARAM_TEXT,

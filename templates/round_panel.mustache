@@ -85,6 +85,11 @@
         "submittermguess": "Submit",
         "canfinalguess": true,
         "submitfinalguess": "Guess the mystery phrase",
+        "showfinalguessattemptsremaining": true,
+        "finalguessattemptsremainingvalue": "3",
+        "finalguessattemptsremaininglabel": "Attempts left: 3",
+        "finalguessexhausted": false,
+        "finalguessexhaustedlabel": "",
         "keyboardlabel": "Virtual keyboard",
         "keyboardbackspacelabel": "Delete last letter",
         "showcedilla": false,
@@ -138,6 +143,10 @@
             </div>
             {{#canfinalguess}}
                 <button type="submit" class="pc-row-submit">{{submitfinalguess}}</button>
+                {{#showfinalguessattemptsremaining}}
+                    <span class="mod-playercross-attempts-count text-muted small"
+                          aria-label="{{finalguessattemptsremaininglabel}}">×{{finalguessattemptsremainingvalue}}</span>
+                {{/showfinalguessattemptsremaining}}
             {{/canfinalguess}}
         {{/themesolved}}
         {{#themesolved}}
@@ -145,6 +154,9 @@
                 {{! Reuses .mod-playercross-term-answer for the mystery-phrase's own resolved-answer line. }}
                 <span class="mod-playercross-term-answer">{{#finalguesscorrect}}&#10003; {{/finalguesscorrect}}{{themedisplayword}}</span>
             </p>
+            {{#finalguessexhausted}}
+                <p class="text-muted small text-center mb-0">{{finalguessexhaustedlabel}}</p>
+            {{/finalguessexhausted}}
         {{/themesolved}}
     </form>
 

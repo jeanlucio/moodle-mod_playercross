@@ -44,6 +44,7 @@ class attempts_history_service {
         'attempts' => 'pa.attempts_used',
         'time'     => 'pa.time_used',
         'score'    => 'pa.score',
+        'rankingpoints' => 'pa.rankingpoints',
         'date'     => 'pa.timecreated',
     ];
 
@@ -74,9 +75,10 @@ class attempts_history_service {
         ]));
 
         $isempty = empty($attemptsasc);
+        $showranking = !empty($instance->show_ranking);
 
         $rows = array_map(
-            fn(\stdClass $attempt): array => self::build_row($attempt),
+            fn(\stdClass $attempt): array => self::build_row($attempt, $showranking),
             array_reverse($attemptsasc)
         );
 
@@ -89,6 +91,7 @@ class attempts_history_service {
         return [
             'rows'            => $rows,
             'isempty'         => $isempty,
+            'showranking'     => $showranking,
             'showgrade'       => $showgrade,
             'grade'           => format_float($grade, 2),
             'maxgrade'        => format_float((float)$instance->grade, 2),
@@ -101,9 +104,10 @@ class attempts_history_service {
      *
      * @param \stdClass $attempt Attempt record, optionally joined with the theme word
      *     and (for the all-students report) a studentname column.
+     * @param bool $showranking Whether to include the ranking-points column.
      * @return array
      */
-    private static function build_row(\stdClass $attempt): array {
+    private static function build_row(\stdClass $attempt, bool $showranking): array {
         $minutes = intdiv((int)$attempt->time_used, 60);
         $seconds = (int)$attempt->time_used % 60;
 
@@ -116,6 +120,7 @@ class attempts_history_service {
             'timeused'      => sprintf('%d:%02d', $minutes, $seconds),
             'won'           => !empty($attempt->completed),
             'score'         => format_float((float)$attempt->score, 2),
+            'rankingpoints' => $showranking ? format_float((float)$attempt->rankingpoints, 2) : '',
             'datecreated'   => userdate((int)$attempt->timecreated, get_string('strftimedatetime', 'langconfig')),
         ];
 
@@ -269,8 +274,9 @@ class attempts_history_service {
             $record->studentname = fullname($record, $canviewfullnames);
         }
 
+        $showranking = !empty($instance->show_ranking);
         $rows = array_map(
-            fn(\stdClass $attempt): array => self::build_row($attempt),
+            fn(\stdClass $attempt): array => self::build_row($attempt, $showranking),
             array_values($records)
         );
 

@@ -56,7 +56,10 @@
                     {"letter": "", "revealed": false, "slotnum": "3", "arialabel": "Hidden letter, slot 3"},
                     {"letter": "A", "revealed": true, "slotnum": "", "arialabel": "A, revealed"}
                 ],
-                "canguess": true
+                "canguess": true,
+                "showtermattemptsremaining": true,
+                "termattemptsremainingvalue": "2",
+                "termattemptsremaininglabel": "Attempts left: 2"
             },
             {
                 "termid": 13,
@@ -67,7 +70,10 @@
                 "exhaustedlabel": "",
                 "revealword": "CANETA",
                 "tiles": [],
-                "canguess": false
+                "canguess": false,
+                "showtermattemptsremaining": false,
+                "termattemptsremainingvalue": "",
+                "termattemptsremaininglabel": ""
             }
         ],
         "guesslabel": "Your answer",
@@ -82,7 +88,12 @@
         {{#terms}}
             <li class="mod-playercross-term{{#resolved}} is-resolved{{/resolved}}{{#exhausted}} is-exhausted{{/exhausted}}"
                 data-term-id="{{termid}}">
-                <p class="mod-playercross-term-phrase">{{phrase}}</p>
+                <p class="mod-playercross-term-phrase">{{phrase}}
+                    {{#showtermattemptsremaining}}
+                        <span class="mod-playercross-attempts-count text-muted small"
+                              aria-label="{{termattemptsremaininglabel}}">×{{termattemptsremainingvalue}}</span>
+                    {{/showtermattemptsremaining}}
+                </p>
                 {{#resolved}}
                     <span class="mod-playercross-term-answer">&#10003; {{revealword}}</span>
                 {{/resolved}}

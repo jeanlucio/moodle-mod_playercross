@@ -32,11 +32,15 @@
         "winconditiontext": "To win a round, you must resolve every term and correctly guess the mystery phrase — in either order.",
         "showtermloss": true,
         "termlosstext": "Each term has a limited number of attempts. If one runs out, winning becomes impossible and the round ends immediately as a loss.",
+        "showfinalguessloss": true,
+        "finalguesslosstext": "The mystery phrase also has a limited number of attempts. If they run out, the round ends immediately as a loss, no matter how the round can be won.",
         "timertext": "Some activities have a time limit per round.",
         "showhud": true,
         "hudtext": "This activity may require PlayerHUD items to start a round or reveal a hint, and can reward you with an item for winning a round.",
         "showgrading": true,
         "gradingtext": "Grading method: Highest grade.",
+        "showscoringformula": true,
+        "scoringformulatext": "Grading uses linear scoring: you get full credit with no wrong guesses, and credit decreases with every wrong guess across every term and the mystery phrase.",
         "reviewhint": "You can review these instructions anytime by clicking the help icon at the top of the game."
     }
 }}
@@ -54,6 +58,9 @@
     {{#showtermloss}}
         <p>{{termlosstext}}</p>
     {{/showtermloss}}
+    {{#showfinalguessloss}}
+        <p>{{finalguesslosstext}}</p>
+    {{/showfinalguessloss}}
     <p>{{timertext}}</p>
     {{#showhud}}
         <p>{{hudtext}}</p>
@@ -61,5 +68,8 @@
     {{#showgrading}}
         <p>{{gradingtext}}</p>
     {{/showgrading}}
+    {{#showscoringformula}}
+        <p>{{scoringformulatext}}</p>
+    {{/showscoringformula}}
     <p>{{reviewhint}}</p>
 </div>

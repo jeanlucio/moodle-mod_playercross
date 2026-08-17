@@ -133,14 +133,24 @@ class round_presenter {
      * shown letter-by-letter through build_word_tiles(), or in full once resolved or
      * the round has finished.
      *
+     * @param \stdClass $instance Activity instance.
      * @param array $state Session state.
      * @param bool $roundfinished Whether the current round is finished.
      * @return array
      */
-    public static function build_term_rows(array $state, bool $roundfinished): array {
+    public static function build_term_rows(\stdClass $instance, array $state, bool $roundfinished): array {
+        $maxattempts = (int)($instance->max_attempts_per_term ?? 0);
+
         $rows = [];
         foreach ($state['terms'] as $term) {
             $reveal = $roundfinished || $term['resolved'];
+            $canguess = !$term['resolved'] && !$term['exhausted'] && !$roundfinished;
+
+            // Same "∞ for no limit" convention already used for the hints-remaining
+            // badge (build_global_hint_context()).
+            $attemptsremainingvalue = $maxattempts > 0
+                ? (string)max(0, $maxattempts - (int)$term['attemptsused'])
+                : "\u{221E}";
 
             $rows[] = [
                 'termid'       => (int)$term['wordid'],
@@ -159,7 +169,12 @@ class round_presenter {
                     $state['revealedslots'],
                     $reveal
                 ),
-                'canguess'     => !$term['resolved'] && !$term['exhausted'] && !$roundfinished,
+                'canguess'     => $canguess,
+                'showtermattemptsremaining' => $canguess,
+                'termattemptsremainingvalue' => $canguess ? $attemptsremainingvalue : '',
+                'termattemptsremaininglabel' => $canguess
+                    ? get_string('attemptsremaining', 'mod_playercross', $attemptsremainingvalue)
+                    : '',
             ];
         }
 
@@ -208,6 +223,9 @@ class round_presenter {
         }
         if (!empty($state['termsexhausted'])) {
             return get_string('feedback_termsexhausted', 'mod_playercross');
+        }
+        if (!empty($state['finalguessexhausted'])) {
+            return get_string('feedback_finalguessexhausted', 'mod_playercross');
         }
         if (!empty($state['finalguessed']) && (int)$state['termsresolved'] < (int)$state['termstotal']) {
             return get_string('feedback_finalguessed', 'mod_playercross');
@@ -473,6 +491,16 @@ class round_presenter {
         // via the $roundfinished half of the check, even though finalguesscorrect never
         // became true in that case.
         $themesolved = $roundfinished || !empty($state['finalguesscorrect']);
+        $canfinalguess = !$themesolved;
+
+        // Same "∞ for no limit" convention already used for the hints-remaining and
+        // per-term attempts-remaining badges.
+        $maxattemptsfinal = (int)($instance->max_attempts_final_guess ?? 0);
+        $finalguessattemptsused = (int)($state['finalguessattemptsused'] ?? 0);
+        $finalguessattemptsremainingvalue = $maxattemptsfinal > 0
+            ? (string)max(0, $maxattemptsfinal - $finalguessattemptsused)
+            : "\u{221E}";
+        $finalguessexhausted = !empty($state['finalguessexhausted']);
 
         return [
             'themetiles' => self::build_phrase_tiles($state, $roundfinished),
@@ -482,7 +510,7 @@ class round_presenter {
             'themesolved' => $themesolved,
             'finalguesscorrect' => !empty($state['finalguesscorrect']),
             'themedisplayword' => $themesolved ? s(core_text::strtoupper($state['themeclue'])) : '',
-            'terms' => self::build_term_rows($state, $roundfinished),
+            'terms' => self::build_term_rows($instance, $state, $roundfinished),
             'termsresolved' => (int)$state['termsresolved'],
             'termstotal' => (int)$state['termstotal'],
             'termsprogresslabel' => get_string('termsprogress', 'mod_playercross', (object)[
@@ -495,8 +523,17 @@ class round_presenter {
             'roundfinished' => $roundfinished,
             'guesslabel' => get_string('guesslabel', 'mod_playercross'),
             'submittermguess' => get_string('submittermguess', 'mod_playercross'),
-            'canfinalguess' => !$themesolved,
+            'canfinalguess' => $canfinalguess,
             'submitfinalguess' => get_string('submitfinalguess', 'mod_playercross'),
+            'showfinalguessattemptsremaining' => $canfinalguess,
+            'finalguessattemptsremainingvalue' => $canfinalguess ? $finalguessattemptsremainingvalue : '',
+            'finalguessattemptsremaininglabel' => $canfinalguess
+                ? get_string('attemptsremaining', 'mod_playercross', $finalguessattemptsremainingvalue)
+                : '',
+            'finalguessexhausted' => $finalguessexhausted,
+            'finalguessexhaustedlabel' => $finalguessexhausted
+                ? get_string('termexhaustedlabel', 'mod_playercross', $finalguessattemptsused)
+                : '',
             'forfeitlabel' => get_string('forfeitbutton', 'mod_playercross'),
             'forfeitconfirm' => get_string('forfeitconfirm', 'mod_playercross'),
             'keyboardlabel' => get_string('keyboard_label', 'mod_playercross'),
@@ -636,7 +673,7 @@ class round_presenter {
             'revealthemeword'      => s(core_text::strtoupper($state['themeclue'])),
             'revealthemewordlabel' => $blank['revealthemewordlabel'],
             'resulttermslabel'     => $blank['resulttermslabel'],
-            'scoreachieved'        => format_float((float)$state['scoreaccumulated'], 2),
+            'scoreachieved'        => format_float((float)($state['score'] ?? 0.0), 2),
             'scoreachievedlabel'   => $blank['scoreachievedlabel'],
             'cooldownuntil'        => $cooldownuntil,
             'cooldowntext'         => self::build_cooldown_text($cooldownuntil),

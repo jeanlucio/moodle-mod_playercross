@@ -212,9 +212,19 @@ class mod_playercross_mod_form extends moodleform_mod {
             get_string('max_attempts_per_term', 'mod_playercross')
         );
         $mform->setType('max_attempts_per_term', PARAM_INT);
-        $mform->setDefault('max_attempts_per_term', 0);
+        $mform->setDefault('max_attempts_per_term', 3);
         $mform->addRule('max_attempts_per_term', null, 'numeric', null, 'client');
         $mform->addHelpButton('max_attempts_per_term', 'max_attempts_per_term', 'mod_playercross');
+
+        $mform->addElement(
+            'text',
+            'max_attempts_final_guess',
+            get_string('max_attempts_final_guess', 'mod_playercross')
+        );
+        $mform->setType('max_attempts_final_guess', PARAM_INT);
+        $mform->setDefault('max_attempts_final_guess', 3);
+        $mform->addRule('max_attempts_final_guess', null, 'numeric', null, 'client');
+        $mform->addHelpButton('max_attempts_final_guess', 'max_attempts_final_guess', 'mod_playercross');
 
         $mform->addElement('text', 'timer_minutes', get_string('timer_minutes', 'mod_playercross'));
         $mform->setType('timer_minutes', PARAM_INT);
@@ -229,6 +239,17 @@ class mod_playercross_mod_form extends moodleform_mod {
         );
         $mform->setType('show_ranking', PARAM_INT);
         $mform->setDefault('show_ranking', 1);
+
+        $mform->addElement(
+            'select',
+            'rankingscoringmode',
+            get_string('rankingscoringmode', 'mod_playercross'),
+            playercross_get_scoring_mode_options()
+        );
+        $mform->setType('rankingscoringmode', PARAM_INT);
+        $mform->setDefault('rankingscoringmode', PLAYERCROSS_SCORING_BINARY);
+        $mform->addHelpButton('rankingscoringmode', 'rankingscoringmode', 'mod_playercross');
+        $mform->hideIf('rankingscoringmode', 'show_ranking', 'eq', 0);
 
         $maxroundsoptions = [0 => get_string('max_rounds_unlimited', 'mod_playercross')];
         for ($i = 1; $i <= 10; $i++) {
@@ -368,6 +389,17 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->addHelpButton('grademethod', 'grademethod', 'mod_playercross');
         $mform->hideIf('grademethod', 'grade[modgrade_type]', 'eq', 'none');
 
+        $mform->addElement(
+            'select',
+            'gradescoringmode',
+            get_string('gradescoringmode', 'mod_playercross'),
+            playercross_get_scoring_mode_options()
+        );
+        $mform->setType('gradescoringmode', PARAM_INT);
+        $mform->setDefault('gradescoringmode', PLAYERCROSS_SCORING_BINARY);
+        $mform->addHelpButton('gradescoringmode', 'gradescoringmode', 'mod_playercross');
+        $mform->hideIf('gradescoringmode', 'grade[modgrade_type]', 'eq', 'none');
+
         $PAGE->requires->js_call_amd('mod_playercross/grademethod', 'init', [
             'id_max_rounds',
             'id_grademethod',
@@ -408,12 +440,15 @@ class mod_playercross_mod_form extends moodleform_mod {
      * Freezes settings that feed the puzzle's point scale once the activity has
      * recorded a real grade for any student.
      *
-     * num_terms and grademethod are baked into every already-scored round at the
-     * moment it finishes. Changing either afterwards would make past and future
-     * rounds count on different scales, both for the grade and for the ranking
-     * total. This mirrors the same condition core already uses to freeze the
-     * "Maximum grade" field itself — the modgrade element in lib/form/modgrade.php
-     * disables it once $gradeitem->has_grades() is true.
+     * num_terms, grademethod, max_attempts_per_term, max_attempts_final_guess,
+     * gradescoringmode and rankingscoringmode are all baked into every already-scored
+     * round at the moment it finishes — the Linear formula's denominator
+     * (gameplay_service::calculate_max_errors()) is a direct function of num_terms and
+     * both attempts fields. Changing any of them afterwards would make past and future
+     * rounds count on different scales, both for the grade and for the ranking total.
+     * This mirrors the same condition core already uses to freeze the "Maximum grade"
+     * field itself — the modgrade element in lib/form/modgrade.php disables it once
+     * $gradeitem->has_grades() is true.
      *
      * @return void
      */
@@ -439,7 +474,14 @@ class mod_playercross_mod_form extends moodleform_mod {
         }
 
         $mform = $this->_form;
-        $lockedfields = ['num_terms', 'grademethod'];
+        $lockedfields = [
+            'num_terms',
+            'grademethod',
+            'max_attempts_per_term',
+            'max_attempts_final_guess',
+            'gradescoringmode',
+            'rankingscoringmode',
+        ];
         $mform->freeze($lockedfields);
 
         $warninghtml = html_writer::div(get_string('scoringmode_locked', 'mod_playercross'), 'alert alert-warning');
@@ -518,6 +560,24 @@ class mod_playercross_mod_form extends moodleform_mod {
 
         if ((int)$data['max_attempts_per_term'] < 0) {
             $errors['max_attempts_per_term'] = get_string('error_maxattemptsperterm', 'mod_playercross');
+        }
+
+        if ((int)$data['max_attempts_final_guess'] < 0) {
+            $errors['max_attempts_final_guess'] = get_string('error_maxattemptsfinalguess', 'mod_playercross');
+        }
+
+        // Linear scoring divides by calculate_max_errors(), which needs a real (non-zero)
+        // denominator from both attempts fields — see gameplay_service. A hard validation
+        // error, not a silent runtime fallback to Binary, so a teacher configuring an
+        // unlimited-attempts activity finds out immediately, at save time.
+        $linearrequested = (int)$data['gradescoringmode'] === PLAYERCROSS_SCORING_LINEAR
+            || (int)$data['rankingscoringmode'] === PLAYERCROSS_SCORING_LINEAR;
+        $hasunlimitedattempts = (int)$data['max_attempts_per_term'] === 0
+            || (int)$data['max_attempts_final_guess'] === 0;
+        if ($linearrequested && $hasunlimitedattempts) {
+            $message = get_string('error_linearscoring_requires_maxattempts', 'mod_playercross');
+            $errors['gradescoringmode'] = $message;
+            $errors['rankingscoringmode'] = $message;
         }
 
         if ((int)$data['timer_minutes'] < 0) {
