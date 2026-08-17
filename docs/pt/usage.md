@@ -4,10 +4,10 @@
 2. Configure:
    * Intervalo de comprimento da frase-mistério (independente do intervalo das próprias palavras-termo) e número de termos por rodada
    * Condição de vitória (termos e frase-mistério obrigatórios, ou só o acerto da frase-mistério) e se letras não cobertas da frase-mistério são reveladas automaticamente
-   * Máximo de tentativas por termo, intervalo entre rodadas e limite de rodadas
+   * Máximo de tentativas por termo e para a frase-mistério, intervalo entre rodadas e limite de rodadas
    * Se dicas são permitidas, e se sim, o máximo de revelações por rodada (padrão 3, ou ilimitado)
    * Modo de palavra (aleatório ou sequência compartilhada)
-   * Método de avaliação e configurações do diário de notas
+   * Método de avaliação, modo de pontuação da nota e do ranking (Binário ou Linear), e configurações do diário de notas
    * Fontes de palavras (manual, Glossário, IA), glossário de origem, e uma lista de stopwords a ignorar ao dividir conceitos de glossário com várias palavras (todos opcionais)
    * Custos em itens do PlayerHUD e concessão por vitória (opcional, quando o bloco PlayerHUD está presente)
 3. Abra a página **Gerenciar palavras** para adicionar, gerar com IA, aprovar, editar ou excluir palavras.
