@@ -212,8 +212,8 @@ Feature: PlayerCross core gameplay loop
 
   Scenario: Running out of attempts for the mystery phrase ends the round as a loss under the default win condition
     Given the following "activities" exist:
-      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length | max_attempts_final_guess |
-      | playercross | C1     | Cross Final Ex | 1         | 6                 | 3          | 15         | 1                         |
+      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length | max_attempts_final_guess | cooldown_amount |
+      | playercross | C1     | Cross Final Ex | 1         | 6                 | 3          | 15         | 1                         | 0                |
     And the following PlayerCross words exist in activity "Cross Final Ex":
       | word   |
       | escola |
@@ -228,8 +228,8 @@ Feature: PlayerCross core gameplay loop
 
   Scenario: Running out of attempts for the mystery phrase ends the round as a loss under mystery-phrase-only
     Given the following "activities" exist:
-      | activity    | course | name             | num_terms | theme_min_length | min_length | max_length | win_condition | max_attempts_final_guess |
-      | playercross | C1     | Cross Final Only | 1         | 6                 | 3          | 15         | 2              | 1                         |
+      | activity    | course | name             | num_terms | theme_min_length | min_length | max_length | win_condition | max_attempts_final_guess | cooldown_amount |
+      | playercross | C1     | Cross Final Only | 1         | 6                 | 3          | 15         | 2              | 1                         | 0                |
     And the following PlayerCross words exist in activity "Cross Final Only":
       | word   |
       | escola |

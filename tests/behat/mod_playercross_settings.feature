@@ -39,8 +39,8 @@ Feature: PlayerCross teacher-facing settings behaviour
     Then I should see "Because this activity has already recorded a real grade"
     And "select#id_num_terms" "css_element" should not exist
     And "select#id_grademethod" "css_element" should not exist
-    And "input#id_max_attempts_per_term" "css_element" should not exist
-    And "input#id_max_attempts_final_guess" "css_element" should not exist
+    And "input#id_max_attempts_per_term[readonly]" "css_element" should exist
+    And "input#id_max_attempts_final_guess[readonly]" "css_element" should exist
     And "select#id_gradescoringmode" "css_element" should not exist
     And "select#id_rankingscoringmode" "css_element" should not exist
 
