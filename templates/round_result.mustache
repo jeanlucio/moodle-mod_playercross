@@ -17,18 +17,18 @@
 {{!
     @template mod_playercross/round_result
 
-    Post-round panel: feedback message, mystery-phrase reveal, a recap of every term's
-    own clue and answer word (reusing the 'terms' context round_presenter::
+    Post-round panel: feedback message, score, a recap of every term's own clue and
+    answer word (reusing the 'terms' context round_presenter::
     build_round_panel_context() already builds via build_term_rows() for round_play —
     every term's own revealword is populated once the round is finished, regardless of
-    whether the student actually resolved it), score, cooldown countdown and the
-    new-round action.
+    whether the student actually resolved it), cooldown countdown and the new-round
+    action. The mystery phrase itself is not repeated here — the theme-form section
+    above this panel (round_panel.mustache) already shows it, collapsed to plain text,
+    the moment themesolved is true.
 
     Example context (json):
     {
         "feedbackmessage": "You solved the mystery phrase!",
-        "revealthemewordlabel": "The mystery phrase was:",
-        "revealthemeword": "ESCOLA",
         "resulttermslabel": "Terms from this round:",
         "terms": [
             {
@@ -61,7 +61,6 @@
         <p class="mod-playercross-feedback fw-bold mt-3 text-center">{{feedbackmessage}}</p>
     {{/feedbackmessage}}
     <div class="mod-playercross-reveal alert alert-secondary mt-3 text-center">
-        <p class="mb-1"><strong>{{revealthemewordlabel}}</strong> {{revealthemeword}}</p>
         <p class="mb-0">{{scoreachievedlabel}} {{scoreachieved}}</p>
     </div>
     <p class="fw-bold text-center mt-3 mb-2">{{resulttermslabel}}</p>

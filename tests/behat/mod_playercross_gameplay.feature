@@ -34,7 +34,6 @@ Feature: PlayerCross core gameplay loop
     When I fill the PlayerCross mystery phrase tiles with "escola"
     And I press enter
     Then I should see "You solved the mystery phrase directly!"
-    And I should see "The mystery phrase was:"
     And I should see "ESCOLA"
     And "#playercross-timer-wrapper" "css_element" should not be visible
 
