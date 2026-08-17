@@ -22,10 +22,14 @@
 
     termlosstext and finalguesslosstext each embed a real
     .mod-playercross-attempts-count pill (styled in styles.css) reading "×N"
-    directly in their own sentence — get_string() output, so trusted and
-    static (never user input), rendered with triple-mustache below. Not
-    aria-hidden: the "×N" pill is the sentence's own content here, not a
-    decorative echo of text already read aloud elsewhere.
+    directly in their own sentence — view_page_service::build_help_context()
+    builds that pill with html_writer::tag() and injects it through each
+    lang string's own {$a} placeholder, so the CSS class name never lives in
+    a translatable string and every language keeps full control over where
+    the pill sits in its own sentence. Trusted and static (never user
+    input), so rendered with triple-mustache below. Not aria-hidden: the
+    "×N" pill is the sentence's own content here, not a decorative echo of
+    text already read aloud elsewhere.
 
     Example context (json):
     {

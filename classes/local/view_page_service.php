@@ -25,6 +25,7 @@
 namespace mod_playercross\local;
 
 use context_module;
+use html_writer;
 
 /**
  * Handles the template context of view.php.
@@ -227,6 +228,13 @@ class view_page_service {
             || ($showranking && $rankingscoringmode === PLAYERCROSS_SCORING_LINEAR)
         );
 
+        // A real example of the on-screen attempts-remaining pill (.mod-playercross-
+        // attempts-count, styled in styles.css), injected into help_termexhausted/
+        // help_finalguessexhausted through their own {$a} placeholder — keeps the CSS
+        // class name out of the lang strings themselves, and keeps the placeholder
+        // free to move wherever each translation's own sentence structure needs it.
+        $attemptscountexample = html_writer::tag('span', '×N', ['class' => 'mod-playercross-attempts-count']);
+
         return [
             'helptitle' => get_string('help_title', 'mod_playercross'),
             'introtext' => get_string('help_intro', 'mod_playercross'),
@@ -238,9 +246,13 @@ class view_page_service {
             'finalguesstext' => get_string('help_finalguess', 'mod_playercross'),
             'winconditiontext' => get_string($winconditionstring, 'mod_playercross'),
             'showtermloss' => $showtermloss,
-            'termlosstext' => $showtermloss ? get_string('help_termexhausted', 'mod_playercross') : '',
+            'termlosstext' => $showtermloss
+                ? get_string('help_termexhausted', 'mod_playercross', $attemptscountexample)
+                : '',
             'showfinalguessloss' => $showfinalguessloss,
-            'finalguesslosstext' => $showfinalguessloss ? get_string('help_finalguessexhausted', 'mod_playercross') : '',
+            'finalguesslosstext' => $showfinalguessloss
+                ? get_string('help_finalguessexhausted', 'mod_playercross', $attemptscountexample)
+                : '',
             'timertext' => get_string('help_timer', 'mod_playercross'),
             'showhud' => $showhud,
             'hudtext' => $showhud ? get_string('help_hud', 'mod_playercross') : '',
