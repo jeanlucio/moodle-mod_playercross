@@ -51,6 +51,8 @@ Feature: PlayerCross core gameplay loop
     When I fill PlayerCross term "1" tiles with "livro"
     And I press enter
     Then "li.mod-playercross-term.is-resolved" "css_element" should exist
+    And "#playercross-keyboard button[data-key='L'].is-revealed" "css_element" should exist
+    And "#playercross-keyboard button[data-key='Z'].is-revealed" "css_element" should not exist
 
   Scenario: Student forfeits an active round with a confirmation dialog
     Given the following "activities" exist:

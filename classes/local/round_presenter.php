@@ -182,6 +182,49 @@ class round_presenter {
     }
 
     /**
+     * Round-wide set of letters whose slot has already been revealed. Every letter here
+     * is already visible somewhere on screen — a term's own tile, the phrase's tile, or
+     * a fully solved term/phrase's plain text — since puzzle_builder assigns one slot
+     * per distinct letter across the whole round (SCOPE.md §20.2 v1.7), not per
+     * physical position, so "this letter is known" is a single round-wide fact rather
+     * than something that could be true for one target and not another.
+     *
+     * Computed here, from revealedslots, rather than by rescanning rendered tiles
+     * client-side: a fully solved term collapses its own tile grid into plain text
+     * (round_play.mustache's resolved branch), leaving no tiles to scan for it, so the
+     * authoritative source has to be the state itself.
+     *
+     * @param array $state Session state.
+     * @return string[] Unique uppercase letters, unordered.
+     */
+    private static function build_revealed_letters(array $state): array {
+        $slottoletter = [];
+
+        $themechars = [];
+        foreach ($state['themewords'] as $word) {
+            $themechars = array_merge($themechars, word_normalizer::chars($word));
+        }
+        foreach ($themechars as $position => $char) {
+            $slottoletter[$state['themeslots'][$position]] = $char;
+        }
+
+        foreach ($state['terms'] as $term) {
+            foreach (word_normalizer::chars($term['word']) as $position => $char) {
+                $slottoletter[$term['slots'][$position]] = $char;
+            }
+        }
+
+        $letters = [];
+        foreach ($state['revealedslots'] as $slot) {
+            if (isset($slottoletter[$slot])) {
+                $letters[core_text::strtoupper($slottoletter[$slot])] = true;
+            }
+        }
+
+        return array_keys($letters);
+    }
+
+    /**
      * Returns a formatted countdown string, or empty if no cooldown is active.
      *
      * @param int $cooldownuntil Epoch when the cooldown ends, 0 if inactive.
@@ -534,6 +577,10 @@ class round_presenter {
             'finalguessexhaustedlabel' => $finalguessexhausted
                 ? get_string('termexhaustedlabel', 'mod_playercross', $finalguessattemptsused)
                 : '',
+            'revealedlettersjson' => json_encode(
+                self::build_revealed_letters($state),
+                JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+            ),
             'forfeitlabel' => get_string('forfeitbutton', 'mod_playercross'),
             'forfeitconfirm' => get_string('forfeitconfirm', 'mod_playercross'),
             'keyboardlabel' => get_string('keyboard_label', 'mod_playercross'),

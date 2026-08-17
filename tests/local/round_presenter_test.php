@@ -765,6 +765,80 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * With nothing revealed yet, the keyboard's revealed-letters set is empty — no key
+     * should be marked before the student has resolved anything.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_revealed_letters_json_empty_when_nothing_revealed(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        $state = $this->make_state();
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertSame([], json_decode($context['revealedlettersjson'], true));
+    }
+
+    /**
+     * Revealing a mystery-phrase slot surfaces that letter in the keyboard's
+     * revealed-letters set, the same round-wide fact the phrase tiles themselves
+     * already reflect (see build_phrase_tiles()).
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_revealed_letters_json_includes_phrase_letter(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        // Slot 1 is 'e', the phrase's own first letter (see make_state()'s docblock).
+        $state = $this->make_state(['revealedslots' => [1]]);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertSame(['E'], json_decode($context['revealedlettersjson'], true));
+    }
+
+    /**
+     * A revealed letter exclusive to a term — never appearing in the mystery phrase
+     * itself — still surfaces in the keyboard's revealed-letters set, since the
+     * round-wide slot map covers every letter in the round, not just the phrase's own
+     * (SCOPE.md §20.2 v1.7).
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_revealed_letters_json_includes_term_only_letter(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        // Slot 7 is 'i', exclusive to the term "livro" — absent from the phrase "escola".
+        $state = $this->make_state(['revealedslots' => [7]]);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertSame(['I'], json_decode($context['revealedlettersjson'], true));
+    }
+
+    /**
+     * A letter shared between the phrase and a term (slot 5, "l") appears only once in
+     * the revealed-letters set — the keyboard has one key per letter, not one per
+     * target it happens to belong to.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_revealed_letters_json_dedupes_shared_letter(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        $state = $this->make_state(['revealedslots' => [5]]);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertSame(['L'], json_decode($context['revealedlettersjson'], true));
+    }
+
+    /**
      * Tests that the round-result context is structurally blank while the round is
      * active, never exposing the mystery phrase sitting in session state.
      *

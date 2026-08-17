@@ -41,6 +41,11 @@
     screen readers have a discoverable action, even though nothing is painted on screen
     for it.
 
+    The keyboard's own data-revealed-letters attribute carries the round-wide set of
+    already-known letters (round_presenter::build_revealed_letters()) as a JSON array;
+    amd/src/game.js reads it after every render and marks the matching keys, so the
+    player can tell at a glance which letters no longer need to be tried.
+
     Example context (json):
     {
         "terms": [
@@ -80,7 +85,8 @@
         "submittermguess": "Submit",
         "keyboardlabel": "Virtual keyboard",
         "keyboardbackspacelabel": "Delete last letter",
-        "showcedilla": false
+        "showcedilla": false,
+        "revealedlettersjson": "[\"A\",\"C\"]"
     }
 }}
 <div id="playercross-round-play">
@@ -130,7 +136,11 @@
         {{/terms}}
     </ul>
 
-    <div id="playercross-keyboard" class="mod-playercross-keyboard" role="group" aria-label="{{keyboardlabel}}">
+    <div id="playercross-keyboard"
+         class="mod-playercross-keyboard"
+         role="group"
+         aria-label="{{keyboardlabel}}"
+         data-revealed-letters="{{revealedlettersjson}}">
         <div class="mod-playercross-keyboard-row">
             <button type="button" class="pc-key" data-key="Q" tabindex="-1">Q</button>
             <button type="button" class="pc-key" data-key="W" tabindex="-1">W</button>

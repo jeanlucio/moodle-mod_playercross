@@ -523,6 +523,18 @@
 }
 
 /*
+ * Marks a key whose letter is already revealed round-wide (see amd/src/game.js
+ * markRevealedKeys()) — same primary-blue used by mod_playerwords's own is-correct
+ * keyboard state, kept as a single state here since the crossword mechanic has no
+ * present/absent distinction, only known-or-not.
+ */
+.path-mod-playercross .mod-playercross-keyboard .pc-key.is-revealed {
+    color: var(--white, #fff);
+    background-color: var(--primary, #0f6cbf);
+    border-color: var(--primary, #0f6cbf);
+}
+
+/*
  * Deliberately not var(--info, ...): Bootstrap renamed this variable from --info (BS4,
  * Moodle 4.5) to --bs-info (BS5, Moodle 5.x), so var(--info, #0dcaf0) silently fell back
  * to this fallback's own hardcoded value on 5.x while correctly picking up the site's

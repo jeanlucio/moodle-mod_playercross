@@ -610,10 +610,39 @@ const setActiveInput = (input) => {
 };
 
 /**
+ * Marks every on-screen keyboard key whose letter is already known round-wide (see
+ * round_presenter::build_revealed_letters()), so the player can tell at a glance which
+ * letters no longer need to be tried. Reads the revealed-letter set from the
+ * keyboard's own data-revealed-letters attribute rather than rescanning rendered
+ * tiles: a fully solved term collapses its own tile grid into plain text
+ * (.mod-playercross-term-answer, round_play.mustache's resolved branch), leaving no
+ * tiles left to scan for it, so the server-computed set is the only reliable source.
+ * A no-op once the round is finished, since the keyboard itself is not rendered then.
+ */
+const markRevealedKeys = () => {
+    const keyboard = document.getElementById('playercross-keyboard');
+    if (!keyboard) {
+        return;
+    }
+
+    let letters = [];
+    try {
+        letters = JSON.parse(keyboard.dataset.revealedLetters ?? '[]');
+    } catch {
+        letters = [];
+    }
+
+    keyboard.querySelectorAll('[data-key]').forEach((btn) => {
+        btn.classList.toggle('is-revealed', letters.includes(btn.dataset.key));
+    });
+};
+
+/**
  * Applies the side effects that must run after every stage re-render: the round or
- * cooldown countdown, the forfeit button's visibility, and moving focus to the first
+ * cooldown countdown, the forfeit button's visibility, moving focus to the first
  * pending term (or the mystery-phrase input, if every term is resolved) so continuous
- * typing can carry straight on from one guess to the next.
+ * typing can carry straight on from one guess to the next, and marking already-known
+ * letters on the virtual keyboard.
  *
  * @param {Object} panelcontext Context matching mod_playercross/round_panel.
  * @param {number} cmid Course-module id.
@@ -622,6 +651,7 @@ const setActiveInput = (input) => {
 const applyPanelSideEffects = (panelcontext, cmid, timertotal) => {
     stopTimer();
     stopCountdown();
+    markRevealedKeys();
 
     const forfeitButton = document.getElementById('playercross-forfeit-button');
     if (forfeitButton) {
@@ -1233,6 +1263,7 @@ const init = (cooldownUntil, timeleft, timertotal, cmid, shouldAutoShowIntro) =>
     initForfeit(cmid);
     wireStartRound(cmid, timertotal || 0);
     wireStageDelegation(cmid, timertotal || 0);
+    markRevealedKeys();
     if (timeleft > 0) {
         startTimer(timeleft, timertotal || 0, cmid);
     }
