@@ -25,22 +25,22 @@ and for the ranking (`Grade scoring mode` / `Ranking scoring mode` settings, bot
 | **Binary** (default) | The full activity grade | Zero |
 | **Linear** | A share that decreases with every wrong guess made — across every term *and* the mystery phrase, counted together as a single pool | Zero |
 
-Terms carry no per-term point value of their own — there is no separate score bucket per term.
-Instead every wrong guess, whether on a term or on the mystery phrase itself, draws from the same
-shared error pool, and that pool's size determines the whole round's Linear score:
+Terms carry no per-term point value of their own: every wrong guess, whether on a term or on the
+mystery phrase itself, draws from the same shared error pool, and that pool's size determines the
+whole round's Linear score:
 
 ```
 max_errors = num_terms × (max_attempts_per_term − 1) + (max_attempts_final_guess − 1)
 points     = grade × (max_errors − errors_used + 1) / (max_errors + 1)
 ```
 
-Unlike a grace period that forgives the first mistake or two, Linear here has none: the very
-first wrong guess already reduces the score. A flawless run (zero wrong guesses anywhere) is
-still always exactly full credit, and the score never reaches zero for a genuinely completed
-win — it floors at `grade / (max_errors + 1)` even at the maximum error budget. Because
-`max_errors` depends on both attempts settings, **choosing Linear for either the grade or the
-ranking requires `Maximum attempts per term` and `Maximum attempts for the mystery phrase` to
-both be a real number, not unlimited** — the settings form blocks saving otherwise.
+Linear has no grace period: the very first wrong guess already reduces the score. A flawless run
+(zero wrong guesses anywhere) is still always exactly full credit, and the score never reaches
+zero for a genuinely completed win — it floors at `grade / (max_errors + 1)` even at the maximum
+error budget. Because `max_errors` depends on both attempts settings, **choosing Linear for
+either the grade or the ranking requires `Maximum attempts per term` and `Maximum attempts for
+the mystery phrase` to both be a real number, not unlimited** — the settings form blocks saving
+otherwise.
 
 Worked example with a 100-point grade, 5 terms, 3 attempts per term, 3 attempts for the mystery
 phrase (`max_errors = 5 × 2 + 2 = 12`):

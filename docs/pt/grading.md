@@ -25,24 +25,22 @@ ranking`, ambas com padrão **Binário**):
 | **Binário** (padrão) | A nota cheia da atividade | Zero |
 | **Linear** | Uma fração que diminui a cada palpite errado — em qualquer termo *e* na frase-mistério, contados juntos como um único conjunto | Zero |
 
-Os termos não têm um valor de ponto próprio — não existe mais um bucket de pontuação separado por
-termo. Em vez disso, todo palpite errado, seja em um termo ou na própria frase-mistério, consome
-o mesmo conjunto compartilhado de erros, e o tamanho desse conjunto determina a pontuação linear
-da rodada inteira:
+Os termos não têm um valor de ponto próprio: todo palpite errado, seja em um termo ou na própria
+frase-mistério, consome o mesmo conjunto compartilhado de erros, e o tamanho desse conjunto
+determina a pontuação linear da rodada inteira:
 
 ```
 max_errors = num_terms × (max_attempts_per_term − 1) + (max_attempts_final_guess − 1)
 pontos     = nota × (max_errors − erros_usados + 1) / (max_errors + 1)
 ```
 
-Diferente de uma tolerância que perdoa o primeiro erro ou os dois primeiros, o modo linear aqui
-não tem nenhuma: o primeiro palpite errado já reduz a pontuação. Uma rodada sem nenhum erro
-continua sempre valendo exatamente a pontuação cheia, e a pontuação nunca chega a zero numa
-vitória genuinamente concluída — ela tem um piso de `nota / (max_errors + 1)` mesmo no limite
-máximo de erros. Como `max_errors` depende das duas configurações de tentativas, **escolher
-Linear para a nota ou para o ranking exige que "Máximo de tentativas por termo" e "Máximo de
-tentativas para a frase-mistério" sejam ambos um valor real, não ilimitado** — o formulário de
-configurações bloqueia o salvamento caso contrário.
+O modo linear não tem nenhuma tolerância: o primeiro palpite errado já reduz a pontuação. Uma
+rodada sem nenhum erro continua sempre valendo exatamente a pontuação cheia, e a pontuação nunca
+chega a zero numa vitória genuinamente concluída — ela tem um piso de `nota / (max_errors + 1)`
+mesmo no limite máximo de erros. Como `max_errors` depende das duas configurações de tentativas,
+**escolher Linear para a nota ou para o ranking exige que "Máximo de tentativas por termo" e
+"Máximo de tentativas para a frase-mistério" sejam ambos um valor real, não ilimitado** — o
+formulário de configurações bloqueia o salvamento caso contrário.
 
 Exemplo prático com nota máxima 100, 5 termos, 3 tentativas por termo, 3 tentativas para a
 frase-mistério (`max_errors = 5 × 2 + 2 = 12`):
