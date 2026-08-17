@@ -14,19 +14,19 @@
 ## 🔒 Third-party Service Disclosure
 
 AI word generation is **optional** and disabled by default. When a teacher uses it, the
-activity topic (never student data or attempt records) is sent through `local_aihub` — using
-that user's or the site's own BYOK key, if the plugin is installed — or, as a fallback,
-through Moodle's own core AI subsystem (`core_ai`), which routes to whatever provider the
-site administrator has configured. PlayerCross never contacts an AI provider directly; the
-request and its disclosure/consent are entirely owned by `local_aihub` or by `core_ai`. If
-neither is installed or configured, the AI word source is unavailable and every other feature
-keeps working normally.
+activity topic (never student data or attempt records) is sent through [AI Hub](aihub.html)
+(`local_aihub`) — using that user's or the site's own BYOK key, if the plugin is installed — or,
+as a fallback, through Moodle's own core AI subsystem (`core_ai`), which routes to whatever
+provider the site administrator has configured. PlayerCross never contacts an AI provider
+directly; the request and its disclosure/consent are entirely owned by `local_aihub` or by
+`core_ai`. If neither is installed or configured, the AI word source is unavailable and every
+other feature keeps working normally.
 
 * **Cost:** None required by PlayerCross itself. If used, any cost is whatever the underlying
   provider charges through a `local_aihub` BYOK key, or nothing at all via a free/institutional
   `core_ai` provider the site admin may have already configured.
 * **API keys / credentials:** Not configured in PlayerCross. Obtain and configure a personal or
-  site key inside `local_aihub` (see its own documentation), or ask the site administrator to
+  site key inside [AI Hub](aihub.html) (`local_aihub`), or ask the site administrator to
   configure a `core_ai` provider instead.
 * **Demo credentials:** Not applicable — no credentials are required to install or use
   PlayerCross; AI generation is entirely opt-in.

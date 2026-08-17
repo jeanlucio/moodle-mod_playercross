@@ -35,6 +35,9 @@ Source code: [github.com/jeanlucio/moodle-mod_playercross](https://github.com/je
 <span id="ecosystem"></span>
 {% include_relative en/ecosystem.md %}
 
+<span id="aihub"></span>
+{% include_relative en/aihub.md %}
+
 <span id="requirements"></span>
 {% include_relative en/requirements.md %}
 
