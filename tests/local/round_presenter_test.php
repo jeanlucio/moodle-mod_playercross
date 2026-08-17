@@ -867,6 +867,27 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * A round whose own words never spell a "c" with a cedilla (the default fixture's
+     * phrase "escola" and term "livro") must not mirror "C" onto "Ç" — the showcedilla
+     * key can still be on screen (it reflects the activity's whole word bank, see
+     * words_repository::has_cedilla_word()), but lighting it up here would claim a
+     * cedilla the player never actually sees revealed anywhere in this round.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_revealed_letters_json_no_cedilla_mirror_without_one(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        // Slot 3 is 'c', the phrase "escola"'s own third letter — plain, no cedilla.
+        $state = $this->make_state(['revealedslots' => [3]]);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertSame(['C'], json_decode($context['revealedlettersjson'], true));
+    }
+
+    /**
      * Tests that the round-result context is structurally blank while the round is
      * active, never exposing the mystery phrase sitting in session state.
      *

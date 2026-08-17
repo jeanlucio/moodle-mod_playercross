@@ -224,13 +224,39 @@ class round_presenter {
         // The keyboard's own showcedilla key is a convenience alias for the very same
         // identity as "C" — word_normalizer::normalize() collapses "ç" to "c" before
         // puzzle_builder ever assigns slots, so "ç" never gets a slot of its own to be
-        // revealed independently. Mirror "C" onto "Ç" here, or the cedilla key would
-        // stay permanently unmarked even once every word using it is fully known.
-        if (isset($letters['C'])) {
+        // revealed independently. Mirroring "C" onto "Ç" is only correct when this
+        // round's own words actually spell that slot with a cedilla somewhere — the
+        // keyboard's showcedilla flag is pool-wide (words_repository::has_cedilla_
+        // word()), so a round drawn entirely from plain words like "casa" can still
+        // show the Ç key just because some other, unrelated word in the bank has one;
+        // lighting it up there would claim a cedilla the player never actually sees
+        // revealed anywhere on screen.
+        if (isset($letters['C']) && self::round_has_cedilla($state)) {
             $letters['Ç'] = true;
         }
 
         return array_keys($letters);
+    }
+
+    /**
+     * Whether this specific round's own words — not the activity's whole word bank —
+     * actually spell a letter with a cedilla anywhere, in their original authored form.
+     *
+     * @param array $state Session state.
+     * @return bool
+     */
+    private static function round_has_cedilla(array $state): bool {
+        if (core_text::strpos(core_text::strtolower($state['themeclue']), 'ç') !== false) {
+            return true;
+        }
+
+        foreach ($state['terms'] as $term) {
+            if (core_text::strpos(core_text::strtolower($term['originalword']), 'ç') !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
