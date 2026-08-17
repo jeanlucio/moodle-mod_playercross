@@ -39,8 +39,8 @@ Feature: PlayerCross core gameplay loop
 
   Scenario: Student resolves a term and its shared letters reveal in the mystery phrase
     Given the following "activities" exist:
-      | activity    | course | name       | num_terms | theme_min_length | min_length | max_length |
-      | playercross | C1     | Cross Term | 1         | 6                | 3          | 15         |
+      | activity    | course | name       | num_terms | theme_min_length | min_length | max_length | reveal_uncovered_slots |
+      | playercross | C1     | Cross Term | 1         | 6                | 3          | 15         | 0                       |
     And the following PlayerCross words exist in activity "Cross Term":
       | word   |
       | escola |
