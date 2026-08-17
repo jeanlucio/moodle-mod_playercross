@@ -221,6 +221,15 @@ class round_presenter {
             }
         }
 
+        // The keyboard's own showcedilla key is a convenience alias for the very same
+        // identity as "C" — word_normalizer::normalize() collapses "ç" to "c" before
+        // puzzle_builder ever assigns slots, so "ç" never gets a slot of its own to be
+        // revealed independently. Mirror "C" onto "Ç" here, or the cedilla key would
+        // stay permanently unmarked even once every word using it is fully known.
+        if (isset($letters['C'])) {
+            $letters['Ç'] = true;
+        }
+
         return array_keys($letters);
     }
 

@@ -839,6 +839,34 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * Revealing the slot for "ç" (which word_normalizer::normalize() collapses to "c"
+     * before puzzle_builder ever assigns slots — there is no slot of "ç"'s own) marks
+     * both the base "C" key and the keyboard's separate showcedilla "Ç" key, since both
+     * represent the exact same round-wide letter identity.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_revealed_letters_json_mirrors_cedilla_onto_c(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+        // Word "paçoca" normalizes to "pacoca" (p,a,c,o,c,a) — slots by first
+        // appearance: p=1, a=2, c=3, o=4, then c and a repeat their existing slots.
+        $state = $this->make_state([
+            'themewords'    => ['pacoca'],
+            'themeclue'     => 'paçoca',
+            'themeslots'    => [1, 2, 3, 4, 3, 2],
+            'slotcount'     => 4,
+            'terms'         => [],
+            'revealedslots' => [3],
+        ]);
+
+        $context = round_presenter::build_round_panel_context($instance, $cm, $state, $user->id);
+
+        $this->assertSame(['C', 'Ç'], json_decode($context['revealedlettersjson'], true));
+    }
+
+    /**
      * Tests that the round-result context is structurally blank while the round is
      * active, never exposing the mystery phrase sitting in session state.
      *
