@@ -107,11 +107,6 @@ ungraded, ranking-only activity already accumulates real history from its very f
 the scoring mode once that history exists prevents the same scale inconsistency the lock above
 prevents for the grade.
 
-> **Known limitation:** before this fix, ranking points were computed as a fraction of the
-> activity's grade — the very bug that motivated making the ranking independent. Ranking totals
-> from rounds finished before the fix were **not recalculated** and may not be on the same scale
-> as rounds finished afterwards; that history was not migrated.
-
 **Attempt history:** each student can review their own past rounds — mystery phrase, terms
 resolved, attempts used, time, grade score and (when ranking is enabled) ranking points — from
 the toolbar's attempt-history page. Whoever can manage the activity sees the same page turn into
