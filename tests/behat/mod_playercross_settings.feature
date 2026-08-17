@@ -39,6 +39,22 @@ Feature: PlayerCross teacher-facing settings behaviour
     Then I should see "Because this activity has already recorded a real grade"
     And "select#id_num_terms" "css_element" should not exist
     And "select#id_grademethod" "css_element" should not exist
+    And "input#id_max_attempts_per_term" "css_element" should not exist
+    And "input#id_max_attempts_final_guess" "css_element" should not exist
+    And "select#id_gradescoringmode" "css_element" should not exist
+    And "select#id_rankingscoringmode" "css_element" should not exist
+
+  Scenario: Choosing Linear grading with an unlimited attempts field is rejected by the settings form
+    Given the following "activities" exist:
+      | activity    | course | name              | num_terms | theme_min_length | min_length | max_length | grade |
+      | playercross | C1     | Cross LinearGuard | 1         | 6                 | 3          | 15         | 100   |
+    And I log in as "teacher1"
+    And I am on the "Cross LinearGuard" "playercross activity editing" page
+    And I click on "a.collapseexpand" "css_element"
+    And I set the field "Maximum attempts per term (0 for unlimited)" to "0"
+    And I set the field "Grade scoring mode" to "Linear (credit decreases with each wrong guess)"
+    When I press "Save and return to course"
+    Then I should see "Linear grading and ranking scoring require both"
 
   Scenario: Adding a manual word that already exists in the pool is rejected
     Given the following "activities" exist:

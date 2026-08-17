@@ -194,6 +194,54 @@ Feature: PlayerCross core gameplay loop
     Then I should see "Incorrect guess. Try again."
     And PlayerCross term "1" tiles should read "liv__"
 
+  Scenario: A fresh round shows the configured attempts-remaining count for a term and the mystery phrase
+    Given the following "activities" exist:
+      | activity    | course | name            | num_terms | theme_min_length | min_length | max_length | max_attempts_per_term | max_attempts_final_guess |
+      | playercross | C1     | Cross Attempts  | 1         | 6                 | 3          | 15         | 3                      | 3                         |
+    And the following PlayerCross words exist in activity "Cross Attempts":
+      | word   |
+      | escola |
+      | livro  |
+    And I log in as "student1"
+    And I am on the "Cross Attempts" "playercross activity" page
+    And I click on "Start round" "button"
+    Then "#playercross-terms-list .mod-playercross-attempts-count" "css_element" should exist
+    And I should see "×3" in the "#playercross-terms-list" "css_element"
+    And "#playercross-final-guess-form .mod-playercross-attempts-count" "css_element" should exist
+    And I should see "×3" in the "#playercross-final-guess-form" "css_element"
+
+  Scenario: Running out of attempts for the mystery phrase ends the round as a loss under the default win condition
+    Given the following "activities" exist:
+      | activity    | course | name           | num_terms | theme_min_length | min_length | max_length | max_attempts_final_guess |
+      | playercross | C1     | Cross Final Ex | 1         | 6                 | 3          | 15         | 1                         |
+    And the following PlayerCross words exist in activity "Cross Final Ex":
+      | word   |
+      | escola |
+      | livro  |
+    And I log in as "student1"
+    And I am on the "Cross Final Ex" "playercross activity" page
+    And I click on "Start round" "button"
+    When I fill the PlayerCross mystery phrase tiles with "errado"
+    And I press enter
+    Then I should see "No attempts left for the mystery phrase"
+    And "#playercross-new-round-button" "css_element" should exist
+
+  Scenario: Running out of attempts for the mystery phrase ends the round as a loss under mystery-phrase-only
+    Given the following "activities" exist:
+      | activity    | course | name             | num_terms | theme_min_length | min_length | max_length | win_condition | max_attempts_final_guess |
+      | playercross | C1     | Cross Final Only | 1         | 6                 | 3          | 15         | 2              | 1                         |
+    And the following PlayerCross words exist in activity "Cross Final Only":
+      | word   |
+      | escola |
+      | livro  |
+    And I log in as "student1"
+    And I am on the "Cross Final Only" "playercross activity" page
+    And I click on "Start round" "button"
+    When I fill the PlayerCross mystery phrase tiles with "errado"
+    And I press enter
+    Then I should see "No attempts left for the mystery phrase"
+    And "#playercross-new-round-button" "css_element" should exist
+
   Scenario: A configured cooldown shows a countdown instead of the new-round button
     Given the following "activities" exist:
       | activity    | course | name           | num_terms | theme_min_length | min_length | max_length | win_condition |
