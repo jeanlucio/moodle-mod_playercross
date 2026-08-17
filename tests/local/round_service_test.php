@@ -829,6 +829,290 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * A wrong final guess counts against max_attempts_final_guess, but not until it
+     * is actually exhausted the round stays open.
+     *
+     * @return void
+     */
+    public function test_final_guess_wrong_below_limit_keeps_round_open(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_terms' => 3,
+            'theme_min_length' => 6,
+            'max_attempts_final_guess' => 2,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        [$state, $correct] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            'totalmenteerrado'
+        );
+
+        $this->assertFalse($correct);
+        $this->assertFalse($state['finished']);
+        $this->assertFalse($state['finalguessexhausted']);
+        $this->assertSame(1, $state['finalguessattemptsused']);
+    }
+
+    /**
+     * Final-guess exhaustion always ends the round as a loss under
+     * PLAYERCROSS_WINCONDITION_BOTH — the phrase is unconditionally required to win.
+     *
+     * @return void
+     */
+    public function test_final_guess_exhaustion_ends_round_as_loss_under_both(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_terms' => 3,
+            'theme_min_length' => 6,
+            'max_attempts_final_guess' => 2,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        [$state] = round_service::submit_final_guess($state, $instance, $cm->cmid, $this->user->id, 'errado um');
+        [$state, $correct, $notification] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            'errado dois'
+        );
+
+        $this->assertFalse($correct);
+        $this->assertTrue($state['finalguessexhausted']);
+        $this->assertTrue($state['finished']);
+        $this->assertFalse($state['won']);
+        $this->assertSame(get_string('feedback_finalguessexhausted', 'mod_playercross'), $notification);
+    }
+
+    /**
+     * Final-guess exhaustion always ends the round as a loss even under
+     * PLAYERCROSS_WINCONDITION_FINALONLY — unlike term exhaustion (which never ends
+     * the round in this mode, see test_term_exhaustion_does_not_end_round_under_finalonly()),
+     * the phrase is exclusively required to win here, so running out of attempts for
+     * it makes winning impossible regardless of win_condition.
+     *
+     * @return void
+     */
+    public function test_final_guess_exhaustion_ends_round_as_loss_under_finalonly(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_terms' => 3,
+            'theme_min_length' => 6,
+            'max_attempts_final_guess' => 2,
+            'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        [$state] = round_service::submit_final_guess($state, $instance, $cm->cmid, $this->user->id, 'errado um');
+        [$state, $correct] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            'errado dois'
+        );
+
+        $this->assertFalse($correct);
+        $this->assertTrue($state['finalguessexhausted']);
+        $this->assertTrue($state['finished']);
+        $this->assertFalse($state['won']);
+    }
+
+    /**
+     * errorsused (the shared pool feeding the Linear formula) counts only wrong
+     * guesses, never the successful resolving one — distinct from attemptsused, which
+     * counts every submission regardless of correctness.
+     *
+     * @return void
+     */
+    public function test_errorsused_counts_only_wrong_guesses(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+        $term = $state['terms'][0];
+
+        [$state] = round_service::submit_term_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            (int)$term['wordid'],
+            'zzzzzzz'
+        );
+        $this->assertSame(1, $state['errorsused']);
+        $this->assertSame(1, $state['attemptsused']);
+
+        [$state] = round_service::submit_term_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            (int)$term['wordid'],
+            $term['word']
+        );
+        // The correct guess advances attemptsused but not errorsused.
+        $this->assertSame(1, $state['errorsused']);
+        $this->assertSame(2, $state['attemptsused']);
+    }
+
+    /**
+     * A round won via a direct final guess before any term is resolved is eligible for
+     * the early-guess bonus: the ranking total (uncapped) ends up higher than the
+     * grade score (capped at the nominal grade), even under Binary scoring.
+     *
+     * @return void
+     */
+    public function test_early_bonus_eligible_when_final_guess_precedes_every_term(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_terms' => 3,
+            'theme_min_length' => 6,
+            'grade' => 100,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        [$state] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+        $this->assertFalse($state['finished']);
+
+        foreach ($state['terms'] as $term) {
+            [$state] = round_service::submit_term_guess(
+                $state,
+                $instance,
+                $cm->cmid,
+                $this->user->id,
+                (int)$term['wordid'],
+                $term['word']
+            );
+        }
+
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['won']);
+        $this->assertEqualsWithDelta(100.0, $state['score'], 0.00001);
+        $this->assertEqualsWithDelta(110.0, $state['rankingpoints'], 0.00001);
+    }
+
+    /**
+     * A round where at least one term is resolved before the final guess is never
+     * eligible for the early-guess bonus, even when the final guess is later confirmed
+     * correct — score and rankingpoints stay equal.
+     *
+     * @return void
+     */
+    public function test_early_bonus_not_eligible_once_a_term_is_resolved_first(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_terms' => 3,
+            'theme_min_length' => 6,
+            'grade' => 100,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        foreach ($state['terms'] as $term) {
+            [$state] = round_service::submit_term_guess(
+                $state,
+                $instance,
+                $cm->cmid,
+                $this->user->id,
+                (int)$term['wordid'],
+                $term['word']
+            );
+        }
+        [$state] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+
+        $this->assertTrue($state['finished']);
+        $this->assertTrue($state['won']);
+        $this->assertEqualsWithDelta(100.0, $state['score'], 0.00001);
+        $this->assertEqualsWithDelta(100.0, $state['rankingpoints'], 0.00001);
+    }
+
+    /**
+     * finish_round() persists rankingpoints alongside score on the attempts row —
+     * they can genuinely diverge (independent scoring modes, uncapped bonus).
+     *
+     * @return void
+     */
+    public function test_finish_round_persists_rankingpoints_alongside_score(): void {
+        global $DB;
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        [$state] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+        foreach ($state['terms'] as $term) {
+            [$state] = round_service::submit_term_guess(
+                $state,
+                $instance,
+                $cm->cmid,
+                $this->user->id,
+                (int)$term['wordid'],
+                $term['word']
+            );
+        }
+
+        $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
+        $this->assertEqualsWithDelta((float)$state['score'], (float)$attempt->score, 0.00001);
+        $this->assertEqualsWithDelta((float)$state['rankingpoints'], (float)$attempt->rankingpoints, 0.00001);
+        $this->assertEqualsWithDelta(110.0, (float)$attempt->rankingpoints, 0.00001);
+    }
+
+    /**
      * PLAYERCROSS_WINCONDITION_FINALONLY: resolving every term never finishes the
      * round on its own — only a direct guess of the mystery phrase does.
      *

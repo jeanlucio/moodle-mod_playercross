@@ -179,6 +179,7 @@ final class backup_restore_test extends \advanced_testcase {
             'time_used'     => 42,
             'completed'     => 1,
             'score'         => 91.5,
+            'rankingpoints' => 96.5,
         ]);
 
         $newcourse = $this->backup_and_restore_into_new_course($course);
@@ -192,6 +193,37 @@ final class backup_restore_test extends \advanced_testcase {
         $this->assertSame(7, (int)$newattempt->attempts_used);
         $this->assertSame(42, (int)$newattempt->time_used);
         $this->assertEqualsWithDelta(91.5, (float)$newattempt->score, 0.001);
+        $this->assertEqualsWithDelta(96.5, (float)$newattempt->rankingpoints, 0.001);
+    }
+
+    /**
+     * A full course backup/restore preserves the scoring-redesign instance settings:
+     * max_attempts_final_guess, gradescoringmode and rankingscoringmode.
+     *
+     * @return void
+     */
+    public function test_backup_restore_preserves_scoring_settings(): void {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/mod/playercross/lib.php');
+        $this->setAdminUser();
+
+        $course = $this->getDataGenerator()->create_course();
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $modgenerator->create_instance([
+            'course' => $course->id,
+            'max_attempts_per_term' => 4,
+            'max_attempts_final_guess' => 5,
+            'gradescoringmode' => PLAYERCROSS_SCORING_LINEAR,
+            'rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR,
+        ]);
+
+        $newcourse = $this->backup_and_restore_into_new_course($course);
+
+        $newinstance = $DB->get_record('playercross', ['course' => $newcourse->id], '*', MUST_EXIST);
+        $this->assertSame(4, (int)$newinstance->max_attempts_per_term);
+        $this->assertSame(5, (int)$newinstance->max_attempts_final_guess);
+        $this->assertSame(PLAYERCROSS_SCORING_LINEAR, (int)$newinstance->gradescoringmode);
+        $this->assertSame(PLAYERCROSS_SCORING_LINEAR, (int)$newinstance->rankingscoringmode);
     }
 
     /**

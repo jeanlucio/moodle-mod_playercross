@@ -117,6 +117,36 @@ final class ranking_service_test extends \advanced_testcase {
     }
 
     /**
+     * Ranking is driven by rankingpoints, not score — they can genuinely diverge
+     * (independent scoring modes, uncapped early-guess bonus), and the ranking must
+     * follow rankingpoints even when it disagrees with the grade score.
+     *
+     * @return void
+     */
+    public function test_get_ranking_orders_by_rankingpoints_not_score(): void {
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $lowranking = $this->getDataGenerator()->create_user();
+        $highranking = $this->getDataGenerator()->create_user();
+
+        // Higher score but lower rankingpoints — must rank second.
+        $modgenerator->create_attempt($this->instance->id, $lowranking->id, $this->theme->id, [
+            'score'         => 90.0,
+            'rankingpoints' => 30.0,
+        ]);
+        // Lower score but higher rankingpoints — must rank first.
+        $modgenerator->create_attempt($this->instance->id, $highranking->id, $this->theme->id, [
+            'score'         => 10.0,
+            'rankingpoints' => 70.0,
+        ]);
+
+        $ranking = ranking_service::get_ranking($this->instance, $this->cm, $highranking->id);
+
+        $this->assertSame('70.00', $ranking['rows'][0]['totalscore']);
+        $this->assertTrue($ranking['rows'][0]['iscurrentuser']);
+        $this->assertSame('30.00', $ranking['rows'][1]['totalscore']);
+    }
+
+    /**
      * Only the top 5 users appear in rows; a lower-ranked current user gets an
      * outsider row instead of being silently dropped.
      *

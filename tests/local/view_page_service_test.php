@@ -425,6 +425,102 @@ final class view_page_service_test extends \advanced_testcase {
     }
 
     /**
+     * The help modal warns about the mystery-phrase automatic-loss risk whenever
+     * max_attempts_final_guess is a real number, regardless of win_condition — unlike
+     * showtermloss, this is unconditional on the win condition since the phrase is
+     * required to win under both modes.
+     *
+     * @return void
+     */
+    public function test_build_page_data_shows_final_guess_loss_warning_when_configured(): void {
+        [$instance, $cm, $context] = $this->make_instance([
+            'win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY,
+            'max_attempts_final_guess' => 3,
+        ]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showfinalguessloss']);
+        $this->assertNotEmpty($ctx['finalguesslosstext']);
+    }
+
+    /**
+     * The help modal hides the mystery-phrase loss warning when final-guess attempts
+     * are unlimited.
+     *
+     * @return void
+     */
+    public function test_build_page_data_hides_final_guess_loss_warning_when_unlimited(): void {
+        [$instance, $cm, $context] = $this->make_instance(['max_attempts_final_guess' => 0]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['showfinalguessloss']);
+        $this->assertSame('', $ctx['finalguesslosstext']);
+    }
+
+    /**
+     * The help modal explains the Linear scoring formula only when it is actually
+     * active for the grade — never for Binary scoring, which needs no explanation.
+     *
+     * @return void
+     */
+    public function test_build_page_data_shows_scoring_formula_when_grade_is_linear(): void {
+        [$instance, $cm, $context] = $this->make_instance([
+            'grade' => 100,
+            'gradescoringmode' => PLAYERCROSS_SCORING_LINEAR,
+        ]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showscoringformula']);
+        $this->assertNotEmpty($ctx['scoringformulatext']);
+    }
+
+    /**
+     * The help modal also explains the Linear scoring formula when it is only active
+     * for the ranking (not the grade), as long as the ranking is actually shown.
+     *
+     * @return void
+     */
+    public function test_build_page_data_shows_scoring_formula_when_ranking_is_linear(): void {
+        [$instance, $cm, $context] = $this->make_instance([
+            'grade' => 100,
+            'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
+            'rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR,
+            'show_ranking' => 1,
+        ]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showscoringformula']);
+    }
+
+    /**
+     * The help modal hides the scoring-formula explanation when both scoring modes
+     * are Binary.
+     *
+     * @return void
+     */
+    public function test_build_page_data_hides_scoring_formula_when_both_binary(): void {
+        [$instance, $cm, $context] = $this->make_instance([
+            'grade' => 100,
+            'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
+            'rankingscoringmode' => PLAYERCROSS_SCORING_BINARY,
+        ]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['showscoringformula']);
+        $this->assertSame('', $ctx['scoringformulatext']);
+    }
+
+    /**
      * When the round limit is reached before a puzzle is even built, the
      * restriction notice is surfaced instead of a fresh theme.
      *

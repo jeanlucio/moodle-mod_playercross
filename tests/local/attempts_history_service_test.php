@@ -89,6 +89,43 @@ final class attempts_history_service_test extends \advanced_testcase {
     }
 
     /**
+     * get_history() includes a formatted rankingpoints column, gated by the
+     * activity's own show_ranking setting — hidden (blank) when ranking is disabled,
+     * shown when enabled, and independent from score when they diverge.
+     *
+     * @return void
+     */
+    public function test_get_history_rankingpoints_gated_by_show_ranking(): void {
+        global $DB;
+        $user = $this->getDataGenerator()->create_user();
+
+        $cmoff = $this->modgenerator->create_instance(['course' => $this->course->id, 'show_ranking' => 0]);
+        $instanceoff = $DB->get_record('playercross', ['id' => $cmoff->id], '*', MUST_EXIST);
+        $themeoff = $this->modgenerator->create_word($instanceoff->id, 'escola');
+        $this->modgenerator->create_attempt($instanceoff->id, $user->id, $themeoff->id, [
+            'score' => 50.0,
+            'rankingpoints' => 60.0,
+        ]);
+
+        $historyoff = attempts_history_service::get_history($instanceoff, $user->id);
+        $this->assertFalse($historyoff['showranking']);
+        $this->assertSame('', $historyoff['rows'][0]['rankingpoints']);
+
+        $cmon = $this->modgenerator->create_instance(['course' => $this->course->id, 'show_ranking' => 1]);
+        $instanceon = $DB->get_record('playercross', ['id' => $cmon->id], '*', MUST_EXIST);
+        $themeon = $this->modgenerator->create_word($instanceon->id, 'escola');
+        $this->modgenerator->create_attempt($instanceon->id, $user->id, $themeon->id, [
+            'score' => 50.0,
+            'rankingpoints' => 60.0,
+        ]);
+
+        $historyon = attempts_history_service::get_history($instanceon, $user->id);
+        $this->assertTrue($historyon['showranking']);
+        $this->assertSame('60.00', $historyon['rows'][0]['rankingpoints']);
+        $this->assertSame('50.00', $historyon['rows'][0]['score']);
+    }
+
+    /**
      * An activity with no attempts at all yields an empty history and no grade.
      *
      * @return void

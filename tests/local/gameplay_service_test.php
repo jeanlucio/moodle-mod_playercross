@@ -31,96 +31,247 @@ namespace mod_playercross\local;
  * @covers \mod_playercross\local\gameplay_service
  */
 final class gameplay_service_test extends \basic_testcase {
+    #[\Override]
+    protected function setUp(): void {
+        parent::setUp();
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/playercross/lib.php');
+    }
+
     /**
-     * Builds a minimal instance stub with the given grade and max_attempts_per_term.
+     * Builds a minimal instance stub matching the docs' worked example: 5 terms, 3
+     * attempts per term, 3 attempts for the final guess (max_errors = 12).
      *
-     * @param float $grade Activity maximum grade.
-     * @param int $maxattemptsperterm Maximum attempts per term, 0 for unlimited.
+     * @param array $overrides Field overrides merged over the defaults.
      * @return \stdClass
      */
-    private function make_instance(float $grade, int $maxattemptsperterm): \stdClass {
-        return (object)['grade' => $grade, 'max_attempts_per_term' => $maxattemptsperterm];
+    private function make_instance(array $overrides = []): \stdClass {
+        return (object)array_merge([
+            'grade' => 100.0,
+            'num_terms' => 5,
+            'max_attempts_per_term' => 3,
+            'max_attempts_final_guess' => 3,
+            'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
+            'rankingscoringmode' => PLAYERCROSS_SCORING_BINARY,
+        ], $overrides);
     }
 
     /**
-     * Each term is worth an even share of the round's grade.
+     * max_errors sums the wrong-guess budget of every term plus the final guess.
      *
      * @return void
      */
-    public function test_max_points_per_term_splits_grade_evenly(): void {
-        $instance = $this->make_instance(100.0, 0);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::max_points_per_term($instance, 5), 0.00001);
+    public function test_calculate_max_errors(): void {
+        // 5 * (3 - 1) + (3 - 1) = 12, the docs' worked-example denominator.
+        $instance = $this->make_instance();
+        $this->assertSame(12, gameplay_service::calculate_max_errors($instance));
     }
 
     /**
-     * With zero terms there is nothing to split the grade across.
+     * A single attempt allowed per term/final guess contributes zero error budget —
+     * the correct guess must be the first one.
      *
      * @return void
      */
-    public function test_max_points_per_term_zero_terms_returns_zero(): void {
-        $instance = $this->make_instance(100.0, 0);
-        $this->assertSame(0.0, gameplay_service::max_points_per_term($instance, 0));
+    public function test_calculate_max_errors_single_attempt_contributes_zero(): void {
+        $instance = $this->make_instance(['max_attempts_per_term' => 1, 'max_attempts_final_guess' => 1]);
+        $this->assertSame(0, gameplay_service::calculate_max_errors($instance));
     }
 
     /**
-     * With max_attempts_per_term unlimited (0), a resolved term always earns full
-     * credit regardless of attempts used — there is no natural denominator to decay
-     * against.
+     * Binary scoring always awards the full grade on a completed round, regardless of
+     * how many errors were made.
      *
      * @return void
      */
-    public function test_calculate_term_points_unlimited_always_full_credit(): void {
-        $instance = $this->make_instance(100.0, 0);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_term_points($instance, 5, 1), 0.00001);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_term_points($instance, 5, 9), 0.00001);
+    public function test_binary_scoring_full_credit_on_win(): void {
+        $instance = $this->make_instance(['gradescoringmode' => PLAYERCROSS_SCORING_BINARY]);
+        $this->assertEqualsWithDelta(
+            100.0,
+            gameplay_service::calculate_round_score($instance, 8, true, false),
+            0.00001
+        );
     }
 
     /**
-     * The first two attempts on a term always earn full credit, mirroring the same
-     * plateau PlayerWords uses for its whole round.
+     * Binary scoring awards nothing on a loss.
      *
      * @return void
      */
-    public function test_calculate_term_points_full_credit_within_first_two_attempts(): void {
-        $instance = $this->make_instance(100.0, 6);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_term_points($instance, 5, 1), 0.00001);
-        $this->assertEqualsWithDelta(20.0, gameplay_service::calculate_term_points($instance, 5, 2), 0.00001);
+    public function test_binary_scoring_zero_on_loss(): void {
+        $instance = $this->make_instance(['gradescoringmode' => PLAYERCROSS_SCORING_BINARY]);
+        $this->assertSame(0.0, gameplay_service::calculate_round_score($instance, 0, false, false));
     }
 
     /**
-     * Beyond the second attempt, points decrease linearly down to the last allowed attempt.
+     * Linear scoring with zero errors is always exactly full credit — the formula has
+     * no grace period, but a flawless run still reaches 100%.
      *
      * @return void
      */
-    public function test_calculate_term_points_decreases_linearly_after_second_attempt(): void {
-        $instance = $this->make_instance(100.0, 6);
-        // Maxpoints = 20; at attempt 6 (the last allowed): 20 * (6-6+1)/(6-1) = 4.
-        $this->assertEqualsWithDelta(4.0, gameplay_service::calculate_term_points($instance, 5, 6), 0.00001);
-        // Never goes below the floor even if more attempts than allowed are passed in.
-        $this->assertEqualsWithDelta(4.0, gameplay_service::calculate_term_points($instance, 5, 99), 0.00001);
+    public function test_linear_scoring_zero_errors_is_full_credit(): void {
+        $instance = $this->make_instance(['gradescoringmode' => PLAYERCROSS_SCORING_LINEAR]);
+        $this->assertEqualsWithDelta(
+            100.0,
+            gameplay_service::calculate_round_score($instance, 0, true, false),
+            0.00001
+        );
     }
 
     /**
-     * Guessing the mystery phrase before resolving any term earns the full grade as a
-     * bonus — equivalent to having resolved every term at full credit.
+     * Linear scoring has no grace period: the very first wrong guess already reduces
+     * the score, matching the docs' worked-example table (1 error → 92.31).
      *
      * @return void
      */
-    public function test_final_guess_bonus_is_full_grade_when_nothing_resolved(): void {
-        $instance = $this->make_instance(100.0, 0);
-        $this->assertEqualsWithDelta(100.0, gameplay_service::calculate_final_guess_bonus($instance, 5, 0), 0.00001);
+    public function test_linear_scoring_first_error_already_reduces_score(): void {
+        $instance = $this->make_instance(['gradescoringmode' => PLAYERCROSS_SCORING_LINEAR]);
+        $this->assertEqualsWithDelta(
+            92.30769,
+            gameplay_service::calculate_round_score($instance, 1, true, false),
+            0.001
+        );
     }
 
     /**
-     * The bonus shrinks as more terms are already resolved, reaching zero once every
-     * term has already been credited.
+     * At the maximum error budget, Linear scoring floors at grade / (max_errors + 1)
+     * — never zero for a genuinely completed win (docs' table: 12 errors → 7.69).
      *
      * @return void
      */
-    public function test_final_guess_bonus_shrinks_with_resolved_terms(): void {
-        $instance = $this->make_instance(100.0, 0);
-        $this->assertEqualsWithDelta(40.0, gameplay_service::calculate_final_guess_bonus($instance, 5, 3), 0.00001);
-        $this->assertEqualsWithDelta(0.0, gameplay_service::calculate_final_guess_bonus($instance, 5, 5), 0.00001);
+    public function test_linear_scoring_floors_at_max_errors(): void {
+        $instance = $this->make_instance(['gradescoringmode' => PLAYERCROSS_SCORING_LINEAR]);
+        $this->assertEqualsWithDelta(
+            7.69231,
+            gameplay_service::calculate_round_score($instance, 12, true, false),
+            0.001
+        );
+        // Never drops below the floor even with more errors than the budget allows.
+        $this->assertEqualsWithDelta(
+            7.69231,
+            gameplay_service::calculate_round_score($instance, 99, true, false),
+            0.001
+        );
+    }
+
+    /**
+     * Linear scoring on a not-completed round is always zero, regardless of errors used.
+     *
+     * @return void
+     */
+    public function test_linear_scoring_not_completed_is_zero(): void {
+        $instance = $this->make_instance(['gradescoringmode' => PLAYERCROSS_SCORING_LINEAR]);
+        $this->assertSame(0.0, gameplay_service::calculate_round_score($instance, 0, false, false));
+    }
+
+    /**
+     * Linear scoring degrades to full credit when either attempts field is unlimited
+     * (0) — a defensive fallback for a row persisted before validation blocked this
+     * combination, mirroring PlayerWords' own guard.
+     *
+     * @return void
+     */
+    public function test_linear_scoring_defensive_fallback_when_unlimited(): void {
+        $instanceperterm = $this->make_instance([
+            'gradescoringmode' => PLAYERCROSS_SCORING_LINEAR,
+            'max_attempts_per_term' => 0,
+        ]);
+        $this->assertEqualsWithDelta(
+            100.0,
+            gameplay_service::calculate_round_score($instanceperterm, 5, true, false),
+            0.00001
+        );
+
+        $instancefinal = $this->make_instance([
+            'gradescoringmode' => PLAYERCROSS_SCORING_LINEAR,
+            'max_attempts_final_guess' => 0,
+        ]);
+        $this->assertEqualsWithDelta(
+            100.0,
+            gameplay_service::calculate_round_score($instancefinal, 5, true, false),
+            0.00001
+        );
+    }
+
+    /**
+     * Grade and ranking scoring modes are independently configurable on the same round.
+     *
+     * @return void
+     */
+    public function test_grade_and_ranking_modes_are_independent(): void {
+        $instance = $this->make_instance([
+            'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
+            'rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR,
+        ]);
+
+        $this->assertEqualsWithDelta(
+            100.0,
+            gameplay_service::calculate_round_score($instance, 6, true, false),
+            0.00001
+        );
+        $this->assertEqualsWithDelta(
+            53.84615,
+            gameplay_service::calculate_ranking_points($instance, 6, true, false),
+            0.001
+        );
+    }
+
+    /**
+     * The early-guess bonus is a flat 10% of the activity's configured grade.
+     *
+     * @return void
+     */
+    public function test_calculate_early_guess_bonus(): void {
+        $instance = $this->make_instance(['grade' => 100.0]);
+        $this->assertEqualsWithDelta(10.0, gameplay_service::calculate_early_guess_bonus($instance), 0.00001);
+
+        $instance = $this->make_instance(['grade' => 50.0]);
+        $this->assertEqualsWithDelta(5.0, gameplay_service::calculate_early_guess_bonus($instance), 0.00001);
+    }
+
+    /**
+     * The early-guess bonus is capped at the nominal grade for the grade score — a
+     * flawless Binary win plus the bonus would otherwise exceed 100.
+     *
+     * @return void
+     */
+    public function test_early_bonus_capped_at_grade_for_score(): void {
+        $instance = $this->make_instance(['gradescoringmode' => PLAYERCROSS_SCORING_BINARY]);
+        $this->assertEqualsWithDelta(
+            100.0,
+            gameplay_service::calculate_round_score($instance, 0, true, true),
+            0.00001
+        );
+    }
+
+    /**
+     * The early-guess bonus is uncapped for ranking points — a flawless Binary win
+     * plus the bonus legitimately exceeds the nominal grade.
+     *
+     * @return void
+     */
+    public function test_early_bonus_uncapped_for_ranking(): void {
+        $instance = $this->make_instance(['rankingscoringmode' => PLAYERCROSS_SCORING_BINARY]);
+        $this->assertEqualsWithDelta(
+            110.0,
+            gameplay_service::calculate_ranking_points($instance, 0, true, true),
+            0.00001
+        );
+    }
+
+    /**
+     * The early-guess bonus never applies to a loss or when not eligible.
+     *
+     * @return void
+     */
+    public function test_early_bonus_not_applied_when_ineligible_or_lost(): void {
+        $instance = $this->make_instance(['gradescoringmode' => PLAYERCROSS_SCORING_BINARY]);
+        $this->assertEqualsWithDelta(
+            100.0,
+            gameplay_service::calculate_round_score($instance, 0, true, false),
+            0.00001
+        );
+        $this->assertSame(0.0, gameplay_service::calculate_round_score($instance, 0, false, true));
     }
 
     /**

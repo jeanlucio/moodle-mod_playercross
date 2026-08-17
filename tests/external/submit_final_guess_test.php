@@ -171,6 +171,35 @@ final class submit_final_guess_test extends \advanced_testcase {
     }
 
     /**
+     * Running out of attempts for the final guess ends the round as a loss and flags
+     * finalguessexhausted in the panel response, through the real web service dispatch
+     * path — regression coverage for the exhaustion mechanic added alongside Binary/
+     * Linear scoring (see round_service::submit_final_guess()).
+     *
+     * @return void
+     */
+    public function test_exhausting_final_guess_attempts_ends_round_and_flags_panel(): void {
+        [$instance, $cm] = $this->make_ready_instance(['max_attempts_final_guess' => 1]);
+        $this->setUser($this->student);
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->student->id),
+            $instance,
+            $cm->cmid,
+            $this->student->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
+        round_service::save_state($cm->cmid, $this->student->id, $state);
+
+        $result = submit_final_guess::execute($cm->cmid, 'totalmenteerrado');
+
+        $this->assertFalse($result['correct']);
+        $this->assertTrue($result['finished']);
+        $this->assertTrue($result['panel']['finalguessexhausted']);
+        $this->assertNotSame('', $result['panel']['finalguessexhaustedlabel']);
+    }
+
+    /**
      * A correct direct guess with terms still pending does not win the round on its
      * own — winning always requires every term resolved too — and does not reveal the
      * mystery phrase's readable text (revealthemeword) until the round actually

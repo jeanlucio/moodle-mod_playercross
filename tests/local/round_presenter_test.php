@@ -63,6 +63,21 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * Returns a minimal instance stub for the build_term_rows()/build_round_panel_context()
+     * tests that do not need a real DB-backed activity — unlimited attempts by default,
+     * so the attempts-remaining badge assertions elsewhere are unaffected unless overridden.
+     *
+     * @param array $overrides Field overrides.
+     * @return \stdClass
+     */
+    private function make_instance_stub(array $overrides = []): \stdClass {
+        return (object)array_merge([
+            'max_attempts_per_term' => 0,
+            'max_attempts_final_guess' => 0,
+        ], $overrides);
+    }
+
+    /**
      * Returns a minimal default state array for a theme concept whose own mystery
      * phrase is the single word "escola" (6 distinct letters, cipher slots 1..6 in
      * order — a phrase of just one word ciphers identically to the pre-v1.9 single
@@ -100,8 +115,12 @@ final class round_presenter_test extends \advanced_testcase {
             ],
             'termstotal'       => 1,
             'termsresolved'    => 0,
-            'scoreaccumulated' => 0.0,
+            'errorsused'       => 0,
+            'score'            => 0.0,
+            'rankingpoints'    => 0.0,
             'attemptsused'     => 0,
+            'finalguessattemptsused' => 0,
+            'finalguessexhausted' => false,
             'starttime'        => 0,
             'roundstarted'     => false,
             'finished'         => false,
@@ -231,7 +250,7 @@ final class round_presenter_test extends \advanced_testcase {
     public function test_build_term_rows_hides_unresolved_word(): void {
         $state = $this->make_state();
 
-        $rows = round_presenter::build_term_rows($state, false);
+        $rows = round_presenter::build_term_rows($this->make_instance_stub(), $state, false);
 
         $this->assertCount(1, $rows);
         $this->assertSame('', $rows[0]['revealword']);
@@ -255,7 +274,7 @@ final class round_presenter_test extends \advanced_testcase {
     public function test_build_term_rows_reveals_unresolved_word_when_round_finished(): void {
         $state = $this->make_state();
 
-        $rows = round_presenter::build_term_rows($state, true);
+        $rows = round_presenter::build_term_rows($this->make_instance_stub(), $state, true);
 
         $this->assertFalse($rows[0]['resolved']);
         $this->assertSame('LIVRO', $rows[0]['revealword']);
@@ -273,7 +292,7 @@ final class round_presenter_test extends \advanced_testcase {
         $state = $this->make_state();
         $state['terms'][0]['resolved'] = true;
 
-        $rows = round_presenter::build_term_rows($state, false);
+        $rows = round_presenter::build_term_rows($this->make_instance_stub(), $state, false);
 
         $this->assertSame('LIVRO', $rows[0]['revealword']);
         $this->assertFalse($rows[0]['canguess']);
@@ -297,7 +316,7 @@ final class round_presenter_test extends \advanced_testcase {
         $state['terms'][0]['slots'] = [1, 2, 3, 4, 5, 6];
         $state['terms'][0]['resolved'] = true;
 
-        $rows = round_presenter::build_term_rows($state, false);
+        $rows = round_presenter::build_term_rows($this->make_instance_stub(), $state, false);
 
         $this->assertSame('PAÇOCA', $rows[0]['revealword']);
         $this->assertSame(['P', 'A', 'Ç', 'O', 'C', 'A'], array_column($rows[0]['tiles'], 'letter'));
@@ -314,7 +333,7 @@ final class round_presenter_test extends \advanced_testcase {
         $state['terms'][0]['exhausted'] = true;
         $state['terms'][0]['attemptsused'] = 3;
 
-        $rows = round_presenter::build_term_rows($state, false);
+        $rows = round_presenter::build_term_rows($this->make_instance_stub(), $state, false);
 
         $this->assertSame(get_string('termexhaustedlabel', 'mod_playercross', 3), $rows[0]['exhaustedlabel']);
     }
@@ -325,7 +344,7 @@ final class round_presenter_test extends \advanced_testcase {
      * @return void
      */
     public function test_build_term_rows_exhausted_label_blank_when_not_exhausted(): void {
-        $rows = round_presenter::build_term_rows($this->make_state(), false);
+        $rows = round_presenter::build_term_rows($this->make_instance_stub(), $this->make_state(), false);
 
         $this->assertSame('', $rows[0]['exhaustedlabel']);
     }
@@ -337,7 +356,7 @@ final class round_presenter_test extends \advanced_testcase {
      * @return void
      */
     public function test_build_term_rows_phrase_always_shown(): void {
-        $rows = round_presenter::build_term_rows($this->make_state(), false);
+        $rows = round_presenter::build_term_rows($this->make_instance_stub(), $this->make_state(), false);
 
         $this->assertSame('dica', $rows[0]['phrase']);
     }
@@ -351,7 +370,7 @@ final class round_presenter_test extends \advanced_testcase {
     public function test_build_term_rows_shows_cross_revealed_shared_letter(): void {
         $state = $this->make_state(['revealedslots' => [5]]);
 
-        $rows = round_presenter::build_term_rows($state, false);
+        $rows = round_presenter::build_term_rows($this->make_instance_stub(), $state, false);
 
         $this->assertTrue($rows[0]['tiles'][0]['revealed']);
         $this->assertSame('L', $rows[0]['tiles'][0]['letter']);
@@ -900,6 +919,152 @@ final class round_presenter_test extends \advanced_testcase {
         $this->assertFalse($afterall['showglobalhint']);
         $this->assertFalse($afterall['showhintsremaining']);
         $this->assertSame('', $afterall['hintsremainingvalue']);
+    }
+
+    /**
+     * Tests that a term row shows an attempts-remaining badge that counts down as
+     * attemptsused grows, matching the hints-remaining pattern.
+     *
+     * @return void
+     */
+    public function test_build_term_rows_shows_attempts_remaining_count(): void {
+        $instance = $this->make_instance_stub(['max_attempts_per_term' => 3]);
+
+        $fresh = round_presenter::build_term_rows($instance, $this->make_state(), false);
+        $this->assertTrue($fresh[0]['showtermattemptsremaining']);
+        $this->assertSame('3', $fresh[0]['termattemptsremainingvalue']);
+        $this->assertSame(
+            get_string('attemptsremaining', 'mod_playercross', '3'),
+            $fresh[0]['termattemptsremaininglabel']
+        );
+
+        $state = $this->make_state();
+        $state['terms'][0]['attemptsused'] = 2;
+        $afterone = round_presenter::build_term_rows($instance, $state, false);
+        $this->assertSame('1', $afterone[0]['termattemptsremainingvalue']);
+    }
+
+    /**
+     * Tests that the term attempts-remaining badge shows the infinity glyph when
+     * max_attempts_per_term is unlimited (0).
+     *
+     * @return void
+     */
+    public function test_build_term_rows_attempts_remaining_infinity_when_unlimited(): void {
+        $instance = $this->make_instance_stub(['max_attempts_per_term' => 0]);
+
+        $rows = round_presenter::build_term_rows($instance, $this->make_state(), false);
+
+        $this->assertSame("\u{221E}", $rows[0]['termattemptsremainingvalue']);
+    }
+
+    /**
+     * Tests that the attempts-remaining badge is hidden once a term is resolved,
+     * exhausted, or the round has finished — nothing left to count down.
+     *
+     * @return void
+     */
+    public function test_build_term_rows_hides_attempts_remaining_once_unavailable(): void {
+        $instance = $this->make_instance_stub(['max_attempts_per_term' => 3]);
+
+        $resolvedstate = $this->make_state();
+        $resolvedstate['terms'][0]['resolved'] = true;
+        $resolved = round_presenter::build_term_rows($instance, $resolvedstate, false);
+        $this->assertFalse($resolved[0]['showtermattemptsremaining']);
+        $this->assertSame('', $resolved[0]['termattemptsremainingvalue']);
+
+        $exhaustedstate = $this->make_state();
+        $exhaustedstate['terms'][0]['exhausted'] = true;
+        $exhausted = round_presenter::build_term_rows($instance, $exhaustedstate, false);
+        $this->assertFalse($exhausted[0]['showtermattemptsremaining']);
+
+        $finished = round_presenter::build_term_rows($instance, $this->make_state(), true);
+        $this->assertFalse($finished[0]['showtermattemptsremaining']);
+    }
+
+    /**
+     * Tests that the panel shows a final-guess attempts-remaining badge that counts
+     * down as finalguessattemptsused grows, and is hidden once the phrase is solved.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_shows_final_guess_attempts_remaining(): void {
+        $instance = $this->make_instance(['max_attempts_final_guess' => 3]);
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+
+        $fresh = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['finalguessattemptsused' => 0]),
+            $user->id
+        );
+        $this->assertTrue($fresh['showfinalguessattemptsremaining']);
+        $this->assertSame('3', $fresh['finalguessattemptsremainingvalue']);
+        $this->assertSame(
+            get_string('attemptsremaining', 'mod_playercross', '3'),
+            $fresh['finalguessattemptsremaininglabel']
+        );
+
+        $afterone = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['finalguessattemptsused' => 1]),
+            $user->id
+        );
+        $this->assertSame('2', $afterone['finalguessattemptsremainingvalue']);
+
+        $solved = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state(['finalguesscorrect' => true]),
+            $user->id
+        );
+        $this->assertFalse($solved['showfinalguessattemptsremaining']);
+        $this->assertSame('', $solved['finalguessattemptsremainingvalue']);
+    }
+
+    /**
+     * Tests that finalguessexhausted carries a human-readable label once the round
+     * ended because the mystery phrase ran out of attempts.
+     *
+     * @return void
+     */
+    public function test_build_round_panel_context_finalguessexhausted_label(): void {
+        $instance = $this->make_instance();
+        $cm = (object)['id' => 5];
+        $user = $this->getDataGenerator()->create_user();
+
+        $context = round_presenter::build_round_panel_context(
+            $instance,
+            $cm,
+            $this->make_state([
+                'finished' => true,
+                'finalguessexhausted' => true,
+                'finalguessattemptsused' => 3,
+            ]),
+            $user->id
+        );
+
+        $this->assertTrue($context['finalguessexhausted']);
+        $this->assertSame(
+            get_string('termexhaustedlabel', 'mod_playercross', 3),
+            $context['finalguessexhaustedlabel']
+        );
+    }
+
+    /**
+     * Tests that the end-of-round feedback message reports final-guess exhaustion.
+     *
+     * @return void
+     */
+    public function test_build_feedback_message_finalguessexhausted(): void {
+        $state = $this->make_state(['finished' => true, 'finalguessexhausted' => true]);
+
+        $this->assertSame(
+            get_string('feedback_finalguessexhausted', 'mod_playercross'),
+            round_presenter::build_feedback_message($state)
+        );
     }
 
     /**
