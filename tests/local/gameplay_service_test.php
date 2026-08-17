@@ -194,39 +194,70 @@ final class gameplay_service_test extends \basic_testcase {
     }
 
     /**
-     * Grade and ranking scoring modes are independently configurable on the same round.
+     * Grade and ranking scoring modes are independently configurable on the same
+     * round, and ranking's own points are scored against PLAYERCROSS_RANKING_BASE_
+     * POINTS, never the activity's grade — proven here by varying grade and checking
+     * the ranking output never moves.
      *
      * @return void
      */
     public function test_grade_and_ranking_modes_are_independent(): void {
-        $instance = $this->make_instance([
-            'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
-            'rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR,
-        ]);
+        foreach ([0.0, 50.0, 100.0, 500.0] as $grade) {
+            $instance = $this->make_instance([
+                'grade' => $grade,
+                'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
+                'rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR,
+            ]);
 
-        $this->assertEqualsWithDelta(
-            100.0,
-            gameplay_service::calculate_round_score($instance, 6, true, false),
-            0.00001
-        );
-        $this->assertEqualsWithDelta(
-            53.84615,
-            gameplay_service::calculate_ranking_points($instance, 6, true, false),
-            0.001
-        );
+            $this->assertEqualsWithDelta(
+                $grade,
+                gameplay_service::calculate_round_score($instance, 6, true, false),
+                0.00001
+            );
+            $this->assertEqualsWithDelta(
+                53.84615,
+                gameplay_service::calculate_ranking_points($instance, 6, true, false),
+                0.001
+            );
+        }
     }
 
     /**
-     * The early-guess bonus is a flat 10% of the activity's configured grade.
+     * Ranking points never move regardless of the activity's own configured grade —
+     * the core regression test for the fix: ranking used to be scored against
+     * $instance->grade, so an ungraded activity (grade=0, the mod_form default) always
+     * produced zero ranking points even with show_ranking enabled (also the default).
+     *
+     * @return void
+     */
+    public function test_calculate_ranking_points_ignores_grade_value(): void {
+        $rankingpointswithzerograde = gameplay_service::calculate_ranking_points(
+            $this->make_instance(['grade' => 0.0, 'rankingscoringmode' => PLAYERCROSS_SCORING_BINARY]),
+            0,
+            true,
+            false
+        );
+        $rankingpointswithrealgrade = gameplay_service::calculate_ranking_points(
+            $this->make_instance(['grade' => 250.0, 'rankingscoringmode' => PLAYERCROSS_SCORING_BINARY]),
+            0,
+            true,
+            false
+        );
+
+        $this->assertEqualsWithDelta(100.0, $rankingpointswithzerograde, 0.00001);
+        $this->assertEqualsWithDelta($rankingpointswithzerograde, $rankingpointswithrealgrade, 0.00001);
+    }
+
+    /**
+     * The early-guess bonus is a flat percentage of whatever scoring base is passed
+     * in — the activity's grade for the grade path, or PLAYERCROSS_RANKING_BASE_POINTS
+     * for the ranking path (see calculate_round_score()/calculate_ranking_points()).
      *
      * @return void
      */
     public function test_calculate_early_guess_bonus(): void {
-        $instance = $this->make_instance(['grade' => 100.0]);
-        $this->assertEqualsWithDelta(10.0, gameplay_service::calculate_early_guess_bonus($instance), 0.00001);
-
-        $instance = $this->make_instance(['grade' => 50.0]);
-        $this->assertEqualsWithDelta(5.0, gameplay_service::calculate_early_guess_bonus($instance), 0.00001);
+        $this->assertEqualsWithDelta(10.0, gameplay_service::calculate_early_guess_bonus(100.0), 0.00001);
+        $this->assertEqualsWithDelta(5.0, gameplay_service::calculate_early_guess_bonus(50.0), 0.00001);
     }
 
     /**
@@ -246,12 +277,14 @@ final class gameplay_service_test extends \basic_testcase {
 
     /**
      * The early-guess bonus is uncapped for ranking points — a flawless Binary win
-     * plus the bonus legitimately exceeds the nominal grade.
+     * plus the bonus legitimately exceeds PLAYERCROSS_RANKING_BASE_POINTS (100). Proven
+     * with grade=0 specifically, so the 110.0 result can only have come from the fixed
+     * ranking base, never from the (zero) grade.
      *
      * @return void
      */
     public function test_early_bonus_uncapped_for_ranking(): void {
-        $instance = $this->make_instance(['rankingscoringmode' => PLAYERCROSS_SCORING_BINARY]);
+        $instance = $this->make_instance(['grade' => 0.0, 'rankingscoringmode' => PLAYERCROSS_SCORING_BINARY]);
         $this->assertEqualsWithDelta(
             110.0,
             gameplay_service::calculate_ranking_points($instance, 0, true, true),

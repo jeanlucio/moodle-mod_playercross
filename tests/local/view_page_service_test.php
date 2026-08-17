@@ -420,6 +420,39 @@ final class view_page_service_test extends \advanced_testcase {
     }
 
     /**
+     * The help modal mentions the ranking's own early-guess bonus whenever ranking is
+     * enabled — independent of whether the activity also uses grading, since the
+     * ranking bonus is scored against PLAYERCROSS_RANKING_BASE_POINTS, not the grade.
+     *
+     * @return void
+     */
+    public function test_build_page_data_shows_ranking_bonus_when_ranking_enabled(): void {
+        [$instance, $cm, $context] = $this->make_instance(['grade' => 0, 'show_ranking' => 1]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showrankingbonus']);
+        $this->assertStringContainsString('10', $ctx['rankingbonustext']);
+    }
+
+    /**
+     * The help modal drops the ranking bonus mention when ranking is disabled,
+     * regardless of the grade.
+     *
+     * @return void
+     */
+    public function test_build_page_data_hides_ranking_bonus_when_ranking_disabled(): void {
+        [$instance, $cm, $context] = $this->make_instance(['grade' => 100, 'show_ranking' => 0]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['showrankingbonus']);
+        $this->assertSame('', $ctx['rankingbonustext']);
+    }
+
+    /**
      * The help modal states the actual configured time limit, in minutes, whenever
      * the activity has a timer.
      *
@@ -583,11 +616,15 @@ final class view_page_service_test extends \advanced_testcase {
      * with wording specific to that case, since the grade itself stays Binary and the
      * grade-describing string would misstate how the student's own grade is computed.
      *
+     * grade=0 (ungraded) here deliberately: showscoringformula used to be gated behind
+     * $showgrading, so an ungraded activity with a Linear ranking never saw this
+     * paragraph at all — exactly the scenario the ranking/grade decoupling fix covers.
+     *
      * @return void
      */
     public function test_build_page_data_shows_scoring_formula_when_ranking_is_linear(): void {
         [$instance, $cm, $context] = $this->make_instance([
-            'grade' => 100,
+            'grade' => 0,
             'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
             'rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR,
             'show_ranking' => 1,

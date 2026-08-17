@@ -437,18 +437,23 @@ class mod_playercross_mod_form extends moodleform_mod {
     }
 
     /**
-     * Freezes settings that feed the puzzle's point scale once the activity has
+     * Freezes settings that feed the puzzle's grade scale once the activity has
      * recorded a real grade for any student.
      *
-     * num_terms, grademethod, max_attempts_per_term, max_attempts_final_guess,
-     * gradescoringmode and rankingscoringmode are all baked into every already-scored
-     * round at the moment it finishes — the Linear formula's denominator
-     * (gameplay_service::calculate_max_errors()) is a direct function of num_terms and
-     * both attempts fields. Changing any of them afterwards would make past and future
-     * rounds count on different scales, both for the grade and for the ranking total.
-     * This mirrors the same condition core already uses to freeze the "Maximum grade"
-     * field itself — the modgrade element in lib/form/modgrade.php disables it once
-     * $gradeitem->has_grades() is true.
+     * num_terms, grademethod, max_attempts_per_term, max_attempts_final_guess and
+     * gradescoringmode are all baked into every already-scored round at the moment it
+     * finishes — the Linear formula's denominator (gameplay_service::
+     * calculate_max_errors()) is a direct function of num_terms and both attempts
+     * fields. Changing any of them afterwards would make past and future rounds count
+     * on different scales for the grade. This mirrors the same condition core already
+     * uses to freeze the "Maximum grade" field itself — the modgrade element in
+     * lib/form/modgrade.php disables it once $gradeitem->has_grades() is true.
+     *
+     * rankingscoringmode is frozen separately, by freeze_ranking_scoring_mode() below —
+     * ranking points are computed and persisted for every finished round regardless of
+     * whether grading or show_ranking is even on (see gameplay_service::
+     * calculate_ranking_points(), always called from round_service::finish_round()),
+     * so its own scale-consistency risk exists independently of $gradeitem->has_grades().
      *
      * @return void
      */
@@ -459,6 +464,8 @@ class mod_playercross_mod_form extends moodleform_mod {
         if (empty($this->_instance)) {
             return;
         }
+
+        $this->freeze_ranking_scoring_mode();
 
         global $COURSE;
         $gradeitem = grade_item::fetch([
@@ -480,7 +487,6 @@ class mod_playercross_mod_form extends moodleform_mod {
             'max_attempts_per_term',
             'max_attempts_final_guess',
             'gradescoringmode',
-            'rankingscoringmode',
         ];
         $mform->freeze($lockedfields);
 
@@ -488,6 +494,35 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->insertElementBefore(
             $mform->createElement('static', 'scoringmodelockedmsg', '', $warninghtml),
             'num_terms'
+        );
+    }
+
+    /**
+     * Freezes rankingscoringmode on its own, the moment the activity has any finished
+     * attempt at all — independent of gradescoringmode's own has_grades()-gated freeze
+     * above. Ranking points are computed and stored on every finished round regardless
+     * of the grade or show_ranking settings (they only gate display, never
+     * computation — see round_service::finish_round()), so an ungraded, ranking-only
+     * activity can already have real ranking history even though $gradeitem never
+     * exists and has_grades() never fires; this is a strict superset of that trigger,
+     * since has_grades() being true already implies at least one attempt exists.
+     *
+     * @return void
+     */
+    private function freeze_ranking_scoring_mode(): void {
+        global $DB;
+
+        if (!$DB->record_exists('playercross_attempts', ['playercrossid' => $this->_instance])) {
+            return;
+        }
+
+        $mform = $this->_form;
+        $mform->freeze('rankingscoringmode');
+
+        $warninghtml = html_writer::div(get_string('rankingscoringmode_locked', 'mod_playercross'), 'alert alert-warning');
+        $mform->insertElementBefore(
+            $mform->createElement('static', 'rankingscoringmodelockedmsg', '', $warninghtml),
+            'rankingscoringmode'
         );
     }
 

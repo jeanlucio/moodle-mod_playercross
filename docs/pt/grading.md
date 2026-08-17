@@ -18,11 +18,14 @@ nota, ambos, ou nenhum dos dois.
 
 **A pontuação por rodada** decide quanto vale uma única rodada, escolhida separadamente para a
 nota e para o ranking (configurações `Modo de pontuação da nota` / `Modo de pontuação do
-ranking`, ambas com padrão **Binário**):
+ranking`, ambas com padrão **Binário**). A nota usa a **nota máxima configurada da atividade**
+como base; o **ranking sempre usa sua própria base fixa de 100 pontos, totalmente independente da
+nota** — inclusive quando a atividade não tem nota nenhuma (`Nota` = *Nenhuma*, o padrão do
+formulário), o ranking continua funcionando normalmente:
 
 | Modo | Uma rodada vencida vale... | Uma rodada perdida |
 |---|---|---|
-| **Binário** (padrão) | A nota cheia da atividade | Zero |
+| **Binário** (padrão) | A base cheia (nota da atividade, ou 100 pontos fixos no ranking) | Zero |
 | **Linear** | Uma fração que diminui a cada palpite errado — em qualquer termo *e* na frase-mistério, contados juntos como um único conjunto | Zero |
 
 Os termos não têm um valor de ponto próprio: todo palpite errado, seja em um termo ou na própria
@@ -31,34 +34,39 @@ determina a pontuação linear da rodada inteira:
 
 ```
 max_errors = num_terms × (max_attempts_per_term − 1) + (max_attempts_final_guess − 1)
-pontos     = nota × (max_errors − erros_usados + 1) / (max_errors + 1)
+pontos (nota)    = nota × (max_errors − erros_usados + 1) / (max_errors + 1)
+pontos (ranking) = 100  × (max_errors − erros_usados + 1) / (max_errors + 1)
 ```
 
 O modo linear não tem nenhuma tolerância: o primeiro palpite errado já reduz a pontuação. Uma
 rodada sem nenhum erro continua sempre valendo exatamente a pontuação cheia, e a pontuação nunca
-chega a zero numa vitória genuinamente concluída — ela tem um piso de `nota / (max_errors + 1)`
+chega a zero numa vitória genuinamente concluída — ela tem um piso de `base / (max_errors + 1)`
 mesmo no limite máximo de erros. Como `max_errors` depende das duas configurações de tentativas,
 **escolher Linear para a nota ou para o ranking exige que "Máximo de tentativas por termo" e
 "Máximo de tentativas para a frase-mistério" sejam ambos um valor real, não ilimitado** — o
 formulário de configurações bloqueia o salvamento caso contrário.
 
-Exemplo prático com nota máxima 100, 5 termos, 3 tentativas por termo, 3 tentativas para a
-frase-mistério (`max_errors = 5 × 2 + 2 = 12`):
+Exemplo prático com 5 termos, 3 tentativas por termo, 3 tentativas para a frase-mistério
+(`max_errors = 5 × 2 + 2 = 12`) — a coluna de nota assume uma nota máxima 100, mas a coluna de
+ranking vale exatamente assim em **qualquer** atividade, mesmo sem nota nenhuma configurada:
 
-| Erros | Pontos | Erros | Pontos | Erros | Pontos |
+| Erros | Nota (base 100) | Ranking (base 100, sempre) | Erros | Nota | Ranking |
 |---:|---:|---:|---:|---:|---:|
-| 0 | 100,00 | 5 | 61,54 | 10 | 23,08 |
-| 1 | 92,31 | 6 | 53,85 | 11 | 15,38 |
-| 2 | 84,62 | 7 | 46,15 | 12 | 7,69 |
-| 3 | 76,92 | 8 | 38,46 | Não concluída | 0,00 |
-| 4 | 69,23 | 9 | 30,77 | | |
+| 0 | 100,00 | 100,00 | 7 | 46,15 | 46,15 |
+| 1 | 92,31 | 92,31 | 8 | 38,46 | 38,46 |
+| 2 | 84,62 | 84,62 | 9 | 30,77 | 30,77 |
+| 3 | 76,92 | 76,92 | 10 | 23,08 | 23,08 |
+| 4 | 69,23 | 69,23 | 11 | 15,38 | 15,38 |
+| 5 | 61,54 | 61,54 | 12 | 7,69 | 7,69 |
+| 6 | 53,85 | 53,85 | Não concluída | 0,00 | 0,00 |
 
 **Bônus de acerto antecipado:** acertar a frase-mistério corretamente antes de resolver qualquer
-termo soma um bônus fixo de 10% da nota da atividade em cima da pontuação base acima. Para a
+termo soma um bônus fixo de 10% em cima da pontuação base acima — 10% da nota da atividade, para a
+**nota**; 10% da base fixa de 100 (ou seja, sempre +10 pontos), para o **ranking**. Para a
 **nota**, isso tem um teto no máximo nominal da atividade — uma rodada perfeita já em 100%
 permanece em 100%. Para o **ranking**, não há teto — a mesma rodada perfeita tem seu total de
-ranking em 110, ultrapassando legitimamente a nota nominal, já que o ranking recompensa a dedução
-precoce eficiente além do que um valor de diário de notas consegue representar.
+ranking em 110, ultrapassando legitimamente a base nominal de 100, já que o ranking recompensa a
+dedução precoce eficiente além do que um valor de diário de notas consegue representar.
 
 **Combinar várias rodadas em uma nota final** é uma configuração separada, `Método de avaliação`
 (maior nota, média das notas, primeira tentativa, última tentativa, ou média sobre todas as
@@ -86,13 +94,24 @@ perde, e nada precisa ser "recuperado" desligando e religando o ajuste.
 
 **Trava assim que há avaliação:** no momento em que a atividade registra uma nota real para
 qualquer estudante, `Termos por rodada`, `Método de avaliação`, `Máximo de tentativas por termo`,
-`Máximo de tentativas para a frase-mistério`, `Modo de pontuação da nota` e `Modo de pontuação do
-ranking` travam todos — da mesma forma que o Moodle já trava o campo "Nota máxima" de uma
-atividade avaliada assim que notas reais existem. Como o orçamento de erros da fórmula linear é
-uma função direta do número de termos e das duas configurações de tentativas, mudar qualquer um
-deles depois que já existem pontuações reais faria rodadas anteriores e posteriores valerem
-coisas diferentes; travá-los garante que toda rodada já registrada permaneça internamente
-consistente durante toda a vida da atividade.
+`Máximo de tentativas para a frase-mistério` e `Modo de pontuação da nota` travam todos — da mesma
+forma que o Moodle já trava o campo "Nota máxima" de uma atividade avaliada assim que notas reais
+existem. Como o orçamento de erros da fórmula linear é uma função direta do número de termos e das
+duas configurações de tentativas, mudar qualquer um deles depois que já existem pontuações reais
+faria rodadas anteriores e posteriores valerem coisas diferentes; travá-los garante que toda
+rodada já registrada permaneça internamente consistente durante toda a vida da atividade.
+
+**`Modo de pontuação do ranking` trava separadamente, assim que existe qualquer tentativa
+finalizada** — não espera uma nota real, porque os pontos de ranking já são calculados e gravados
+em toda rodada terminada independente de `Nota` ou `Mostrar ranking` estarem ligados (ver acima).
+Uma atividade sem nota nenhuma, só com ranking, já acumula histórico real desde a primeira rodada;
+travar o modo de pontuação assim que esse histórico existe evita a mesma inconsistência de escala
+que a trava acima evita para a nota.
+
+> **Limitação conhecida:** antes desta correção, os pontos de ranking eram calculados como uma
+> fração da nota da atividade — o mesmo bug que motivou tornar o ranking independente. Totais de
+> ranking de rodadas terminadas antes da correção **não foram recalculados** e podem não estar na
+> mesma escala das rodadas terminadas depois; não migramos esse histórico.
 
 **Histórico de tentativas:** cada estudante pode revisar suas rodadas passadas — frase-mistério,
 termos resolvidos, tentativas usadas, tempo, pontuação da nota e (quando o ranking está ativado)

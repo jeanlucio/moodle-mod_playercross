@@ -82,18 +82,26 @@ class gameplay_service {
         bool $earlybonuseligible
     ): float {
         $mode = (int)($instance->gradescoringmode ?? PLAYERCROSS_SCORING_BINARY);
-        $base = self::compute_points($instance, $mode, $errorsused, $completed);
+        $maxpoints = (float)$instance->grade;
+        $base = self::compute_points($instance, $mode, $errorsused, $completed, $maxpoints);
         if (!$completed || !$earlybonuseligible) {
             return $base;
         }
 
-        return min((float)$instance->grade, $base + self::calculate_early_guess_bonus($instance));
+        return min($maxpoints, $base + self::calculate_early_guess_bonus($maxpoints));
     }
 
     /**
      * Calculates the ranking points earned for a round, including the early-guess
-     * bonus when eligible — uncapped, so a ranking total can legitimately exceed the
-     * activity's nominal grade.
+     * bonus when eligible — uncapped, so a ranking total can legitimately exceed
+     * PLAYERCROSS_RANKING_BASE_POINTS.
+     *
+     * Deliberately scored against the fixed PLAYERCROSS_RANKING_BASE_POINTS, never the
+     * activity's own grade: an ungraded activity ($instance->grade == 0, "No grade",
+     * the mod_form default) must still produce a meaningful ranking when show_ranking
+     * is enabled (also the default) — see SCOPE.md and the ranking_service docblock,
+     * which already documented ranking as independent from the grade even before this
+     * fix made compute_points() actually honour that.
      *
      * @param \stdClass $instance Activity instance.
      * @param int $errorsused Wrong guesses across every term and the final guess.
@@ -109,23 +117,25 @@ class gameplay_service {
         bool $earlybonuseligible
     ): float {
         $mode = (int)($instance->rankingscoringmode ?? PLAYERCROSS_SCORING_BINARY);
-        $base = self::compute_points($instance, $mode, $errorsused, $completed);
+        $maxpoints = (float)PLAYERCROSS_RANKING_BASE_POINTS;
+        $base = self::compute_points($instance, $mode, $errorsused, $completed, $maxpoints);
         if (!$completed || !$earlybonuseligible) {
             return $base;
         }
 
-        return $base + self::calculate_early_guess_bonus($instance);
+        return $base + self::calculate_early_guess_bonus($maxpoints);
     }
 
     /**
      * Calculates the flat early-guess bonus: PLAYERCROSS_EARLY_GUESS_BONUS_RATIO of the
-     * activity's configured grade.
+     * given scoring base — the activity's own grade for calculate_round_score(), or
+     * PLAYERCROSS_RANKING_BASE_POINTS for calculate_ranking_points().
      *
-     * @param \stdClass $instance Activity instance.
+     * @param float $maxpoints The scoring base this bonus is a percentage of.
      * @return float
      */
-    public static function calculate_early_guess_bonus(\stdClass $instance): float {
-        return (float)$instance->grade * PLAYERCROSS_EARLY_GUESS_BONUS_RATIO;
+    public static function calculate_early_guess_bonus(float $maxpoints): float {
+        return $maxpoints * PLAYERCROSS_EARLY_GUESS_BONUS_RATIO;
     }
 
     /**
@@ -139,14 +149,20 @@ class gameplay_service {
      * @param int $mode One of the PLAYERCROSS_SCORING_* constants.
      * @param int $errorsused Wrong guesses across every term and the final guess.
      * @param bool $completed Whether the round was won.
+     * @param float $maxpoints The scoring base — the caller's own grade or ranking base.
      * @return float
      */
-    private static function compute_points(\stdClass $instance, int $mode, int $errorsused, bool $completed): float {
+    private static function compute_points(
+        \stdClass $instance,
+        int $mode,
+        int $errorsused,
+        bool $completed,
+        float $maxpoints
+    ): float {
         if (!$completed) {
             return 0.0;
         }
 
-        $maxpoints = (float)$instance->grade;
         if ($mode !== PLAYERCROSS_SCORING_LINEAR) {
             return $maxpoints;
         }

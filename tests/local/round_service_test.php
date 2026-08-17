@@ -1113,6 +1113,52 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * The core regression test for the ranking/grade decoupling fix: an ungraded
+     * activity (grade=0, the mod_form default) still persists a real, nonzero
+     * rankingpoints value — ranking is scored against its own fixed
+     * PLAYERCROSS_RANKING_BASE_POINTS, never against the (here, zero) grade.
+     *
+     * @return void
+     */
+    public function test_finish_round_persists_rankingpoints_when_ungraded(): void {
+        global $DB;
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_terms' => 3,
+            'theme_min_length' => 6,
+            'grade' => 0,
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+
+        [$state] = round_service::submit_final_guess(
+            $state,
+            $instance,
+            $cm->cmid,
+            $this->user->id,
+            implode(' ', $state['themewords'])
+        );
+        foreach ($state['terms'] as $term) {
+            [$state] = round_service::submit_term_guess(
+                $state,
+                $instance,
+                $cm->cmid,
+                $this->user->id,
+                (int)$term['wordid'],
+                $term['word']
+            );
+        }
+
+        $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
+        $this->assertEqualsWithDelta(0.0, (float)$attempt->score, 0.00001);
+        $this->assertEqualsWithDelta(110.0, (float)$attempt->rankingpoints, 0.00001);
+    }
+
+    /**
      * PLAYERCROSS_WINCONDITION_FINALONLY: resolving every term never finishes the
      * round on its own — only a direct guess of the mystery phrase does.
      *

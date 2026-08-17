@@ -226,10 +226,12 @@ class view_page_service {
         $rankingscoringmode = (int)($instance->rankingscoringmode ?? PLAYERCROSS_SCORING_BINARY);
         $showranking = !empty($instance->show_ranking);
         $gradeislinear = $gradescoringmode === PLAYERCROSS_SCORING_LINEAR;
-        $showscoringformula = $showgrading && (
-            $gradeislinear
-            || ($showranking && $rankingscoringmode === PLAYERCROSS_SCORING_LINEAR)
-        );
+        // Deliberately NOT gated on $showgrading: ranking's own Linear formula is
+        // meaningful on its own (see gameplay_service::calculate_ranking_points()),
+        // independent of whether the activity uses grading at all — an ungraded,
+        // ranking-only activity with rankingscoringmode Linear must still see this.
+        $showscoringformula = $gradeislinear
+            || ($showranking && $rankingscoringmode === PLAYERCROSS_SCORING_LINEAR);
         // Showscoringformula can be true purely because ranking is Linear while the
         // grade itself stays Binary (the two scoring modes are independent settings) —
         // help_scoringformula describes the grade as Linear, so that wording is only
@@ -257,6 +259,17 @@ class view_page_service {
             'finalguessbonustext' => $showgrading
                 ? get_string(
                     'help_finalguessbonus',
+                    'mod_playercross',
+                    (int)round(PLAYERCROSS_EARLY_GUESS_BONUS_RATIO * 100)
+                )
+                : '',
+            // Independent of $showgrading: the ranking bonus is scored against the
+            // fixed PLAYERCROSS_RANKING_BASE_POINTS, so it applies whenever ranking is
+            // on, whether or not the activity also uses grading.
+            'showrankingbonus' => $showranking,
+            'rankingbonustext' => $showranking
+                ? get_string(
+                    'help_rankingbonus',
                     'mod_playercross',
                     (int)round(PLAYERCROSS_EARLY_GUESS_BONUS_RATIO * 100)
                 )

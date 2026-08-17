@@ -43,6 +43,8 @@
         "finalguesstext": "You can guess the mystery phrase directly at any time, even with terms still pending.",
         "showfinalguessbonus": true,
         "finalguessbonustext": "Guessing the mystery phrase correctly before resolving any term guarantees a 10% grade bonus.",
+        "showrankingbonus": true,
+        "rankingbonustext": "Guessing the mystery phrase correctly before resolving any term also guarantees a 10% ranking bonus, whenever ranking is enabled.",
         "winconditiontext": "To win a round, you must resolve every term and correctly guess the mystery phrase — in either order.",
         "showtermloss": true,
         "termlosstext": "Each term has a limited number of attempts, shown as <span class=\"mod-playercross-attempts-count\">×N</span> next to it. If one runs out, winning becomes impossible and the round ends immediately as a loss.",
@@ -74,6 +76,9 @@
     {{#showfinalguessbonus}}
         <p>{{finalguessbonustext}}</p>
     {{/showfinalguessbonus}}
+    {{#showrankingbonus}}
+        <p>{{rankingbonustext}}</p>
+    {{/showrankingbonus}}
     <p>{{winconditiontext}}</p>
     {{#showtermloss}}
         <p>{{{termlosstext}}}</p>
