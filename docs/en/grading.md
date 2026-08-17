@@ -108,8 +108,9 @@ the scoring mode once that history exists prevents the same scale inconsistency 
 prevents for the grade.
 
 **Attempt history:** each student can review their own past rounds — mystery phrase, terms
-resolved, attempts used, time, grade score and (when ranking is enabled) ranking points — from
-the toolbar's attempt-history page. Whoever can manage the activity sees the same page turn into
-a report covering every student instead: one table, sortable by clicking any column header, and
-filterable to a single student. Like the ranking, it never includes a manager's own attempts,
-even if they played the activity themselves.
+resolved, attempts used, time, grade score and (when ranking is enabled) ranking points — on a
+dedicated toolbar page. Whoever can manage the activity sees that same page too, including their
+own attempts if they have played the activity. The all-students report lives on a separate page,
+visible only to whoever can manage the activity: one table with every student's attempts,
+sortable by clicking any column header, and filterable to a single student. Like the ranking,
+that report never includes a manager's own attempts.

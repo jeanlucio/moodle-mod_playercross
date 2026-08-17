@@ -108,10 +108,11 @@ Uma atividade sem nota nenhuma, só com ranking, já acumula histórico real des
 travar o modo de pontuação assim que esse histórico existe evita a mesma inconsistência de escala
 que a trava acima evita para a nota.
 
-**Histórico de tentativas:** cada estudante pode revisar suas rodadas passadas — frase-mistério,
-termos resolvidos, tentativas usadas, tempo, pontuação da nota e (quando o ranking está ativado)
-pontos de ranking — pela página de histórico da barra de ferramentas. Quem gerencia a atividade vê
-a mesma página se transformar em um relatório cobrindo todos os estudantes: uma tabela, ordenável
-clicando em qualquer cabeçalho de coluna, e filtrável para um único estudante. Assim como o
-ranking, nunca inclui as próprias tentativas de um gestor, mesmo que ele tenha jogado a
-atividade.
+**Histórico de tentativas:** cada estudante pode revisar suas próprias rodadas passadas —
+frase-mistério, termos resolvidos, tentativas usadas, tempo, pontuação da nota e (quando o
+ranking está ativado) pontos de ranking — numa página dedicada da barra de ferramentas. Quem
+gerencia a atividade também vê essa mesma página, incluindo as suas próprias tentativas caso já
+tenha jogado a atividade. Já o relatório para todos os estudantes vive numa página separada,
+visível só para quem gerencia: uma tabela com todas as tentativas de todos os estudantes,
+ordenável clicando em qualquer cabeçalho de coluna e filtrável para um único estudante. Assim
+como o ranking, esse relatório nunca inclui as próprias tentativas de um gestor.
