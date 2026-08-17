@@ -20,11 +20,12 @@
     How-to-play help content for a PlayerCross activity, shown inside a modal
     opened from the in-game toolbar (see amd/src/game.js).
 
-    The termloss/finalguessloss paragraphs each end with a static example of the
-    real attempts-remaining pill (.mod-playercross-attempts-count, styled in
-    styles.css) shown during play — a fixed illustrative number, not real round
-    data, so it is aria-hidden; the paragraph text right before it already
-    explains what the count means for anyone using a screen reader.
+    The termloss/finalguessloss paragraphs each end with a real
+    .mod-playercross-attempts-count pill (styled in styles.css) reading "×N" —
+    matching the same placeholder already quoted in the paragraph text right
+    before it — so the reader sees the actual pill shape instead of only
+    imagining it from a quoted string. Decorative (aria-hidden): the paragraph
+    text already explains what the count means for anyone using a screen reader.
 
     Example context (json):
     {
@@ -62,10 +63,10 @@
     <p>{{finalguesstext}}</p>
     <p>{{winconditiontext}}</p>
     {{#showtermloss}}
-        <p>{{termlosstext}} <span class="mod-playercross-attempts-count" aria-hidden="true">×3</span></p>
+        <p>{{termlosstext}} <span class="mod-playercross-attempts-count" aria-hidden="true">×N</span></p>
     {{/showtermloss}}
     {{#showfinalguessloss}}
-        <p>{{finalguesslosstext}} <span class="mod-playercross-attempts-count" aria-hidden="true">×1</span></p>
+        <p>{{finalguesslosstext}} <span class="mod-playercross-attempts-count" aria-hidden="true">×N</span></p>
     {{/showfinalguessloss}}
     <p>{{timertext}}</p>
     {{#showhud}}
