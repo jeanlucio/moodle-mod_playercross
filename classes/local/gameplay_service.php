@@ -118,13 +118,14 @@ class gameplay_service {
     }
 
     /**
-     * Calculates the flat early-guess bonus: 10% of the activity's configured grade.
+     * Calculates the flat early-guess bonus: PLAYERCROSS_EARLY_GUESS_BONUS_RATIO of the
+     * activity's configured grade.
      *
      * @param \stdClass $instance Activity instance.
      * @return float
      */
     public static function calculate_early_guess_bonus(\stdClass $instance): float {
-        return (float)$instance->grade * 0.10;
+        return (float)$instance->grade * PLAYERCROSS_EARLY_GUESS_BONUS_RATIO;
     }
 
     /**

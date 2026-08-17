@@ -355,6 +355,103 @@ final class view_page_service_test extends \advanced_testcase {
     }
 
     /**
+     * The help modal explains the hint button whenever hints are enabled — the
+     * generator's own default.
+     *
+     * @return void
+     */
+    public function test_build_page_data_shows_hint_help_when_hints_enabled(): void {
+        [$instance, $cm, $context] = $this->make_instance(['hints_enabled' => 1]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showhint']);
+        $this->assertNotEmpty($ctx['hinttext']);
+    }
+
+    /**
+     * The help modal drops the hint explanation entirely once the teacher disables
+     * hints for the activity — there is nothing to explain.
+     *
+     * @return void
+     */
+    public function test_build_page_data_hides_hint_help_when_hints_disabled(): void {
+        [$instance, $cm, $context] = $this->make_instance(['hints_enabled' => 0]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['showhint']);
+        $this->assertSame('', $ctx['hinttext']);
+    }
+
+    /**
+     * The help modal mentions the early-guess grade bonus only when grading is
+     * actually active — the bonus is a percentage of the configured grade, so it is
+     * meaningless (always zero) otherwise.
+     *
+     * @return void
+     */
+    public function test_build_page_data_shows_finalguess_bonus_when_grading_active(): void {
+        [$instance, $cm, $context] = $this->make_instance(['grade' => 100]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showfinalguessbonus']);
+        $this->assertStringContainsString('10', $ctx['finalguessbonustext']);
+    }
+
+    /**
+     * The help modal drops the early-guess bonus mention when the activity has no
+     * grade configured.
+     *
+     * @return void
+     */
+    public function test_build_page_data_hides_finalguess_bonus_when_no_grade(): void {
+        [$instance, $cm, $context] = $this->make_instance(['grade' => 0]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['showfinalguessbonus']);
+        $this->assertSame('', $ctx['finalguessbonustext']);
+    }
+
+    /**
+     * The help modal states the actual configured time limit, in minutes, whenever
+     * the activity has a timer.
+     *
+     * @return void
+     */
+    public function test_build_page_data_shows_timer_help_with_actual_minutes(): void {
+        [$instance, $cm, $context] = $this->make_instance(['timer_minutes' => 2]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showtimer']);
+        $this->assertStringContainsString('2', $ctx['timertext']);
+    }
+
+    /**
+     * The help modal drops the timer mention entirely for an activity with no time
+     * limit — the generator's own default.
+     *
+     * @return void
+     */
+    public function test_build_page_data_hides_timer_help_when_no_timer_configured(): void {
+        [$instance, $cm, $context] = $this->make_instance(['timer_minutes' => 0]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['showtimer']);
+        $this->assertSame('', $ctx['timertext']);
+    }
+
+    /**
      * The help modal explains the "both required" win condition by default, matching
      * the activity's own default setting.
      *
@@ -477,12 +574,14 @@ final class view_page_service_test extends \advanced_testcase {
         $ctx = $pagedata['templatecontext'];
 
         $this->assertTrue($ctx['showscoringformula']);
-        $this->assertNotEmpty($ctx['scoringformulatext']);
+        $this->assertSame(get_string('help_scoringformula', 'mod_playercross'), $ctx['scoringformulatext']);
     }
 
     /**
      * The help modal also explains the Linear scoring formula when it is only active
-     * for the ranking (not the grade), as long as the ranking is actually shown.
+     * for the ranking (not the grade), as long as the ranking is actually shown — but
+     * with wording specific to that case, since the grade itself stays Binary and the
+     * grade-describing string would misstate how the student's own grade is computed.
      *
      * @return void
      */
@@ -498,6 +597,10 @@ final class view_page_service_test extends \advanced_testcase {
         $ctx = $pagedata['templatecontext'];
 
         $this->assertTrue($ctx['showscoringformula']);
+        $this->assertSame(
+            get_string('help_scoringformula_rankingonly', 'mod_playercross'),
+            $ctx['scoringformulatext']
+        );
     }
 
     /**

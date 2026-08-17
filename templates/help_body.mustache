@@ -33,19 +33,23 @@
 
     Example context (json):
     {
-        "introtext": "Solve terms about course concepts. Each correct answer reveals letters the term shares with the mystery phrase, in every pending term and in the mystery phrase itself.",
+        "introtext": "Solve terms about course concepts. Each correct answer reveals that term's own letters in every other pending term and the mystery phrase that share the same letter.",
         "legendrevealedlabel": "Revealed: this letter is known.",
         "legendhiddenlabel": "Hidden: this letter is not known yet.",
         "termstext": "Each term is a separate word about a course concept; guess it in the box next to it — each letter you type moves you to the next box automatically.",
         "submittext": "As soon as you finish typing a word, a button appears right next to it to check that word — you do not need to fill in every term first.",
-        "hinttext": "A hint may be available for each term, depending on how the teacher configured the activity.",
-        "finalguesstext": "You can guess the mystery phrase directly at any time, even with terms still pending — the earlier you guess correctly, the bigger the bonus.",
+        "showhint": true,
+        "hinttext": "A hint button reveals one letter at a time, anywhere in the round — that letter shows up in every pending term and the mystery phrase that share it.",
+        "finalguesstext": "You can guess the mystery phrase directly at any time, even with terms still pending.",
+        "showfinalguessbonus": true,
+        "finalguessbonustext": "Guessing the mystery phrase correctly before resolving any term guarantees a 10% grade bonus.",
         "winconditiontext": "To win a round, you must resolve every term and correctly guess the mystery phrase — in either order.",
         "showtermloss": true,
         "termlosstext": "Each term has a limited number of attempts, shown as <span class=\"mod-playercross-attempts-count\">×N</span> next to it. If one runs out, winning becomes impossible and the round ends immediately as a loss.",
         "showfinalguessloss": true,
         "finalguesslosstext": "The mystery phrase also has a limited number of attempts, shown as <span class=\"mod-playercross-attempts-count\">×N</span> next to it. If they run out, the round ends immediately as a loss, no matter how the round can be won.",
-        "timertext": "Some activities have a time limit per round.",
+        "showtimer": true,
+        "timertext": "This activity has a 2-minute time limit per round.",
         "showhud": true,
         "hudtext": "This activity may require PlayerHUD items to start a round or reveal a hint, and can reward you with an item for winning a round.",
         "showgrading": true,
@@ -63,8 +67,13 @@
     </ul>
     <p>{{termstext}}</p>
     <p>{{submittext}}</p>
-    <p>{{hinttext}}</p>
+    {{#showhint}}
+        <p>{{hinttext}}</p>
+    {{/showhint}}
     <p>{{finalguesstext}}</p>
+    {{#showfinalguessbonus}}
+        <p>{{finalguessbonustext}}</p>
+    {{/showfinalguessbonus}}
     <p>{{winconditiontext}}</p>
     {{#showtermloss}}
         <p>{{{termlosstext}}}</p>
@@ -72,7 +81,9 @@
     {{#showfinalguessloss}}
         <p>{{{finalguesslosstext}}}</p>
     {{/showfinalguessloss}}
-    <p>{{timertext}}</p>
+    {{#showtimer}}
+        <p>{{timertext}}</p>
+    {{/showtimer}}
     {{#showhud}}
         <p>{{hudtext}}</p>
     {{/showhud}}

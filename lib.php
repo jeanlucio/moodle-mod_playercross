@@ -65,6 +65,14 @@ define('PLAYERCROSS_SCORING_BINARY', 1);
 define('PLAYERCROSS_SCORING_LINEAR', 2);
 
 /**
+ * Fraction of the activity's configured grade awarded as the early-guess bonus — see
+ * gameplay_service::calculate_early_guess_bonus(). Named here (rather than left as a
+ * literal in that one call site) so the how-to-play help text can quote the exact same
+ * percentage instead of a hardcoded copy that could drift out of sync.
+ */
+define('PLAYERCROSS_EARLY_GUESS_BONUS_RATIO', 0.10);
+
+/**
  * Tells Moodle this plugin uses a branded icon (disables purpose recolour filter).
  *
  * @return bool

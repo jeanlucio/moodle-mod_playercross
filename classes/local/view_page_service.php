@@ -203,6 +203,8 @@ class view_page_service {
         $showhud = ((int)($instance->hud_round_cost_item ?? 0) > 0)
             || ((int)($instance->hud_hint_cost_item ?? 0) > 0)
             || ((int)($instance->hud_win_reward_item ?? 0) > 0);
+        $showhint = !empty($instance->hints_enabled);
+        $showtimer = (int)($instance->timer_seconds ?? 0) > 0;
 
         $wincondition = (int)($instance->win_condition ?? PLAYERCROSS_WINCONDITION_BOTH);
         $winconditionstring = $wincondition === PLAYERCROSS_WINCONDITION_FINALONLY
@@ -223,10 +225,16 @@ class view_page_service {
         $gradescoringmode = (int)($instance->gradescoringmode ?? PLAYERCROSS_SCORING_BINARY);
         $rankingscoringmode = (int)($instance->rankingscoringmode ?? PLAYERCROSS_SCORING_BINARY);
         $showranking = !empty($instance->show_ranking);
+        $gradeislinear = $gradescoringmode === PLAYERCROSS_SCORING_LINEAR;
         $showscoringformula = $showgrading && (
-            $gradescoringmode === PLAYERCROSS_SCORING_LINEAR
+            $gradeislinear
             || ($showranking && $rankingscoringmode === PLAYERCROSS_SCORING_LINEAR)
         );
+        // Showscoringformula can be true purely because ranking is Linear while the
+        // grade itself stays Binary (the two scoring modes are independent settings) —
+        // help_scoringformula describes the grade as Linear, so that wording is only
+        // accurate when the grade really is; the ranking-only case needs its own text.
+        $scoringformulastring = $gradeislinear ? 'help_scoringformula' : 'help_scoringformula_rankingonly';
 
         // A real example of the on-screen attempts-remaining pill (.mod-playercross-
         // attempts-count, styled in styles.css), injected into help_termexhausted/
@@ -242,8 +250,17 @@ class view_page_service {
             'legendhiddenlabel' => get_string('help_legend_hidden', 'mod_playercross'),
             'termstext' => get_string('help_terms', 'mod_playercross'),
             'submittext' => get_string('help_submit', 'mod_playercross'),
-            'hinttext' => get_string('help_hint', 'mod_playercross'),
+            'showhint' => $showhint,
+            'hinttext' => $showhint ? get_string('help_hint', 'mod_playercross') : '',
             'finalguesstext' => get_string('help_finalguess', 'mod_playercross'),
+            'showfinalguessbonus' => $showgrading,
+            'finalguessbonustext' => $showgrading
+                ? get_string(
+                    'help_finalguessbonus',
+                    'mod_playercross',
+                    (int)round(PLAYERCROSS_EARLY_GUESS_BONUS_RATIO * 100)
+                )
+                : '',
             'winconditiontext' => get_string($winconditionstring, 'mod_playercross'),
             'showtermloss' => $showtermloss,
             'termlosstext' => $showtermloss
@@ -253,7 +270,10 @@ class view_page_service {
             'finalguesslosstext' => $showfinalguessloss
                 ? get_string('help_finalguessexhausted', 'mod_playercross', $attemptscountexample)
                 : '',
-            'timertext' => get_string('help_timer', 'mod_playercross'),
+            'showtimer' => $showtimer,
+            'timertext' => $showtimer
+                ? get_string('help_timer', 'mod_playercross', (int)round(((int)$instance->timer_seconds) / 60))
+                : '',
             'showhud' => $showhud,
             'hudtext' => $showhud ? get_string('help_hud', 'mod_playercross') : '',
             'showgrading' => $showgrading,
@@ -261,7 +281,7 @@ class view_page_service {
                 ? get_string('help_grading', 'mod_playercross', round_presenter::grademethod_name($instance))
                 : '',
             'showscoringformula' => $showscoringformula,
-            'scoringformulatext' => $showscoringformula ? get_string('help_scoringformula', 'mod_playercross') : '',
+            'scoringformulatext' => $showscoringformula ? get_string($scoringformulastring, 'mod_playercross') : '',
             'reviewhint' => get_string('help_reviewhint', 'mod_playercross'),
         ];
     }
