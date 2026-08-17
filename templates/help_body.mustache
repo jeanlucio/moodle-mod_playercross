@@ -20,12 +20,12 @@
     How-to-play help content for a PlayerCross activity, shown inside a modal
     opened from the in-game toolbar (see amd/src/game.js).
 
-    The termloss/finalguessloss paragraphs each end with a real
-    .mod-playercross-attempts-count pill (styled in styles.css) reading "×N" —
-    matching the same placeholder already quoted in the paragraph text right
-    before it — so the reader sees the actual pill shape instead of only
-    imagining it from a quoted string. Decorative (aria-hidden): the paragraph
-    text already explains what the count means for anyone using a screen reader.
+    termlosstext and finalguesslosstext each embed a real
+    .mod-playercross-attempts-count pill (styled in styles.css) reading "×N"
+    directly in their own sentence — get_string() output, so trusted and
+    static (never user input), rendered with triple-mustache below. Not
+    aria-hidden: the "×N" pill is the sentence's own content here, not a
+    decorative echo of text already read aloud elsewhere.
 
     Example context (json):
     {
@@ -38,9 +38,9 @@
         "finalguesstext": "You can guess the mystery phrase directly at any time, even with terms still pending — the earlier you guess correctly, the bigger the bonus.",
         "winconditiontext": "To win a round, you must resolve every term and correctly guess the mystery phrase — in either order.",
         "showtermloss": true,
-        "termlosstext": "Each term has a limited number of attempts. If one runs out, winning becomes impossible and the round ends immediately as a loss.",
+        "termlosstext": "Each term has a limited number of attempts, shown as <span class=\"mod-playercross-attempts-count\">×N</span> next to it. If one runs out, winning becomes impossible and the round ends immediately as a loss.",
         "showfinalguessloss": true,
-        "finalguesslosstext": "The mystery phrase also has a limited number of attempts. If they run out, the round ends immediately as a loss, no matter how the round can be won.",
+        "finalguesslosstext": "The mystery phrase also has a limited number of attempts, shown as <span class=\"mod-playercross-attempts-count\">×N</span> next to it. If they run out, the round ends immediately as a loss, no matter how the round can be won.",
         "timertext": "Some activities have a time limit per round.",
         "showhud": true,
         "hudtext": "This activity may require PlayerHUD items to start a round or reveal a hint, and can reward you with an item for winning a round.",
@@ -63,10 +63,10 @@
     <p>{{finalguesstext}}</p>
     <p>{{winconditiontext}}</p>
     {{#showtermloss}}
-        <p>{{termlosstext}} <span class="mod-playercross-attempts-count" aria-hidden="true">×N</span></p>
+        <p>{{{termlosstext}}}</p>
     {{/showtermloss}}
     {{#showfinalguessloss}}
-        <p>{{finalguesslosstext}} <span class="mod-playercross-attempts-count" aria-hidden="true">×N</span></p>
+        <p>{{{finalguesslosstext}}}</p>
     {{/showfinalguessloss}}
     <p>{{timertext}}</p>
     {{#showhud}}
