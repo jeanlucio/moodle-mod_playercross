@@ -471,12 +471,17 @@ final class hud_service_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that grant_items creates one inventory row per unit, tagged with the
-     * 'playercross' source, and awards the item's XP multiplied by the quantity.
+     * Tests that grant_items grants the requested quantity and awards the item's XP
+     * multiplied by that quantity.
+     *
+     * Asserts via get_available_quantity() rather than reading block_playerhud_inventory
+     * directly — how PlayerHUD stores a granted quantity internally (one row per unit vs.
+     * an aggregated balance) is its own implementation detail, not part of the contract this
+     * plugin depends on.
      *
      * @return void
      */
-    public function test_grant_items_creates_inventory_and_awards_xp(): void {
+    public function test_grant_items_awards_quantity_and_xp(): void {
         global $DB;
         $this->skip_if_no_playerhud();
         $user   = $this->getDataGenerator()->create_user();
@@ -486,12 +491,7 @@ final class hud_service_test extends \advanced_testcase {
 
         hud_service::grant_items($biid, $user->id, $itemid, 2, false);
 
-        $rows = $DB->get_records('block_playerhud_inventory', ['userid' => $user->id, 'itemid' => $itemid]);
-        $this->assertCount(2, $rows);
-        foreach ($rows as $row) {
-            $this->assertSame('playercross', $row->source);
-            $this->assertSame(0, (int)$row->dropid);
-        }
+        $this->assertSame(2, hud_service::get_available_quantity($biid, $user->id, $itemid));
 
         $currentxp = $DB->get_field('block_playerhud_user', 'currentxp', [
             'blockinstanceid' => $biid,
@@ -517,7 +517,7 @@ final class hud_service_test extends \advanced_testcase {
 
         hud_service::grant_items($biid, $user->id, $itemid, 1, true);
 
-        $this->assertSame(1, $DB->count_records('block_playerhud_inventory', ['userid' => $user->id, 'itemid' => $itemid]));
+        $this->assertSame(1, hud_service::get_available_quantity($biid, $user->id, $itemid));
         $currentxp = $DB->get_field('block_playerhud_user', 'currentxp', [
             'blockinstanceid' => $biid,
             'userid'          => $user->id,
@@ -541,7 +541,7 @@ final class hud_service_test extends \advanced_testcase {
 
         hud_service::grant_items($biid, $user->id, $itemid, 3, false);
 
-        $this->assertSame(3, $DB->count_records('block_playerhud_inventory', ['userid' => $user->id, 'itemid' => $itemid]));
+        $this->assertSame(3, hud_service::get_available_quantity($biid, $user->id, $itemid));
         $this->assertSame(0, (int)$DB->count_records('block_playerhud_user', [
             'blockinstanceid' => $biid,
             'userid'          => $user->id,
@@ -554,7 +554,6 @@ final class hud_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_grant_items_invalid_item_noop(): void {
-        global $DB;
         $this->skip_if_no_playerhud();
         $user = $this->getDataGenerator()->create_user();
         $course = $this->getDataGenerator()->create_course();
@@ -562,7 +561,7 @@ final class hud_service_test extends \advanced_testcase {
 
         hud_service::grant_items($biid, $user->id, 999999, 1, false);
 
-        $this->assertSame(0, $DB->count_records('block_playerhud_inventory', ['userid' => $user->id]));
+        $this->assertSame(0, hud_service::get_available_quantity($biid, $user->id, 999999));
     }
 
     /**
@@ -572,7 +571,6 @@ final class hud_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_grant_items_other_instance_item_noop(): void {
-        global $DB;
         $this->skip_if_no_playerhud();
         $user = $this->getDataGenerator()->create_user();
         $course = $this->getDataGenerator()->create_course();
@@ -583,7 +581,7 @@ final class hud_service_test extends \advanced_testcase {
 
         hud_service::grant_items($biid, $user->id, $itemid, 1, false);
 
-        $this->assertSame(0, $DB->count_records('block_playerhud_inventory', ['userid' => $user->id]));
+        $this->assertSame(0, hud_service::get_available_quantity($biid, $user->id, $itemid));
     }
 
     /**
@@ -592,7 +590,6 @@ final class hud_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_grant_items_zero_qty_short_circuits(): void {
-        global $DB;
         $this->skip_if_no_playerhud();
         $user = $this->getDataGenerator()->create_user();
         $course = $this->getDataGenerator()->create_course();
@@ -600,6 +597,6 @@ final class hud_service_test extends \advanced_testcase {
 
         hud_service::grant_items($biid, $user->id, 999, 0, false);
 
-        $this->assertSame(0, $DB->count_records('block_playerhud_inventory', ['userid' => $user->id]));
+        $this->assertSame(0, hud_service::get_available_quantity($biid, $user->id, 999));
     }
 }
