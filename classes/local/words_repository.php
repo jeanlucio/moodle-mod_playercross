@@ -543,7 +543,8 @@ class words_repository {
         }
         if (!empty($orphanids)) {
             [$delsql, $delparams] = $DB->get_in_or_equal($orphanids, SQL_PARAMS_NAMED, 'del');
-            $DB->delete_records_select('playercross_words', "id $delsql", $delparams);
+            $delparams['instanceid'] = $instance->id;
+            $DB->delete_records_select('playercross_words', "id $delsql AND playercrossid = :instanceid", $delparams);
         }
 
         return $imported;
