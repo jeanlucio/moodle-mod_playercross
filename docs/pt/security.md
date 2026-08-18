@@ -15,7 +15,7 @@
 
 A geração de palavras por IA é **opcional** e vem desativada por padrão. Quando um professor a
 usa, o tema da atividade (nunca dados de estudante ou registros de tentativa) é enviado através
-do [AI Hub](#aihub) (`local_aihub`) — usando a chave BYOK própria do usuário ou do site, se
+do [Central de IA](#aihub) (`local_aihub`) — usando a chave BYOK própria do usuário ou do site, se
 o plugin estiver instalado — ou, como alternativa, através do subsistema de IA nativo do Moodle
 (`core_ai`), que roteia para o provedor que o administrador do site configurou. O PlayerCross
 nunca contata um provedor de IA diretamente; a requisição e sua divulgação/consentimento são
@@ -27,7 +27,7 @@ funcionalidades continuam funcionando normalmente.
   provedor cobrar através de uma chave BYOK no `local_aihub`, ou nenhum custo via um provedor
   `core_ai` gratuito/institucional que o administrador do site já tenha configurado.
 * **Chaves de API / credenciais:** Não são configuradas no PlayerCross. Obtenha e configure uma
-  chave pessoal ou do site dentro do [AI Hub](#aihub) (`local_aihub`), ou peça ao
+  chave pessoal ou do site dentro do [Central de IA](#aihub) (`local_aihub`), ou peça ao
   administrador do site para configurar um provedor `core_ai`.
 * **Credenciais de demonstração:** Não aplicável — nenhuma credencial é exigida para instalar ou
   usar o PlayerCross; a geração por IA é totalmente opcional.
