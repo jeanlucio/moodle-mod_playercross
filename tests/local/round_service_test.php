@@ -1756,6 +1756,45 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * The cooldown counterpart of test_abandoned_round_counts_towards_max_rounds(): a
+     * round that is started and then never finished (tab closed, session abandoned)
+     * must still start the cooldown clock. Before this fix, compute_cooldown_until()
+     * ignored still-open reservations, so a student could discard the session holding
+     * the reservation (logout, private tab, cookie wipe) and start a fresh round
+     * immediately, bypassing cooldown_seconds entirely.
+     *
+     * @return void
+     */
+    public function test_abandoned_round_counts_towards_cooldown(): void {
+        [$instance, $cm] = $this->make_ready_instance([
+            'num_terms' => 3,
+            'theme_min_length' => 6,
+            'max_rounds' => 0,
+            'cooldown_amount' => 1,
+            'cooldown_unit' => 'days',
+        ]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+        $this->assertTrue($state['roundstarted']);
+
+        $this->assertGreaterThan(
+            time(),
+            round_service::compute_cooldown_until($instance, $this->user->id),
+            'an abandoned, never-finished round must still start the cooldown clock'
+        );
+        $this->assertNotNull(
+            round_service::get_round_restriction_notice($instance, $this->user->id),
+            'the restriction notice must report the cooldown as active, blocking a fresh round'
+        );
+    }
+
+    /**
      * finish_round() updates the same row start_round() reserved, matched by attemptid,
      * instead of inserting a second one.
      *

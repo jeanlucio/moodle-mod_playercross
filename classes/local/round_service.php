@@ -176,6 +176,13 @@ class round_service {
      * change to the setting takes effect immediately, the same way mod_quiz's
      * inter-attempt delay always uses its current setting.
      *
+     * Deliberately unfiltered by timefinished, mirroring count_rounds_played(): a
+     * still-open reservation (in progress, or abandoned without ever finishing) already
+     * starts the cooldown clock from its timecreated. Filtering it out let a student
+     * discard the session holding that reservation (logout, private tab, cookie wipe)
+     * and start a brand-new round immediately — the cooldown equivalent of the
+     * max_rounds bypass count_rounds_played() already guards against.
+     *
      * @param \stdClass $instance Activity instance.
      * @param int $userid User id.
      * @return int
@@ -187,11 +194,9 @@ class round_service {
             return 0;
         }
 
-        // A still-open reservation (timefinished = 0) must not start the cooldown clock —
-        // only a genuinely finished round can.
         $lastattempttime = $DB->get_field_sql(
             "SELECT MAX(timecreated) FROM {playercross_attempts}"
-            . " WHERE playercrossid = :pid AND userid = :uid AND timefinished > 0",
+            . " WHERE playercrossid = :pid AND userid = :uid",
             ['pid' => $instance->id, 'uid' => $userid]
         );
         if (empty($lastattempttime)) {
