@@ -96,13 +96,6 @@ class provider implements
             'privacy:metadata:preference:seenintro'
         );
 
-        // Anonymous usage telemetry: aggregate site/plugin statistics only (no personal
-        // data of any user). Declared here anyway, for transparency and consistency with
-        // the pattern already established in the sibling Player plugins.
-        $collection->add_external_location_link('plugin_usage_service', [
-            'sitedata' => 'privacy:metadata:external:usagereport_fields',
-        ], 'privacy:metadata:external:usagereport_summary');
-
         return $collection;
     }
 

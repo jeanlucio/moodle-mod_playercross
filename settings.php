@@ -31,13 +31,9 @@ if ($hassiteconfig) {
             get_string('hud_notinstalled_heading', 'mod_playercross'),
             get_string('hud_notinstalled_desc', 'mod_playercross')
         ));
+    } else {
+        // Nothing left to configure site-wide once PlayerHUD is installed — skip the
+        // otherwise-empty settings page instead of leaving a dead link in the admin tree.
+        $settings = null;
     }
-
-    // Usage Report.
-    $settings->add(new admin_setting_configcheckbox(
-        'mod_playercross/usagereport',
-        get_string('usagereport', 'mod_playercross'),
-        get_string('usagereport_desc', 'mod_playercross'),
-        '1'
-    ));
 }

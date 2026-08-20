@@ -191,18 +191,7 @@ class ai_word_generator {
         }
 
         if (!$anysuccess) {
-            diagnostics::increment('ai_generation_failed');
             throw new \moodle_exception('aigenerateerror', 'mod_playercross');
-        }
-
-        if ($saved < $count) {
-            // The provider answered, but delivered fewer usable terms than asked — a weaker
-            // model underdelivering, or every returned item failing the validity/duplicate
-            // filters above (including this plugin's extra is_valid_clue() check). This method
-            // already returns whatever it got without raising an error, so without this
-            // counter the shortfall is invisible: the caller sees fewer terms with no
-            // explanation, and there is no other signal that anything went wrong.
-            diagnostics::increment('ai_generation_partial');
         }
 
         return $saved;

@@ -8,9 +8,9 @@
 4. Acesse **Administração do site > Notificações** para concluir a instalação.
 5. Adicione uma atividade **PlayerCross** a qualquer curso.
 
-A maior parte das configurações é feita pelo professor ao adicionar a atividade a um curso,
-conforme explicado em [Como Usar](#usage) logo abaixo. A própria página de configurações de
-nível de site do plugin, em *Administração do site > Plugins > Módulos de atividade >
-PlayerCross*, só tem a opção de relatório de uso anônimo (ver [Segurança e
-Conformidade](#security)) — além de, se o `block_playerhud` não estiver instalado, um
-aviso informativo sobre isso.
+Este plugin não tem configurações de nível de site para o administrador ajustar — toda
+configuração é feita pelo professor ao adicionar a atividade a um curso, conforme explicado
+em [Como Usar](#usage) logo abaixo. Se o `block_playerhud` não estiver instalado no site, a
+própria página de configurações do plugin em *Administração do site → Plugins → Módulos de
+atividade → PlayerCross* mostra um aviso informativo sobre isso — não há nada a configurar
+ali de qualquer forma.
