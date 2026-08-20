@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin administration settings.
+ * Scheduled task definitions.
  *
  * @package    mod_playercross
  * @copyright  2026 Jean Lúcio
@@ -24,20 +24,14 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-if ($hassiteconfig) {
-    if (!\mod_playercross\local\hud_service::is_installed()) {
-        $settings->add(new admin_setting_heading(
-            'mod_playercross/hudnotinstalled',
-            get_string('hud_notinstalled_heading', 'mod_playercross'),
-            get_string('hud_notinstalled_desc', 'mod_playercross')
-        ));
-    }
-
-    // Usage Report.
-    $settings->add(new admin_setting_configcheckbox(
-        'mod_playercross/usagereport',
-        get_string('usagereport', 'mod_playercross'),
-        get_string('usagereport_desc', 'mod_playercross'),
-        '1'
-    ));
-}
+$tasks = [
+    [
+        'classname' => 'mod_playercross\task\usage_report',
+        'blocking' => 0,
+        'minute' => 'R',
+        'hour' => 'R',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*',
+    ],
+];
