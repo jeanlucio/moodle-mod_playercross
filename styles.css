@@ -660,10 +660,6 @@
     color: var(--primary, #0f6cbf);
 }
 
-.path-mod-playercross .mod-playercross-words-status {
-    text-align: center;
-}
-
 .path-mod-playercross .mod-playercross-help-legend {
     list-style: none;
     padding-inline-start: 0;

@@ -153,8 +153,7 @@
         {{> mod_playercross/inactive_words}}
     {{/hasinactivewords}}
     {{^hasinactivewords}}
-        <p class="mod-playercross-words-status text-muted small mb-2">{{activewordscountterm}}</p>
-        <p class="mod-playercross-words-status text-muted small mb-2">{{activewordscounttheme}}</p>
+        {{> mod_playercross/words_status_ok}}
     {{/hasinactivewords}}
 {{/showwordsstatus}}
 
