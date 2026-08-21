@@ -144,10 +144,11 @@ class view_page_service {
 
     /**
      * Builds the context for the word-pool status shown to whoever can manage the
-     * activity — a student never sees any of this. Always includes a count of
-     * currently playable words, a quick "the pool isn't empty" reassurance, and
+     * activity — a student never sees any of this. Always includes the count of
+     * words currently playable in each of the two roles (term, theme concept), and
      * conditionally the "inactive words" warning: approved pool words that
-     * words_repository::get_candidate_words() would silently exclude from play.
+     * words_repository::get_inactive_words() reports as missing from one or both
+     * roles.
      *
      * @param \stdClass $instance Activity instance.
      * @param bool $canmanage Whether the current user can manage the activity.
@@ -158,36 +159,28 @@ class view_page_service {
             return ['showwordsstatus' => false, 'hasinactivewords' => false];
         }
 
-        $activecount = count(words_repository::get_candidate_words($instance));
+        $termcount = count(words_repository::get_candidate_words($instance));
+        $themecount = count(words_repository::get_theme_candidate_words($instance));
         $inactive = words_repository::get_inactive_words($instance);
-
-        $lengthwords = [];
-        $charsetwords = [];
-        foreach ($inactive as $entry) {
-            if ($entry['reason'] === 'invalidchars') {
-                $charsetwords[] = $entry['word'];
-            } else {
-                $lengthwords[] = $entry['word'];
-            }
-        }
+        $notterm = $inactive['notterm'];
+        $nottheme = $inactive['nottheme'];
 
         return [
             'showwordsstatus' => true,
-            'activewordscount' => get_string('activewordscount', 'mod_playercross', $activecount),
-            'hasinactivewords' => !empty($inactive),
+            'activewordscountterm' => get_string('activewordscountterm', 'mod_playercross', $termcount),
+            'activewordscounttheme' => get_string('activewordscounttheme', 'mod_playercross', $themecount),
+            'hasinactivewords' => !empty($notterm) || !empty($nottheme),
             'inactivewordstitle' => get_string('inactivewords_title', 'mod_playercross'),
-            'haslengthissues' => !empty($lengthwords),
-            'lengthissuestext' => !empty($lengthwords) ? get_string('inactivewords_length', 'mod_playercross', (object)[
-                'count' => count($lengthwords),
-                'words' => implode(', ', $lengthwords),
+            'hasnotterm' => !empty($notterm),
+            'nottermtext' => !empty($notterm) ? get_string('inactivewords_notterm', 'mod_playercross', (object)[
+                'count' => count($notterm),
+                'words' => implode(', ', $notterm),
             ]) : '',
-            'hascharsetissues' => !empty($charsetwords),
-            'charsetissuestext' => !empty($charsetwords)
-                ? get_string('inactivewords_invalidchars', 'mod_playercross', (object)[
-                    'count' => count($charsetwords),
-                    'words' => implode(', ', $charsetwords),
-                ])
-                : '',
+            'hasnottheme' => !empty($nottheme),
+            'notthemetext' => !empty($nottheme) ? get_string('inactivewords_nottheme', 'mod_playercross', (object)[
+                'count' => count($nottheme),
+                'words' => implode(', ', $nottheme),
+            ]) : '',
         ];
     }
 

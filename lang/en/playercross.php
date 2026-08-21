@@ -25,7 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['actionscolumnlabel'] = 'Actions';
-$string['activewordscount'] = 'Active words in this game: {$a}.';
+$string['activewordscountterm'] = '{$a} words active as a term.';
+$string['activewordscounttheme'] = '{$a} words active as the theme concept.';
 $string['addwordbutton'] = 'Add word';
 $string['aigeneratebutton'] = 'Generate with AI';
 $string['aigeneratecount'] = 'Number of words';
@@ -164,8 +165,8 @@ $string['hud_round_cost_qty'] = 'Quantity to start a round';
 $string['hud_win_reward_item'] = 'Item awarded for winning a round';
 $string['hud_win_reward_item_help'] = 'The student receives this item each time they win a round. To match PlayerHUD\'s own anti-farming rule, no XP is awarded from this item when Maximum rounds per student is Unlimited — the item is still granted, just without XP.';
 $string['hud_win_reward_qty'] = 'Quantity awarded for winning a round';
-$string['inactivewords_invalidchars'] = 'Contains a character the game cannot use ({$a->count}): {$a->words}.';
-$string['inactivewords_length'] = 'Outside the current length range ({$a->count}): {$a->words}.';
+$string['inactivewords_notterm'] = 'Not used as a term ({$a->count}): {$a->words}.';
+$string['inactivewords_nottheme'] = 'Not used as the theme concept ({$a->count}): {$a->words}.';
 $string['inactivewords_title'] = 'Inactive words in this game:';
 $string['keyboard_backspace'] = 'Delete last letter';
 $string['keyboard_label'] = 'Virtual keyboard';

@@ -51,13 +51,14 @@
         "toolbarranking": "Ranking",
         "rankingurl": "https://example.com/mod/playercross/ranking.php?id=1",
         "showwordsstatus": true,
-        "activewordscount": "12 active words in this game.",
+        "activewordscountterm": "12 words active as a term.",
+        "activewordscounttheme": "13 words active as the theme concept.",
         "hasinactivewords": false,
         "inactivewordstitle": "Inactive words in this game:",
-        "haslengthissues": false,
-        "lengthissuestext": "",
-        "hascharsetissues": false,
-        "charsetissuestext": "",
+        "hasnotterm": false,
+        "nottermtext": "",
+        "hasnottheme": false,
+        "notthemetext": "",
         "showforfeit": true,
         "forfeitlabel": "Give up",
         "forfeitconfirm": "Are you sure you want to give up?",
@@ -134,6 +135,29 @@
         "roundsplayedlabel_lobby": ""
     }
 }}
+{{!
+    Rendered outside and above the game card, not inside it: mod-playercross-game is
+    width: fit-content, sized to the card's own content (toolbar, puzzle grid). This
+    status block is teacher-only meta-information, not part of the game itself, and
+    a long inactive-words list has no natural width limit — nesting it inside the
+    card would either force the whole card wide or squeeze a long list into the
+    card's narrow width. Kept above the card rather than below it for the same
+    reason as before: the on-screen keyboard inside #playercross-stage is
+    position: fixed to the viewport's bottom edge on mobile, with no reserved space
+    of its own for content that comes after it in the document — anything placed
+    below the stage risks sitting behind the keyboard, mostly hidden, with only a
+    sliver of descenders (e.g. "jogo"'s j/g) peeking out.
+}}
+{{#showwordsstatus}}
+    {{#hasinactivewords}}
+        {{> mod_playercross/inactive_words}}
+    {{/hasinactivewords}}
+    {{^hasinactivewords}}
+        <p class="mod-playercross-words-status text-muted small mb-2">{{activewordscountterm}}</p>
+        <p class="mod-playercross-words-status text-muted small mb-2">{{activewordscounttheme}}</p>
+    {{/hasinactivewords}}
+{{/showwordsstatus}}
+
 <div class="mod-playercross-game">
     <div class="pc-header">
         {{> mod_playercross/toolbar}}
@@ -146,22 +170,6 @@
             </span>
         {{/timerenabled}}
     </div>
-
-    {{!
-        Rendered above the game area, not below it: the on-screen keyboard inside
-        #playercross-stage is position: fixed to the viewport's bottom edge on mobile,
-        with no reserved space of its own for content that comes after it in the
-        document — anything placed below the stage risks sitting behind the keyboard,
-        mostly hidden, with only a sliver of descenders (e.g. "jogo"'s j/g) peeking out.
-    }}
-    {{#showwordsstatus}}
-        {{#hasinactivewords}}
-            {{> mod_playercross/inactive_words}}
-        {{/hasinactivewords}}
-        {{^hasinactivewords}}
-            <p class="mod-playercross-words-status text-muted small mb-2">{{activewordscount}}</p>
-        {{/hasinactivewords}}
-    {{/showwordsstatus}}
 
     {{^hastheme}}
         <div class="alert alert-warning">{{nogamewords}}</div>

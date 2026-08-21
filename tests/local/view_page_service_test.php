@@ -279,12 +279,16 @@ final class view_page_service_test extends \advanced_testcase {
 
     /**
      * Whoever can manage the activity sees the inactive-words warning, naming the
-     * word and its exclusion reason, alongside the active-word count.
+     * word and which role(s) it is missing from, alongside the per-role active-word
+     * counts. theme_min_length is lowered from make_instance()'s default (6) to 5 so
+     * the default pool ("escola", "livro") is fully active in both roles and only
+     * the added word "oi" (2 letters, both as its own text and as its default clue)
+     * shows up as missing — from both roles, since it is too short for either.
      *
      * @return void
      */
     public function test_build_page_data_shows_inactive_words_for_manager(): void {
-        [$instance, $cm, $context] = $this->make_instance();
+        [$instance, $cm, $context] = $this->make_instance(['theme_min_length' => 5]);
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
         $modgenerator->create_word($instance->id, 'oi');
 
@@ -297,21 +301,27 @@ final class view_page_service_test extends \advanced_testcase {
 
         $this->assertTrue($ctx['showwordsstatus']);
         // Only "escola" and "livro" (make_instance()'s own default pool) count as active.
-        $this->assertStringContainsString('2', $ctx['activewordscount']);
+        $this->assertStringContainsString('2', $ctx['activewordscountterm']);
+        $this->assertStringContainsString('2', $ctx['activewordscounttheme']);
         $this->assertTrue($ctx['hasinactivewords']);
-        $this->assertTrue($ctx['haslengthissues']);
-        $this->assertStringContainsString('oi', $ctx['lengthissuestext']);
-        $this->assertFalse($ctx['hascharsetissues']);
+        $this->assertTrue($ctx['hasnotterm']);
+        $this->assertStringContainsString('oi', $ctx['nottermtext']);
+        $this->assertTrue($ctx['hasnottheme']);
+        $this->assertStringContainsString('oi', $ctx['notthemetext']);
     }
 
     /**
-     * The active-word count is shown to a manager even when the pool has no
-     * inactive words at all — it is a standing reassurance, not tied to a warning.
+     * The per-role active-word counts are shown to a manager even when the pool has
+     * no inactive words at all — it is a standing reassurance, not tied to a
+     * warning. theme_min_length is lowered to 5 so "livro" (5 letters), whose clue
+     * defaults to its own text, is eligible for the theme role too — at
+     * make_instance()'s default of 6 it would not be, since its own clue is only 5
+     * letters long.
      *
      * @return void
      */
     public function test_build_page_data_shows_active_count_without_any_inactive_words(): void {
-        [$instance, $cm, $context] = $this->make_instance();
+        [$instance, $cm, $context] = $this->make_instance(['theme_min_length' => 5]);
 
         $teacher = $this->getDataGenerator()->create_user();
         $this->getDataGenerator()->enrol_user($teacher->id, $this->course->id, 'editingteacher');
@@ -321,7 +331,8 @@ final class view_page_service_test extends \advanced_testcase {
         $ctx = $pagedata['templatecontext'];
 
         $this->assertTrue($ctx['showwordsstatus']);
-        $this->assertStringContainsString('2', $ctx['activewordscount']);
+        $this->assertStringContainsString('2', $ctx['activewordscountterm']);
+        $this->assertStringContainsString('2', $ctx['activewordscounttheme']);
         $this->assertFalse($ctx['hasinactivewords']);
     }
 

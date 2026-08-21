@@ -764,15 +764,23 @@ class words_repository {
     }
 
     /**
-     * Returns every approved word that get_candidate_words()/get_theme_candidate_words()
-     * would silently exclude from play — either outside the instance's current length
-     * bounds, or containing a character the game cannot use. A word can end up here
-     * after being approved: the instance's length settings were edited afterwards, or
-     * it was saved with punctuation, digits or spaces. Used to warn the teacher directly
-     * on view.php.
+     * Reports, for every approved word, whether it is currently missing from either
+     * of the two roles a word can play: term (get_candidate_words()) and theme
+     * concept (get_theme_candidate_words()). Membership is checked against those two
+     * methods directly by id, never re-derived with an approximate rule of its own —
+     * term eligibility depends on the word's own length, but theme eligibility
+     * depends on its clue's letter count, so a shortcut based on the word's length
+     * alone (as an earlier version of this method used) could disagree with the real
+     * theme check in either direction. A word can end up excluded from a role after
+     * being approved: the instance's length settings were edited afterwards, its clue
+     * was left blank or shortened, or it carries a character the game cannot use.
+     * Used to warn the teacher directly on view.php which words are not currently
+     * drawable as a term, and separately which are not drawable as the theme concept
+     * — a word missing from both lists plays no role at all in the current
+     * configuration.
      *
      * @param \stdClass $instance Activity instance.
-     * @return array<int, array{word: string, reason: string}> Reason is 'length' or 'invalidchars'.
+     * @return array{notterm: string[], nottheme: string[]}
      */
     public static function get_inactive_words(\stdClass $instance): array {
         global $DB;
@@ -785,22 +793,22 @@ class words_repository {
             'id, word'
         );
 
-        $inactive = [];
+        $termids = array_flip(array_column(self::get_candidate_words($instance), 'id'));
+        $themeids = array_flip(array_column(self::get_theme_candidate_words($instance), 'id'));
+
+        $notterm = [];
+        $nottheme = [];
         foreach ($records as $record) {
             $word = trim($record->word);
-            if (!word_normalizer::is_valid_charset($word)) {
-                $inactive[] = ['word' => $word, 'reason' => 'invalidchars'];
-                continue;
+            if (!isset($termids[$record->id])) {
+                $notterm[] = $word;
             }
-            $wordlength = core_text::strlen($word);
-            $fitsterm = $wordlength >= (int)$instance->min_length && $wordlength <= (int)$instance->max_length;
-            $fitstheme = $wordlength >= (int)$instance->theme_min_length;
-            if (!$fitsterm && !$fitstheme) {
-                $inactive[] = ['word' => $word, 'reason' => 'length'];
+            if (!isset($themeids[$record->id])) {
+                $nottheme[] = $word;
             }
         }
 
-        return $inactive;
+        return ['notterm' => $notterm, 'nottheme' => $nottheme];
     }
 
     /**

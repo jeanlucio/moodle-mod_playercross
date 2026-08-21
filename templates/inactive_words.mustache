@@ -17,33 +17,37 @@
 {{!
     @template mod_playercross/inactive_words
 
-    Teacher-only warning listing approved pool words that will never actually be
-    drawn into a round (outside the current length range, or containing a character
-    the game cannot use), shown on view.php above the game area — not below, so it
-    can never end up hidden behind the mobile virtual keyboard, which is
-    position: fixed to the viewport's bottom edge and therefore has no reserved
-    space of its own for content that would otherwise render after it. Never
+    Teacher-only warning listing approved pool words missing from one or both of the
+    two roles a word can play — term or theme concept — shown on view.php outside
+    and above the game card — not below it, so it can never end up hidden behind the
+    mobile virtual keyboard, which is position: fixed to the viewport's bottom edge
+    and therefore has no reserved space of its own for content that would otherwise
+    render after it; and not nested inside the card, since the card is
+    width: fit-content and a long word list here has no line-break opportunity in
+    that calculation, which would otherwise force the whole card wide. Never
     rendered for a student — gated by canmanage in view_page_service.php.
 
     Example context (json):
     {
-        "activewordscount": "5 active words in this game.",
+        "activewordscountterm": "5 words active as a term.",
+        "activewordscounttheme": "6 words active as the theme concept.",
         "inactivewordstitle": "Inactive words in this game:",
-        "haslengthissues": true,
-        "lengthissuestext": "Outside the current length range (2): iluminismo, revolucao.",
-        "hascharsetissues": true,
-        "charsetissuestext": "Contains a character the game cannot use (1): café-com-leite."
+        "hasnotterm": true,
+        "nottermtext": "Not used as a term (2): iluminismo, revolucao.",
+        "hasnottheme": true,
+        "notthemetext": "Not used as the theme concept (1): café-com-leite."
     }
 }}
-<div class="mod-playercross-inactive-words alert alert-warning mt-3">
-    <p class="mb-1"><strong>{{activewordscount}}</strong></p>
+<div class="mod-playercross-inactive-words alert alert-warning mb-3">
+    <p class="mb-1"><strong>{{activewordscountterm}}</strong></p>
+    <p class="mb-1"><strong>{{activewordscounttheme}}</strong></p>
     <p class="mb-1"><strong>{{inactivewordstitle}}</strong></p>
     <ul class="mb-0">
-        {{#haslengthissues}}
-            <li>{{lengthissuestext}}</li>
-        {{/haslengthissues}}
-        {{#hascharsetissues}}
-            <li>{{charsetissuestext}}</li>
-        {{/hascharsetissues}}
+        {{#hasnotterm}}
+            <li>{{nottermtext}}</li>
+        {{/hasnotterm}}
+        {{#hasnottheme}}
+            <li>{{notthemetext}}</li>
+        {{/hasnottheme}}
     </ul>
 </div>

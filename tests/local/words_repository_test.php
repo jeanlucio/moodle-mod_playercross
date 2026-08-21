@@ -1140,68 +1140,85 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
-     * A word with no issues never appears in get_inactive_words() — here it fits the
-     * term length range even though it is shorter than the theme range, which is
-     * enough on its own (the two ranges are checked with OR, see
-     * words_repository::get_inactive_words()).
+     * A word eligible for both roles appears in neither list.
      *
      * @return void
      */
     public function test_get_inactive_words_empty_when_no_issues(): void {
-        $instance = $this->make_full_instance(['min_length' => 4, 'max_length' => 6, 'theme_min_length' => 8]);
-        $this->modgenerator->create_word($instance->id, 'boca');
+        $instance = $this->make_full_instance(['min_length' => 4, 'max_length' => 6, 'theme_min_length' => 4]);
+        $this->modgenerator->create_word($instance->id, 'boca', 'parte do rosto');
 
-        $this->assertSame([], words_repository::get_inactive_words($instance));
+        $this->assertSame(['notterm' => [], 'nottheme' => []], words_repository::get_inactive_words($instance));
     }
 
     /**
-     * An approved word outside both the term and the theme length range is reported
-     * with reason "length".
+     * A word outside the term length range, but with a clue long enough for the
+     * theme role, is reported under "notterm" only — membership is checked against
+     * get_candidate_words()/get_theme_candidate_words() directly, not approximated
+     * from the word's own length.
      *
      * @return void
      */
-    public function test_get_inactive_words_reports_length_mismatch(): void {
-        $instance = $this->make_full_instance(['min_length' => 4, 'max_length' => 6, 'theme_min_length' => 8]);
-        $this->modgenerator->create_word($instance->id, 'planeta');
+    public function test_get_inactive_words_reports_term_only_mismatch(): void {
+        $instance = $this->make_full_instance(['min_length' => 4, 'max_length' => 6, 'theme_min_length' => 4]);
+        $this->modgenerator->create_word($instance->id, 'planeta', 'corpo celeste que orbita uma estrela');
 
         $inactive = words_repository::get_inactive_words($instance);
 
-        $this->assertCount(1, $inactive);
-        $this->assertSame('planeta', $inactive[0]['word']);
-        $this->assertSame('length', $inactive[0]['reason']);
+        $this->assertSame(['planeta'], $inactive['notterm']);
+        $this->assertSame([], $inactive['nottheme']);
     }
 
     /**
-     * A word too long for the term range is not reported when it is long enough for
-     * the theme range instead — the two length checks in get_inactive_words() are
-     * combined with OR, since a word only needs to be eligible for one of the two
-     * roles (term or theme concept) to still be usable.
+     * A word within the term length range, but whose clue is too short for the
+     * theme role, is reported under "nottheme" only.
      *
      * @return void
      */
-    public function test_get_inactive_words_word_valid_for_theme_only_is_not_reported(): void {
-        $instance = $this->make_full_instance(['min_length' => 4, 'max_length' => 6, 'theme_min_length' => 8]);
-        $this->modgenerator->create_word($instance->id, 'floresta');
+    public function test_get_inactive_words_reports_theme_only_mismatch(): void {
+        $instance = $this->make_full_instance(['min_length' => 4, 'max_length' => 6, 'theme_min_length' => 20]);
+        $this->modgenerator->create_word($instance->id, 'boca', 'parte do rosto');
 
-        $this->assertSame([], words_repository::get_inactive_words($instance));
+        $inactive = words_repository::get_inactive_words($instance);
+
+        $this->assertSame([], $inactive['notterm']);
+        $this->assertSame(['boca'], $inactive['nottheme']);
     }
 
     /**
-     * An approved word saved with a character the game cannot use is reported with
-     * reason "invalidchars" — this can only happen from data saved before charset
-     * validation existed on the manual-word form, or inserted through another path.
+     * A word missing from both roles is reported in both lists.
+     *
+     * @return void
+     */
+    public function test_get_inactive_words_reports_both_roles(): void {
+        $instance = $this->make_full_instance(['min_length' => 4, 'max_length' => 6, 'theme_min_length' => 8]);
+        $this->modgenerator->create_word($instance->id, 'oi');
+
+        $inactive = words_repository::get_inactive_words($instance);
+
+        $this->assertSame(['oi'], $inactive['notterm']);
+        $this->assertSame(['oi'], $inactive['nottheme']);
+    }
+
+    /**
+     * A word saved with a character the game cannot use always fails the term
+     * role — get_candidate_words() validates the word field's own charset,
+     * regardless of the configured length range. Its clue is checked separately for
+     * the theme role, since get_theme_candidate_words() derives eligibility from the
+     * clue's own letters, not from the word field — here the clue is too short for
+     * the configured theme range, so the word fails both roles for two independent
+     * reasons.
      *
      * @return void
      */
     public function test_get_inactive_words_reports_invalid_charset(): void {
-        $instance = $this->make_full_instance(['min_length' => 1, 'max_length' => 30]);
-        $this->modgenerator->create_word($instance->id, 'café-com-leite');
+        $instance = $this->make_full_instance(['min_length' => 1, 'max_length' => 30, 'theme_min_length' => 20]);
+        $this->modgenerator->create_word($instance->id, 'café-com-leite', 'bebida');
 
         $inactive = words_repository::get_inactive_words($instance);
 
-        $this->assertCount(1, $inactive);
-        $this->assertSame('café-com-leite', $inactive[0]['word']);
-        $this->assertSame('invalidchars', $inactive[0]['reason']);
+        $this->assertSame(['café-com-leite'], $inactive['notterm']);
+        $this->assertSame(['café-com-leite'], $inactive['nottheme']);
     }
 
     /**
@@ -1214,7 +1231,7 @@ final class words_repository_test extends \advanced_testcase {
         $instance = $this->make_full_instance(['min_length' => 4, 'max_length' => 6, 'theme_min_length' => 8]);
         words_repository::add_ai_word($instance->id, $this->user->id, 'planeta', 'corpo celeste');
 
-        $this->assertSame([], words_repository::get_inactive_words($instance));
+        $this->assertSame(['notterm' => [], 'nottheme' => []], words_repository::get_inactive_words($instance));
     }
 
     /**
