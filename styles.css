@@ -200,6 +200,22 @@
     cursor: pointer;
 }
 
+/*
+ * Moove (confirmed running here on Moodle 4.5) force-underlines every in-content link
+ * that isn't a real Bootstrap .btn, via body.pagelayout-incourse #region-main
+ * a:not(.btn) — an ID-scoped selector that outranks the class-only rule above no
+ * matter how many classes it carries, so the link-based toolbar icons (attempt
+ * history, ranking, manage words, report) rendered underlined there even though
+ * text-decoration: none is already set above. Boost does not add this rule, which is
+ * why the same toolbar looks fine on Moodle 5.x. Reusing Moodle's own #region-main
+ * landmark (present in every "incourse" page layout) ties the theme's selector
+ * specificity tier-for-tier, and the extra html type selector then exceeds it, so
+ * this wins outright instead of depending on which stylesheet happens to load last.
+ */
+html body.path-mod-playercross #region-main a.pc-toolbar-btn {
+    text-decoration: none;
+}
+
 .path-mod-playercross .pc-toolbar-btn:hover,
 .path-mod-playercross .pc-toolbar-btn:focus-visible {
     background-color: var(--gray-100, #f8f9fa);
