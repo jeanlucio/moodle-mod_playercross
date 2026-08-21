@@ -49,9 +49,10 @@ class round_service {
 
     /**
      * Gets session state, creating defaults when missing. Also discards state left
-     * over from an older, structurally incompatible version of puzzle_builder — see
-     * state_is_valid() — so a round that was mid-play across a plugin upgrade starts
-     * fresh instead of fataling the next time it is rendered.
+     * over from an older, structurally incompatible version of puzzle_builder, or a
+     * finished round whose attempt row a teacher has since deleted from the attempts
+     * report — see state_is_valid() — so the student sees a fresh lobby instead of a
+     * stale result screen that no longer corresponds to anything in the database.
      *
      * @param int $cmid Course module id.
      * @param int $userid User id.
@@ -84,6 +85,17 @@ class round_service {
      * check, round_presenter would fatal on an undefined array key the first time that
      * stale round is rendered, instead of transparently starting a fresh one.
      *
+     * Also checks that a *finished* round's backing attempt row still exists. The
+     * result screen is rendered entirely from this session state, never re-queried
+     * from the database, so if a teacher deletes the attempt via the attempts report
+     * (running in their own session, with no way to reach into this student's
+     * session), this state would otherwise keep showing that stale result forever —
+     * new_round() is the only other thing that clears it, and nothing prompts the
+     * student to click it. Treating the state as invalid here makes load_state()
+     * reset it to defaults, so the next ensure_round_state() builds a fresh round
+     * exactly as if the student had never played, instead of leaving a phantom result
+     * on screen for an attempt that no longer exists.
+     *
      * @param array $state Session state.
      * @return bool
      */
@@ -96,6 +108,12 @@ class round_service {
                 !isset($term['slots'], $term['word'], $term['originalword'])
                 || count($term['slots']) !== count(word_normalizer::chars($term['word']))
             ) {
+                return false;
+            }
+        }
+        if (!empty($state['finished']) && (int)($state['finishedattemptid'] ?? 0) > 0) {
+            global $DB;
+            if (!$DB->record_exists('playercross_attempts', ['id' => (int)$state['finishedattemptid']])) {
                 return false;
             }
         }
@@ -139,6 +157,7 @@ class round_service {
             'earlybonuseligible' => false,
             'termsexhausted' => false,
             'attemptid'     => 0,
+            'finishedattemptid' => 0,
         ];
     }
 
@@ -1099,6 +1118,7 @@ class round_service {
             $attemptid = $DB->insert_record('playercross_attempts', $data);
         }
         $state['attemptid'] = 0;
+        $state['finishedattemptid'] = $attemptid;
 
         $event = \mod_playercross\event\round_completed::create([
             'objectid' => $attemptid,

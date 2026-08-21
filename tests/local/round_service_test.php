@@ -1266,6 +1266,65 @@ final class round_service_test extends \advanced_testcase {
     }
 
     /**
+     * Regression test: the result screen is rendered entirely from session state, not
+     * re-queried from the database. If a teacher deletes the finished attempt via the
+     * attempts report (attempts_history_service::delete_attempts(), running in the
+     * teacher's own session — it cannot reach into this student's session), the next
+     * time this student's session reloads its state, load_state() must detect the
+     * missing backing row and reset to a fresh, unfinished state instead of keeping
+     * the stale result on screen forever.
+     *
+     * @return void
+     */
+    public function test_load_state_resets_finished_round_when_attempt_deleted(): void {
+        global $DB;
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+        [$state] = round_service::forfeit($state, $instance, $cm->cmid, $this->user->id);
+        round_service::save_state($cm->cmid, $this->user->id, $state);
+
+        $reloaded = round_service::load_state($cm->cmid, $this->user->id);
+        $this->assertTrue($reloaded['finished'], 'Precondition: the round must still read as finished.');
+
+        $attempt = $DB->get_record('playercross_attempts', ['playercrossid' => $instance->id], '*', MUST_EXIST);
+        $DB->delete_records('playercross_attempts', ['id' => $attempt->id]);
+
+        $reset = round_service::load_state($cm->cmid, $this->user->id);
+        $this->assertFalse($reset['finished'], 'A round whose attempt row was deleted must no longer read as finished.');
+        $this->assertSame(0, $reset['themewordid']);
+    }
+
+    /**
+     * A student who never finished a round (still mid-play, or never started one) is
+     * completely unaffected by state_is_valid()'s new attempt-existence check — that
+     * check only fires when 'finished' is true, so an in-progress or fresh state must
+     * survive load_state() untouched.
+     *
+     * @return void
+     */
+    public function test_load_state_keeps_unfinished_round_state(): void {
+        [$instance, $cm] = $this->make_ready_instance(['num_terms' => 3, 'theme_min_length' => 6]);
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->user->id),
+            $instance,
+            $cm->cmid,
+            $this->user->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->user->id);
+        round_service::save_state($cm->cmid, $this->user->id, $state);
+
+        $reloaded = round_service::load_state($cm->cmid, $this->user->id);
+        $this->assertFalse($reloaded['finished']);
+        $this->assertSame($state['themewordid'], $reloaded['themewordid']);
+    }
+
+    /**
      * Regression test: forfeiting a puzzle that was only ever armed at page-load time
      * (ensure_round_state(), before "Iniciar rodada" is ever clicked) must be rejected
      * — otherwise a student could burn one of their max_rounds, and trigger the
