@@ -16,26 +16,27 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 | `lib_supports_test.php` | 2 |
 | `completion/custom_completion_test.php` | 6 |
 | `privacy/provider_test.php` | 21 |
-| `mod_form_test.php` | 3 |
-| **Subtotal** | **54** |
+| `lib_update_grades_test.php` | 2 |
+| `mod_form_test.php` | 4 |
+| **Subtotal** | **57** |
 
 ### Testes de Lógica de Negócio (`tests/local/`)
 
 | Arquivo de teste | Casos |
 |-----------------|------:|
 | `ai_word_generator_test.php` | 19 |
-| `attempts_history_service_test.php` | 17 |
+| `attempts_history_service_test.php` | 21 |
 | `gameplay_service_test.php` | 16 |
 | `hud_service_test.php` | 27 |
 | `intro_service_test.php` | 5 |
 | `puzzle_builder_test.php` | 9 |
 | `ranking_service_test.php` | 9 |
-| `round_presenter_test.php` | 58 |
-| `round_service_test.php` | 62 |
-| `view_page_service_test.php` | 36 |
+| `round_presenter_test.php` | 60 |
+| `round_service_test.php` | 67 |
+| `view_page_service_test.php` | 39 |
 | `word_normalizer_test.php` | 38 |
-| `words_repository_test.php` | 66 |
-| **Subtotal** | **362** |
+| `words_repository_test.php` | 67 |
+| **Subtotal** | **377** |
 
 ### Testes de Web Services (`tests/external/`)
 
@@ -43,22 +44,22 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 |-----------------|------:|
 | `count_eligible_theme_words_test.php` | 5 |
 | `count_eligible_words_test.php` | 5 |
-| `count_glossary_candidates_test.php` | 4 |
+| `count_glossary_candidates_test.php` | 5 |
 | `end_round_test.php` | 6 |
 | `new_round_test.php` | 5 |
 | `reveal_hint_test.php` | 8 |
 | `start_round_test.php` | 7 |
-| `submit_term_guess_test.php` | 7 |
-| `submit_final_guess_test.php` | 6 |
-| **Subtotal** | **53** |
+| `submit_term_guess_test.php` | 8 |
+| `submit_final_guess_test.php` | 7 |
+| **Subtotal** | **56** |
 
-| **Total Geral** | **469** |
+| **Total Geral** | **490** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross
 ```
 
-**Cobertura de linhas geral** (`moodle-coverage`, PHPUnit + Xdebug): **87%**.
+**Cobertura de linhas geral** (`moodle-coverage`, PHPUnit + Xdebug): **90%**.
 
 ### Behat — Testes de Ponta a Ponta
 
