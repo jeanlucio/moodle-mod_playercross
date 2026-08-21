@@ -146,6 +146,14 @@ class new_round extends external_api {
                     'Grading method info line, empty when not applicable'
                 ),
                 'roundsplayedlabel' => new external_value(PARAM_TEXT, 'Rounds played counter, e.g. "3 / 10"'),
+                'showgradesummary' => new external_value(
+                    PARAM_BOOL,
+                    'Whether the points/scoring-mode summary line is shown'
+                ),
+                'gradesummary' => new external_value(
+                    PARAM_TEXT,
+                    'Points and scoring-mode summary line, empty when not applicable'
+                ),
             ]),
         ]);
     }

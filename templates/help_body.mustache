@@ -57,8 +57,10 @@
         "hudtext": "This activity may require PlayerHUD items to start a round or reveal a hint, and can reward you with an item for winning a round.",
         "showgrading": true,
         "gradingtext": "Grading method: Highest grade.",
+        "showgradescoringmode": true,
+        "gradescoringmodetext": "Grade scoring mode: Binary. In Binary mode, you get full credit for winning the round and zero for losing. In Linear mode, credit starts full and decreases with every wrong guess, on any term or the mystery phrase.",
         "showscoringformula": true,
-        "scoringformulatext": "Grading uses linear scoring: you get full credit with no wrong guesses, and credit decreases with every wrong guess across every term and the mystery phrase.",
+        "scoringformulatext": "Ranking uses linear scoring: you earn full points with no wrong guesses, and points decrease with every wrong guess across every term and the mystery phrase — the grade itself stays in Binary mode (full credit on a win, zero on a loss).",
         "reviewhint": "You can review these instructions anytime by clicking the help icon at the top of the game."
     }
 }}
@@ -97,6 +99,9 @@
     {{#showgrading}}
         <p>{{gradingtext}}</p>
     {{/showgrading}}
+    {{#showgradescoringmode}}
+        <p>{{gradescoringmodetext}}</p>
+    {{/showgradescoringmode}}
     {{#showscoringformula}}
         <p>{{scoringformulatext}}</p>
     {{/showscoringformula}}

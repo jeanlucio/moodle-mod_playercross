@@ -326,6 +326,44 @@ class round_presenter {
     }
 
     /**
+     * Resolves the localized name of the instance's configured grade scoring mode.
+     *
+     * @param \stdClass $instance Activity instance.
+     * @return string
+     */
+    public static function grade_scoring_mode_name(\stdClass $instance): string {
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/playercross/lib.php');
+
+        $options = playercross_get_scoring_mode_options();
+        $mode = (int)($instance->gradescoringmode ?? PLAYERCROSS_SCORING_BINARY);
+        return $options[$mode] ?? $options[PLAYERCROSS_SCORING_BINARY];
+    }
+
+    /**
+     * Builds the "worth up to N points — scoring mode" summary shown in the lobby
+     * before a round starts. Unlike build_grading_method_info(), this is not gated on
+     * more than one round being possible: the point value and scoring mode are
+     * meaningful even when the activity only ever allows a single round.
+     *
+     * @param \stdClass $instance Activity instance.
+     * @return array
+     */
+    public static function build_grade_summary_info(\stdClass $instance): array {
+        if ((float)$instance->grade <= 0) {
+            return ['showgradesummary' => false, 'gradesummary' => ''];
+        }
+
+        return [
+            'showgradesummary' => true,
+            'gradesummary' => get_string('lobby_gradesummary', 'mod_playercross', (object)[
+                'points' => format_float((float)$instance->grade, 2),
+                'scoringmode' => self::grade_scoring_mode_name($instance),
+            ]),
+        ];
+    }
+
+    /**
      * Builds the "grade so far" summary shown after a round finishes, read straight
      * from the gradebook item so it always matches what the teacher sees.
      *
@@ -495,7 +533,7 @@ class round_presenter {
             'canstart' => $canstart,
             'startlabel' => get_string('startround', 'mod_playercross'),
             'roundsplayedlabel' => self::build_rounds_played_label($instance, $userid),
-        ] + self::build_grading_method_info($instance);
+        ] + self::build_grade_summary_info($instance) + self::build_grading_method_info($instance);
     }
 
     /**

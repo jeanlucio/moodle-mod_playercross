@@ -474,6 +474,49 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * Unlike the grading-method line, the points/scoring-mode summary is meaningful
+     * even when only a single round is possible, so it must stay visible there — the
+     * only thing that hides it is the activity being ungraded.
+     *
+     * @return void
+     */
+    public function test_build_grade_summary_info_relevance(): void {
+        $graded = $this->make_instance(['grade' => 100, 'max_rounds' => 0]);
+        $ungraded = $this->make_instance(['grade' => 0]);
+        $singleround = $this->make_instance(['grade' => 100, 'max_rounds' => 1]);
+
+        $this->assertTrue(round_presenter::build_grade_summary_info($graded)['showgradesummary']);
+        $this->assertFalse(round_presenter::build_grade_summary_info($ungraded)['showgradesummary']);
+        $this->assertSame('', round_presenter::build_grade_summary_info($ungraded)['gradesummary']);
+        $this->assertTrue(round_presenter::build_grade_summary_info($singleround)['showgradesummary']);
+    }
+
+    /**
+     * The summary text names both the point value and the configured scoring mode.
+     *
+     * @return void
+     */
+    public function test_build_grade_summary_info_text(): void {
+        $binary = $this->make_instance(['grade' => 100, 'gradescoringmode' => PLAYERCROSS_SCORING_BINARY]);
+        $linear = $this->make_instance(['grade' => 50, 'gradescoringmode' => PLAYERCROSS_SCORING_LINEAR]);
+
+        $this->assertSame(
+            get_string('lobby_gradesummary', 'mod_playercross', (object)[
+                'points' => format_float(100.0, 2),
+                'scoringmode' => get_string('scoringmode_binary', 'mod_playercross'),
+            ]),
+            round_presenter::build_grade_summary_info($binary)['gradesummary']
+        );
+        $this->assertSame(
+            get_string('lobby_gradesummary', 'mod_playercross', (object)[
+                'points' => format_float(50.0, 2),
+                'scoringmode' => get_string('scoringmode_linear', 'mod_playercross'),
+            ]),
+            round_presenter::build_grade_summary_info($linear)['gradesummary']
+        );
+    }
+
+    /**
      * Tests that the grade-so-far summary is absent when there is no gradebook item yet.
      *
      * @return void

@@ -35,6 +35,7 @@ use context_module;
  * restriction notice (cooldown/round limit).
  *
  * @covers \mod_playercross\local\view_page_service
+ * @covers \mod_playercross\local\round_presenter
  */
 final class view_page_service_test extends \advanced_testcase {
     /** @var \stdClass Course used by the tests. */
@@ -603,12 +604,15 @@ final class view_page_service_test extends \advanced_testcase {
     }
 
     /**
-     * The help modal explains the Linear scoring formula only when it is actually
-     * active for the grade — never for Binary scoring, which needs no explanation.
+     * The help modal always explains the grade's own scoring mode when grading is
+     * enabled, regardless of whether it is Binary or Linear — the student needs the
+     * comparison to understand what the mode they were not given would have meant.
+     * When the grade itself is Linear, the ranking-only formula variant must stay
+     * hidden: it would restate the exact same rule a second time.
      *
      * @return void
      */
-    public function test_build_page_data_shows_scoring_formula_when_grade_is_linear(): void {
+    public function test_build_page_data_explains_grade_scoring_mode_when_linear(): void {
         [$instance, $cm, $context] = $this->make_instance([
             'grade' => 100,
             'gradescoringmode' => PLAYERCROSS_SCORING_LINEAR,
@@ -617,8 +621,58 @@ final class view_page_service_test extends \advanced_testcase {
         $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
         $ctx = $pagedata['templatecontext'];
 
-        $this->assertTrue($ctx['showscoringformula']);
-        $this->assertSame(get_string('help_scoringformula', 'mod_playercross'), $ctx['scoringformulatext']);
+        $this->assertTrue($ctx['showgradescoringmode']);
+        $this->assertSame(
+            get_string(
+                'help_gradescoringmode',
+                'mod_playercross',
+                get_string('scoringmode_linear', 'mod_playercross')
+            ),
+            $ctx['gradescoringmodetext']
+        );
+        $this->assertFalse($ctx['showscoringformula']);
+        $this->assertSame('', $ctx['scoringformulatext']);
+    }
+
+    /**
+     * The same explanation must appear for Binary scoring too — the whole point is
+     * that the student sees the comparison no matter which mode is actually active.
+     *
+     * @return void
+     */
+    public function test_build_page_data_explains_grade_scoring_mode_when_binary(): void {
+        [$instance, $cm, $context] = $this->make_instance([
+            'grade' => 100,
+            'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
+        ]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['showgradescoringmode']);
+        $this->assertSame(
+            get_string(
+                'help_gradescoringmode',
+                'mod_playercross',
+                get_string('scoringmode_binary', 'mod_playercross')
+            ),
+            $ctx['gradescoringmodetext']
+        );
+    }
+
+    /**
+     * An ungraded activity has no scoring mode worth explaining.
+     *
+     * @return void
+     */
+    public function test_build_page_data_hides_grade_scoring_mode_when_ungraded(): void {
+        [$instance, $cm, $context] = $this->make_instance(['grade' => 0]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['showgradescoringmode']);
+        $this->assertSame('', $ctx['gradescoringmodetext']);
     }
 
     /**

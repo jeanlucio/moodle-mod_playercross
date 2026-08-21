@@ -30,7 +30,9 @@
         "startlabel": "Start round",
         "showgradingmethodinfo": true,
         "gradingmethodinfo": "Grading method: Average grade",
-        "roundsplayedlabel": "Rounds played: 0 / 10."
+        "roundsplayedlabel": "Rounds played: 0 / 10.",
+        "showgradesummary": true,
+        "gradesummary": "Worth up to 100.00 points — Binary (full credit or none)."
     }
 }}
 <div id="playercross-lobby-body" class="mod-playercross-lobby text-center my-3">
@@ -41,6 +43,9 @@
     {{#roundsplayedlabel}}
         <p class="small">{{roundsplayedlabel}}</p>
     {{/roundsplayedlabel}}
+    {{#showgradesummary}}
+        <p class="small">{{gradesummary}}</p>
+    {{/showgradesummary}}
     {{#showgradingmethodinfo}}
         <p class="small">{{gradingmethodinfo}}</p>
     {{/showgradingmethodinfo}}
