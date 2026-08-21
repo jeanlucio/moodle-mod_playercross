@@ -41,14 +41,17 @@ Feature: PlayerCross toolbar and modals
       | oi     |
     When I log in as "teacher1"
     And I am on the "Cross Inactive" "playercross activity" page
-    Then I should see "Active words in this game"
+    Then I should see "words active as a term"
+    And I should see "words active as the theme concept"
     And I should see "Inactive words in this game"
-    And I should see "Outside the current length range"
+    And I should see "Not used as a term"
+    And I should see "Not used as the theme concept"
     And I should see "oi"
+    And I should see "livro"
     When I log in as "student1"
     And I am on the "Cross Inactive" "playercross activity" page
     Then I should not see "Inactive words in this game"
-    And I should not see "Active words in this game"
+    And I should not see "words active as a term"
 
   Scenario: The ranking icon only appears when the activity has ranking enabled
     Given the following "activities" exist:
