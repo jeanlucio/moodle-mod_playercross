@@ -763,6 +763,28 @@ final class view_page_service_test extends \advanced_testcase {
     }
 
     /**
+     * The restriction branch (round limit/cooldown reached before a puzzle is even
+     * built) must report the round as finished so the header timer badge stays
+     * hidden, even though no round was actually finished in this session — a
+     * regression guard for the badge showing a stray "0" whenever a timer is
+     * configured and the player is blocked from starting a new round.
+     *
+     * @return void
+     */
+    public function test_build_page_data_restriction_notice_hides_timer_badge(): void {
+        [$instance, $cm, $context] = $this->make_instance(['max_rounds' => 1, 'timer_seconds' => 60]);
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $theme = $modgenerator->create_word($instance->id, 'caderno');
+        $modgenerator->create_attempt($instance->id, $this->user->id, $theme->id);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertTrue($ctx['roundfinished']);
+        $this->assertFalse($ctx['hastheme']);
+    }
+
+    /**
      * A user's very first page load of any PlayerCross activity is flagged to
      * auto-show the how-to-play intro, and that first load immediately marks the
      * site-wide preference so it is never repeated — including on the very same

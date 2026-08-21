@@ -33,10 +33,10 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 | `ranking_service_test.php` | 9 |
 | `round_presenter_test.php` | 60 |
 | `round_service_test.php` | 67 |
-| `view_page_service_test.php` | 39 |
+| `view_page_service_test.php` | 40 |
 | `word_normalizer_test.php` | 38 |
 | `words_repository_test.php` | 67 |
-| **Subtotal** | **377** |
+| **Subtotal** | **378** |
 
 ### Testes de Web Services (`tests/external/`)
 
@@ -53,7 +53,7 @@ matriz completa (Moodle 4.5 → 5.x, PostgreSQL e MariaDB).
 | `submit_final_guess_test.php` | 7 |
 | **Subtotal** | **56** |
 
-| **Total Geral** | **490** |
+| **Total Geral** | **491** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross

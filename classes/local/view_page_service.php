@@ -58,6 +58,10 @@ class view_page_service {
             if ($restrictionnotice !== null) {
                 $templatectx = self::build_template_context($cm, $instance, $state, $context, $userid);
                 $templatectx['hastheme'] = false;
+                // No round is actually finished here (this is the max_rounds/cooldown
+                // restriction branch), but the timer wrapper must stay hidden the same
+                // way it does once a round genuinely finishes.
+                $templatectx['roundfinished'] = true;
                 $templatectx['nogamewords'] = $restrictionnotice;
                 return [
                     'templatecontext'     => $templatectx,
