@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/playercross/db" VERSION="20260818" COMMENT="XMLDB file for mod_playercross"
+<XMLDB PATH="mod/playercross/db" VERSION="20260821" COMMENT="XMLDB file for mod_playercross"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -15,6 +15,8 @@
             COMMENT="Bitmask for enabled term-word sources: 1=manual, 2=glossary. AI words are not gated by this bitmask; they are always saved as pending regardless of its value"/>
         <FIELD NAME="glossaryid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
             COMMENT="Glossary to sync words from; 0 means all glossaries in the course"/>
+        <FIELD NAME="glossary_split_concepts" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"
+            COMMENT="Whether a multi-word glossary concept may be split into separate single-word term candidates; a multi-word concept is skipped entirely when disabled"/>
         <FIELD NAME="stopwords" TYPE="text" NOTNULL="false" SEQUENCE="false"
             COMMENT="Comma-separated words to ignore when splitting multi-word glossary concepts"/>
         <FIELD NAME="min_length" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="3" SEQUENCE="false"

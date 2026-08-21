@@ -56,6 +56,12 @@ class count_glossary_candidates extends external_api {
                 VALUE_DEFAULT,
                 ''
             ),
+            'splitconcepts' => new external_value(
+                PARAM_BOOL,
+                'Whether a multi-word concept may be split into separate single-word candidates',
+                VALUE_DEFAULT,
+                true
+            ),
         ]);
     }
 
@@ -67,6 +73,8 @@ class count_glossary_candidates extends external_api {
      * @param int $minlength Candidate minimum word length.
      * @param int $maxlength Candidate maximum word length.
      * @param string $stopwords Comma-separated words to ignore when splitting multi-word concepts.
+     * @param bool $splitconcepts Whether a multi-word concept may be split into separate
+     *     single-word candidates.
      * @return array
      */
     public static function execute(
@@ -74,27 +82,37 @@ class count_glossary_candidates extends external_api {
         int $glossaryid,
         int $minlength,
         int $maxlength,
-        string $stopwords = ''
+        string $stopwords = '',
+        bool $splitconcepts = true
     ): array {
         [
-            'courseid'   => $courseid,
-            'glossaryid' => $glossaryid,
-            'minlength'  => $minlength,
-            'maxlength'  => $maxlength,
-            'stopwords'  => $stopwords,
+            'courseid'      => $courseid,
+            'glossaryid'    => $glossaryid,
+            'minlength'     => $minlength,
+            'maxlength'     => $maxlength,
+            'stopwords'     => $stopwords,
+            'splitconcepts' => $splitconcepts,
         ] = self::validate_parameters(self::execute_parameters(), [
-            'courseid'   => $courseid,
-            'glossaryid' => $glossaryid,
-            'minlength'  => $minlength,
-            'maxlength'  => $maxlength,
-            'stopwords'  => $stopwords,
+            'courseid'      => $courseid,
+            'glossaryid'    => $glossaryid,
+            'minlength'     => $minlength,
+            'maxlength'     => $maxlength,
+            'stopwords'     => $stopwords,
+            'splitconcepts' => $splitconcepts,
         ]);
 
         $context = context_course::instance($courseid);
         self::validate_context($context);
         require_capability('mod/playercross:addinstance', $context);
 
-        $count = words_repository::count_glossary_candidates($courseid, $glossaryid, $minlength, $maxlength, $stopwords);
+        $count = words_repository::count_glossary_candidates(
+            $courseid,
+            $glossaryid,
+            $minlength,
+            $maxlength,
+            $stopwords,
+            $splitconcepts
+        );
 
         return ['count' => $count];
     }

@@ -43,16 +43,30 @@ let debounceHandle = null;
  * @param {string} minFieldId Element id of the minimum-length field.
  * @param {string} maxFieldId Element id of the maximum-length field.
  * @param {string} stopwordsFieldId Element id of the stopwords textarea.
+ * @param {string} splitConceptsCheckboxId Element id of the "split concepts" checkbox.
  * @param {string} outputId Element id of the output element the count is written into.
  */
-const init = (courseid, sourceCheckboxId, glossarySelectId, minFieldId, maxFieldId, stopwordsFieldId, outputId) => {
+const init = (
+    courseid,
+    sourceCheckboxId,
+    glossarySelectId,
+    minFieldId,
+    maxFieldId,
+    stopwordsFieldId,
+    splitConceptsCheckboxId,
+    outputId
+) => {
     const sourceCheckbox = document.getElementById(sourceCheckboxId);
     const glossarySelect = document.getElementById(glossarySelectId);
     const minField = document.getElementById(minFieldId);
     const maxField = document.getElementById(maxFieldId);
     const stopwordsField = document.getElementById(stopwordsFieldId);
+    const splitConceptsCheckbox = document.getElementById(splitConceptsCheckboxId);
     const output = document.getElementById(outputId);
-    if (!sourceCheckbox || !glossarySelect || !minField || !maxField || !stopwordsField || !output) {
+    if (
+        !sourceCheckbox || !glossarySelect || !minField || !maxField
+        || !stopwordsField || !splitConceptsCheckbox || !output
+    ) {
         return;
     }
 
@@ -65,11 +79,12 @@ const init = (courseid, sourceCheckboxId, glossarySelectId, minFieldId, maxField
         const minlength = parseInt(minField.value, 10) || 0;
         const maxlength = parseInt(maxField.value, 10) || 0;
         const stopwords = stopwordsField.value;
+        const splitconcepts = splitConceptsCheckbox.checked;
 
         try {
             const result = await Ajax.call([{
                 methodname: 'mod_playercross_count_glossary_candidates',
-                args: {courseid, glossaryid, minlength, maxlength, stopwords},
+                args: {courseid, glossaryid, minlength, maxlength, stopwords, splitconcepts},
             }])[0];
             output.textContent = await getString('glossarywordscount', 'mod_playercross', result.count);
         } catch (error) {
@@ -89,6 +104,7 @@ const init = (courseid, sourceCheckboxId, glossarySelectId, minFieldId, maxField
     minField.addEventListener('input', scheduleRefresh);
     maxField.addEventListener('input', scheduleRefresh);
     stopwordsField.addEventListener('input', scheduleRefresh);
+    splitConceptsCheckbox.addEventListener('change', scheduleRefresh);
     refresh();
 };
 

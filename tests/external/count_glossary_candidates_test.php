@@ -77,16 +77,25 @@ final class count_glossary_candidates_test extends \advanced_testcase {
      * @param int $minlength Candidate minimum word length.
      * @param int $maxlength Candidate maximum word length.
      * @param string $stopwords Comma-separated words to ignore when splitting multi-word concepts.
+     * @param bool $splitconcepts Whether a multi-word concept may be split into separate
+     *     single-word candidates.
      * @return array Response shaped as ['error' => bool, 'data' => array|null, ...].
      */
-    private function call_count(int $glossaryid, int $minlength, int $maxlength, string $stopwords = ''): array {
+    private function call_count(
+        int $glossaryid,
+        int $minlength,
+        int $maxlength,
+        string $stopwords = '',
+        bool $splitconcepts = true
+    ): array {
         $_POST['sesskey'] = sesskey();
         return external_api::call_external_function('mod_playercross_count_glossary_candidates', [
-            'courseid'   => $this->course->id,
-            'glossaryid' => $glossaryid,
-            'minlength'  => $minlength,
-            'maxlength'  => $maxlength,
-            'stopwords'  => $stopwords,
+            'courseid'      => $this->course->id,
+            'glossaryid'    => $glossaryid,
+            'minlength'     => $minlength,
+            'maxlength'     => $maxlength,
+            'stopwords'     => $stopwords,
+            'splitconcepts' => $splitconcepts,
         ]);
     }
 
@@ -134,6 +143,23 @@ final class count_glossary_candidates_test extends \advanced_testcase {
 
         $this->assertSame(2, $withoutstopwords['data']['count']);
         $this->assertSame(1, $withstopwords['data']['count']);
+    }
+
+    /**
+     * The splitconcepts param, passed straight from the settings form's checkbox
+     * state, zeroes out a multi-word concept's contribution when false.
+     *
+     * @return void
+     */
+    public function test_counts_candidates_respecting_splitconcepts_param(): void {
+        $glossary = $this->make_glossary('sistema solar');
+
+        $this->setUser($this->teacher);
+        $split = $this->call_count($glossary->id, 1, 30, '', true);
+        $notsplit = $this->call_count($glossary->id, 1, 30, '', false);
+
+        $this->assertSame(2, $split['data']['count']);
+        $this->assertSame(0, $notsplit['data']['count']);
     }
 
     /**

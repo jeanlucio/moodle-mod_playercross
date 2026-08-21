@@ -41,6 +41,7 @@ class backup_playercross_activity_structure_step extends backup_activity_structu
             'introformat',
             'sources',
             'glossaryid',
+            'glossary_split_concepts',
             'stopwords',
             'min_length',
             'max_length',

@@ -97,10 +97,21 @@ class mod_playercross_mod_form extends moodleform_mod {
         $mform->setDefault('glossaryid', 0);
         $mform->hideIf('glossaryid', 'source_glossary', 'notchecked');
 
+        $mform->addElement(
+            'advcheckbox',
+            'glossary_split_concepts',
+            get_string('glossary_split_concepts', 'mod_playercross')
+        );
+        $mform->setType('glossary_split_concepts', PARAM_INT);
+        $mform->setDefault('glossary_split_concepts', 0);
+        $mform->addHelpButton('glossary_split_concepts', 'glossary_split_concepts', 'mod_playercross');
+        $mform->hideIf('glossary_split_concepts', 'source_glossary', 'notchecked');
+
         $mform->addElement('textarea', 'stopwords', get_string('stopwords', 'mod_playercross'), ['rows' => 3]);
         $mform->setType('stopwords', PARAM_TEXT);
         $mform->addHelpButton('stopwords', 'stopwords', 'mod_playercross');
         $mform->hideIf('stopwords', 'source_glossary', 'notchecked');
+        $mform->hideIf('stopwords', 'glossary_split_concepts', 'notchecked');
 
         $mform->addElement('header', 'gameplayheader', get_string('gameplayheader', 'mod_playercross'));
         $mform->setExpanded('gameplayheader');
@@ -428,6 +439,7 @@ class mod_playercross_mod_form extends moodleform_mod {
                 'id_min_length',
                 'id_max_length',
                 'id_stopwords',
+                'id_glossary_split_concepts',
                 'playercross-glossary-preview-count',
             ]);
         }

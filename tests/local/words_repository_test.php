@@ -892,7 +892,7 @@ final class words_repository_test extends \advanced_testcase {
      */
     public function test_sync_glossary_words_splits_multiword_concept_without_stopwords(): void {
         [$glossary] = $this->make_glossary_entry('sistema solar', 'conjunto de planetas');
-        $instance = $this->make_full_instance(['glossaryid' => $glossary->id]);
+        $instance = $this->make_full_instance(['glossaryid' => $glossary->id, 'glossary_split_concepts' => 1]);
 
         $imported = words_repository::sync_glossary_words($instance);
 
@@ -903,6 +903,44 @@ final class words_repository_test extends \advanced_testcase {
     }
 
     /**
+     * A multi-word concept is skipped entirely — never split, never imported whole —
+     * when glossary_split_concepts is off. A sibling single-word concept in the same
+     * sync is unaffected, since the flag only ever applies to multi-word concepts.
+     *
+     * @return void
+     */
+    public function test_sync_glossary_words_skips_multiword_concept_when_split_disabled(): void {
+        global $DB;
+        $this->make_glossary_entry('sistema solar', 'conjunto de planetas');
+        $this->make_glossary_entry('planeta', 'corpo celeste');
+        $instance = $this->make_full_instance(['glossaryid' => 0, 'glossary_split_concepts' => 0]);
+
+        $imported = words_repository::sync_glossary_words($instance);
+
+        $this->assertSame(1, $imported);
+        $this->assertFalse($DB->record_exists('playercross_words', ['playercrossid' => $instance->id, 'word' => 'sistema']));
+        $this->assertFalse($DB->record_exists('playercross_words', ['playercrossid' => $instance->id, 'word' => 'solar']));
+        $this->assertTrue($DB->record_exists('playercross_words', ['playercrossid' => $instance->id, 'word' => 'planeta']));
+    }
+
+    /**
+     * The instance's default value for glossary_split_concepts, when not explicitly
+     * overridden, must be 0 — a multi-word concept is skipped by default rather than
+     * split, matching the settings form's own default (advcheckbox unchecked).
+     *
+     * @return void
+     */
+    public function test_sync_glossary_words_default_does_not_split(): void {
+        global $DB;
+        [$glossary] = $this->make_glossary_entry('sistema solar', 'conjunto de planetas');
+        $instance = $this->make_full_instance(['glossaryid' => $glossary->id]);
+
+        words_repository::sync_glossary_words($instance);
+
+        $this->assertSame(0, $DB->count_records('playercross_words', ['playercrossid' => $instance->id]));
+    }
+
+    /**
      * A configured stopword is dropped from a multi-word concept before import.
      *
      * @return void
@@ -910,7 +948,11 @@ final class words_repository_test extends \advanced_testcase {
     public function test_sync_glossary_words_filters_configured_stopwords(): void {
         global $DB;
         [$glossary] = $this->make_glossary_entry('o brasil', 'pais da america do sul');
-        $instance = $this->make_full_instance(['glossaryid' => $glossary->id, 'stopwords' => 'o']);
+        $instance = $this->make_full_instance([
+            'glossaryid' => $glossary->id,
+            'glossary_split_concepts' => 1,
+            'stopwords' => 'o',
+        ]);
 
         $imported = words_repository::sync_glossary_words($instance);
 
@@ -1085,7 +1127,7 @@ final class words_repository_test extends \advanced_testcase {
      */
     public function test_get_fragmented_concepts_reports_split_multiword_concept(): void {
         [$glossary] = $this->make_glossary_entry('sistema solar', 'conjunto de planetas');
-        $instance = $this->make_full_instance(['glossaryid' => $glossary->id]);
+        $instance = $this->make_full_instance(['glossaryid' => $glossary->id, 'glossary_split_concepts' => 1]);
         words_repository::sync_glossary_words($instance);
 
         $fragmented = words_repository::get_fragmented_concepts($instance->id);
@@ -1131,7 +1173,7 @@ final class words_repository_test extends \advanced_testcase {
      */
     public function test_get_fragmented_concepts_is_scoped_to_its_own_instance(): void {
         [$glossary] = $this->make_glossary_entry('sistema solar', 'conjunto de planetas');
-        $instance = $this->make_full_instance(['glossaryid' => $glossary->id]);
+        $instance = $this->make_full_instance(['glossaryid' => $glossary->id, 'glossary_split_concepts' => 1]);
         $otherinstance = $this->make_full_instance(['glossaryid' => $glossary->id]);
         words_repository::sync_glossary_words($instance);
 
@@ -1296,6 +1338,20 @@ final class words_repository_test extends \advanced_testcase {
 
         // Sistema (7 letters) is out of range; solar (5 letters) is in range.
         $this->assertSame(1, $count);
+    }
+
+    /**
+     * With splitconcepts false, a multi-word concept contributes nothing to the
+     * count — matching sync_glossary_words()'s own behaviour with the flag off.
+     *
+     * @return void
+     */
+    public function test_count_glossary_candidates_zero_when_split_disabled(): void {
+        [$glossary] = $this->make_glossary_entry('sistema solar', 'conjunto de planetas');
+
+        $count = words_repository::count_glossary_candidates($this->course->id, $glossary->id, 1, 30, '', false);
+
+        $this->assertSame(0, $count);
     }
 
     /**

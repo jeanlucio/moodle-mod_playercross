@@ -51,15 +51,26 @@ class words_repository {
     /**
      * Splits a glossary concept into individual candidate words, ignoring given stopwords.
      *
-     * Single-word concepts are returned as-is. For multi-word concepts each
-     * non-stopword token becomes a separate candidate. If all tokens are stopwords,
-     * or if no stopwords are given, every token is returned.
+     * Single-word concepts are returned as-is. For multi-word concepts, when
+     * $splitconcepts is true, each non-stopword token becomes a separate candidate — if
+     * all tokens are stopwords, or if no stopwords are given, every token is returned.
+     * When $splitconcepts is false, a multi-word concept is skipped entirely: a term can
+     * never be the whole concept as one un-split string (individual terms are always a
+     * single letters-only token, see word_normalizer::is_valid_charset() — only the
+     * mystery phrase itself supports multiple words), so the only alternative to
+     * splitting is not offering that concept as a term candidate at all.
      *
      * @param string $concept Raw concept string from a glossary entry.
      * @param string $stopwordsraw Comma-separated words to ignore, as configured on the activity.
+     * @param bool $splitconcepts Whether a multi-word concept may be split into separate
+     *     single-word candidates. False skips multi-word concepts entirely instead.
      * @return string[]
      */
-    public static function extract_candidate_words(string $concept, string $stopwordsraw = ''): array {
+    public static function extract_candidate_words(
+        string $concept,
+        string $stopwordsraw = '',
+        bool $splitconcepts = true
+    ): array {
         $tokens = preg_split('/\s+/u', $concept, -1, PREG_SPLIT_NO_EMPTY);
         $tokens = array_values(array_filter($tokens, fn($t) => word_normalizer::is_valid_charset($t)));
         if ($tokens === []) {
@@ -67,6 +78,9 @@ class words_repository {
         }
         if (count($tokens) === 1) {
             return $tokens;
+        }
+        if (!$splitconcepts) {
+            return [];
         }
         $stopwords = [];
         if ($stopwordsraw !== '') {
@@ -480,7 +494,12 @@ class words_repository {
                 // whole entry never re-confirms it as still present. Marking any
                 // already-existing match as confirmed protects it from that, without
                 // inserting anything new or touching its stored clue.
-                foreach (self::extract_candidate_words($concept, (string)($instance->stopwords ?? '')) as $word) {
+                $confirmwords = self::extract_candidate_words(
+                    $concept,
+                    (string)($instance->stopwords ?? ''),
+                    (bool)($instance->glossary_split_concepts ?? false)
+                );
+                foreach ($confirmwords as $word) {
                     $key = core_text::strtolower($word);
                     if (isset($existingmap[$key]) && $existingmap[$key] !== true) {
                         $existingmap[$key] = true;
@@ -488,7 +507,11 @@ class words_repository {
                 }
                 continue;
             }
-            $words = self::extract_candidate_words($concept, (string)($instance->stopwords ?? ''));
+            $words = self::extract_candidate_words(
+                $concept,
+                (string)($instance->stopwords ?? ''),
+                (bool)($instance->glossary_split_concepts ?? false)
+            );
 
             foreach ($words as $word) {
                 // Glossary content is never bounded by a form maxlength the way the
@@ -848,6 +871,8 @@ class words_repository {
      * @param int $minlength Candidate minimum word length.
      * @param int $maxlength Candidate maximum word length.
      * @param string $stopwordsraw Comma-separated words to ignore, as typed on the settings form.
+     * @param bool $splitconcepts Whether a multi-word concept may be split into separate
+     *     single-word candidates, as currently checked on the settings form.
      * @return int
      */
     public static function count_glossary_candidates(
@@ -855,7 +880,8 @@ class words_repository {
         int $glossaryid,
         int $minlength,
         int $maxlength,
-        string $stopwordsraw = ''
+        string $stopwordsraw = '',
+        bool $splitconcepts = true
     ): int {
         global $DB;
 
@@ -889,7 +915,7 @@ class words_repository {
 
         $candidates = [];
         foreach ($concepts as $concept) {
-            foreach (self::extract_candidate_words(trim($concept), $stopwordsraw) as $word) {
+            foreach (self::extract_candidate_words(trim($concept), $stopwordsraw, $splitconcepts) as $word) {
                 $wordlength = core_text::strlen($word);
                 if ($wordlength < $minlength || $wordlength > $maxlength) {
                     continue;
