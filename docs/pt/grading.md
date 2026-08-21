@@ -116,3 +116,12 @@ tenha jogado a atividade. Já o relatório para todos os estudantes vive numa p�
 visível só para quem gerencia: uma tabela com todas as tentativas de todos os estudantes,
 ordenável clicando em qualquer cabeçalho de coluna e filtrável para um único estudante. Assim
 como o ranking, esse relatório nunca inclui as próprias tentativas de um gestor.
+
+**Excluir tentativas reverte essas travas quando elas deixam de se aplicar.** No relatório com
+todos os estudantes, quem gerencia a atividade pode excluir tentativas de um estudante
+individualmente ou em lote. A exclusão realmente limpa a nota daquele estudante em vez de deixar
+um valor obsoleto para trás, então se todas as tentativas de todos os estudantes forem removidas,
+`Termos por rodada`, `Método de avaliação`, as duas configurações de máximo de tentativas e
+`Modo de pontuação da nota` destravam de novo exatamente como `grade_item::has_grades()` espera —
+do mesmo jeito que aconteceria numa atividade nunca jogada. `Modo de pontuação do ranking` segue
+a mesma lógica direto contra a tabela de tentativas, independente de a nota estar ligada.
