@@ -215,19 +215,7 @@ class view_page_service {
         // under both modes (see round_service::submit_final_guess()).
         $showfinalguessloss = (int)($instance->max_attempts_final_guess ?? 0) > 0;
 
-        $gradescoringmode = (int)($instance->gradescoringmode ?? PLAYERCROSS_SCORING_BINARY);
-        $rankingscoringmode = (int)($instance->rankingscoringmode ?? PLAYERCROSS_SCORING_BINARY);
         $showranking = !empty($instance->show_ranking);
-        $gradeislinear = $gradescoringmode === PLAYERCROSS_SCORING_LINEAR;
-        // The grade's own scoring mode (Binary or Linear) is always explained via
-        // help_gradescoringmode below when grading is on, so this is now only for the
-        // ranking-only case: ranking uses its own independent Linear formula (see
-        // gameplay_service::calculate_ranking_points()) while the grade stays Binary.
-        // When the grade is itself Linear, help_gradescoringmode already covers the
-        // exact same rule, so this stays hidden to avoid explaining it twice.
-        $showscoringformula = $showranking
-            && $rankingscoringmode === PLAYERCROSS_SCORING_LINEAR
-            && !$gradeislinear;
 
         // A real example of the on-screen attempts-remaining pill (.mod-playercross-
         // attempts-count, styled in styles.css), injected into help_termexhausted/
@@ -293,9 +281,13 @@ class view_page_service {
                     round_presenter::grade_scoring_mode_name($instance)
                 )
                 : '',
-            'showscoringformula' => $showscoringformula,
-            'scoringformulatext' => $showscoringformula
-                ? get_string('help_scoringformula_rankingonly', 'mod_playercross')
+            'showrankingscoringmode' => $showranking,
+            'rankingscoringmodetext' => $showranking
+                ? get_string(
+                    'help_rankingscoringmode',
+                    'mod_playercross',
+                    round_presenter::ranking_scoring_mode_name($instance)
+                )
                 : '',
             'reviewhint' => get_string('help_reviewhint', 'mod_playercross'),
         ];

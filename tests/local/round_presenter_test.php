@@ -28,11 +28,13 @@ namespace mod_playercross\local;
 /**
  * Tests for round_presenter.
  *
- * Requires database access: build_round_result_context() and build_grade_so_far()
- * compute cooldown/gradebook fields via round_service/grade_item, not session state
- * alone (so a cooldown_seconds or grade change always applies immediately).
+ * Requires database access: build_round_result_context() and
+ * build_ranking_summary_context() compute cooldown/ranking fields via round_service/
+ * ranking_service, not session state alone (so a cooldown_seconds or ranking change
+ * always applies immediately).
  *
  * @covers \mod_playercross\local\round_presenter
+ * @covers \mod_playercross\local\ranking_service
  */
 final class round_presenter_test extends \advanced_testcase {
     /** @var \stdClass Course used by the DB-dependent tests. */
@@ -517,41 +519,61 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that the grade-so-far summary is absent when there is no gradebook item yet.
+     * Tests that the inline ranking summary is hidden when the activity has ranking
+     * turned off, without ever touching ranking_service (no real cm needed).
      *
      * @return void
      */
-    public function test_build_grade_so_far_no_grade_item(): void {
-        $instance = $this->make_instance(['grade' => 0]);
+    public function test_build_ranking_summary_context_hidden_when_ranking_off(): void {
+        $instance = $this->make_instance(['show_ranking' => 0]);
+        $cm = (object)['id' => 5];
         $user = $this->getDataGenerator()->create_user();
 
-        $context = round_presenter::build_grade_so_far($instance, $user->id);
+        $context = round_presenter::build_ranking_summary_context($instance, $cm, $user->id);
 
-        $this->assertFalse($context['showgradesofar']);
+        $this->assertFalse($context['showranking']);
+        $this->assertSame([], $context['rankingrows']);
     }
 
     /**
-     * Tests that the grade-so-far summary surfaces the student's current computed
-     * grade once a round has finished, matching what playercross_update_grades() writes.
+     * Tests that the inline ranking summary surfaces the same rows ranking.php's own
+     * page would show, once a round has actually been completed.
      *
      * @return void
      */
-    public function test_build_grade_so_far_shows_current_grade(): void {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/playercross/lib.php');
-
-        $instance = $this->make_instance(['grade' => 100, 'grademethod' => PLAYERCROSS_GRADE_HIGHEST]);
+    public function test_build_ranking_summary_context_shows_rows_when_ranking_on(): void {
+        $instance = $this->make_instance(['show_ranking' => 1]);
+        $cm = get_coursemodule_from_instance('playercross', $instance->id, $this->course->id, false, MUST_EXIST);
         $user = $this->getDataGenerator()->create_user();
         $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
         $theme = $modgenerator->create_word($instance->id, 'escola');
-        $modgenerator->create_attempt($instance->id, $user->id, $theme->id, ['score' => 80]);
-        playercross_update_grades($instance, $user->id);
+        $modgenerator->create_attempt($instance->id, $user->id, $theme->id, ['rankingpoints' => 80]);
 
-        $context = round_presenter::build_grade_so_far($instance, $user->id);
+        $context = round_presenter::build_ranking_summary_context($instance, $cm, $user->id);
 
-        $this->assertTrue($context['showgradesofar']);
-        $this->assertStringContainsString('Highest grade', $context['gradesofarmessage']);
-        $this->assertStringContainsString('80', $context['gradesofarmessage']);
+        $this->assertTrue($context['showranking']);
+        $this->assertFalse($context['rankingempty']);
+        $this->assertCount(1, $context['rankingrows']);
+        $this->assertSame(format_float(80.0, 2), $context['rankingrows'][0]['totalscore']);
+    }
+
+    /**
+     * Tests that the ranking scoring mode name resolves both configured options.
+     *
+     * @return void
+     */
+    public function test_ranking_scoring_mode_name(): void {
+        $binary = $this->make_instance(['rankingscoringmode' => PLAYERCROSS_SCORING_BINARY]);
+        $linear = $this->make_instance(['rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR]);
+
+        $this->assertSame(
+            get_string('scoringmode_binary', 'mod_playercross'),
+            round_presenter::ranking_scoring_mode_name($binary)
+        );
+        $this->assertSame(
+            get_string('scoringmode_linear', 'mod_playercross'),
+            round_presenter::ranking_scoring_mode_name($linear)
+        );
     }
 
     /** @var int|null Memoized PlayerHUD block instance ID for $this->course. */
@@ -897,7 +919,8 @@ final class round_presenter_test extends \advanced_testcase {
         $this->assertSame('', $context['revealthemeword']);
         $this->assertSame(0, $context['cooldownuntil']);
         $this->assertSame('', $context['roundsplayedlabel']);
-        $this->assertFalse($context['showgradesofar']);
+        $this->assertFalse($context['showscoreachieved']);
+        $this->assertFalse($context['showranking']);
     }
 
     /**
@@ -923,6 +946,29 @@ final class round_presenter_test extends \advanced_testcase {
         $this->assertTrue($context['cooldownactive']);
         $this->assertSame("Rounds played: 1 / \u{221E}.", $context['roundsplayedlabel']);
         $this->assertNotSame('', $context['resulttermslabel']);
+        $this->assertTrue($context['showscoreachieved']);
+    }
+
+    /**
+     * Tests that the achieved-score line is hidden for an ungraded activity — the
+     * score is always computed against instance->grade as its ceiling, so an
+     * ungraded activity (grade == 0) would otherwise always show a misleading 0.00
+     * regardless of whether the round was won.
+     *
+     * @return void
+     */
+    public function test_build_round_result_context_hides_score_when_ungraded(): void {
+        $instance = $this->make_instance(['grade' => 0]);
+        $user = $this->getDataGenerator()->create_user();
+        $cm = (object)['id' => 5];
+        $state = $this->make_state(['finished' => true, 'won' => true]);
+        $modgenerator = $this->getDataGenerator()->get_plugin_generator('mod_playercross');
+        $theme = $modgenerator->create_word($instance->id, 'escola');
+        $modgenerator->create_attempt($instance->id, $user->id, $theme->id);
+
+        $context = round_presenter::build_round_result_context($instance, $cm, $state, $user->id, true);
+
+        $this->assertFalse($context['showscoreachieved']);
     }
 
     /**

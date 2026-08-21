@@ -341,6 +341,21 @@ class round_presenter {
     }
 
     /**
+     * Resolves the localized name of the instance's configured ranking scoring mode.
+     *
+     * @param \stdClass $instance Activity instance.
+     * @return string
+     */
+    public static function ranking_scoring_mode_name(\stdClass $instance): string {
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/playercross/lib.php');
+
+        $options = playercross_get_scoring_mode_options();
+        $mode = (int)($instance->rankingscoringmode ?? PLAYERCROSS_SCORING_BINARY);
+        return $options[$mode] ?? $options[PLAYERCROSS_SCORING_BINARY];
+    }
+
+    /**
      * Builds the "worth up to N points — scoring mode" summary shown in the lobby
      * before a round starts. Unlike build_grading_method_info(), this is not gated on
      * more than one round being possible: the point value and scoring mode are
@@ -364,48 +379,59 @@ class round_presenter {
     }
 
     /**
-     * Builds the "grade so far" summary shown after a round finishes, read straight
-     * from the gradebook item so it always matches what the teacher sees.
+     * Builds the inline ranking summary shown after a round finishes — the same
+     * top-N-plus-outsider shape ranking.php renders on its own dedicated page, reused
+     * here so the round-result screen does not need its own copy of that query or its
+     * pagination/anonymisation rules.
      *
      * @param \stdClass $instance Activity instance.
+     * @param \stdClass $cm Course module record.
      * @param int $userid Current user id.
      * @return array
      */
-    public static function build_grade_so_far(\stdClass $instance, int $userid): array {
-        $blank = ['showgradesofar' => false, 'gradesofarmessage' => ''];
+    public static function build_ranking_summary_context(\stdClass $instance, \stdClass $cm, int $userid): array {
+        $blank = self::blank_ranking_summary();
 
-        if (!self::grading_info_relevant($instance)) {
+        if (empty($instance->show_ranking)) {
             return $blank;
         }
 
-        global $CFG;
-        require_once($CFG->libdir . '/gradelib.php');
-
-        $gradeitem = \grade_item::fetch([
-            'itemtype'     => 'mod',
-            'itemmodule'   => 'playercross',
-            'iteminstance' => $instance->id,
-            'itemnumber'   => 0,
-            'courseid'     => $instance->course,
-        ]);
-        if (!$gradeitem) {
-            return $blank;
-        }
-
-        $grade = $gradeitem->get_grade($userid, false);
-        if ($grade === null || $grade->finalgrade === null) {
-            return $blank;
-        }
-
-        $a = (object)[
-            'method'   => self::grademethod_name($instance),
-            'mygrade'  => format_float((float)$grade->finalgrade, 2),
-            'maxgrade' => format_float((float)$instance->grade, 2),
-        ];
+        $ranking = ranking_service::get_ranking($instance, $cm, $userid);
 
         return [
-            'showgradesofar' => true,
-            'gradesofarmessage' => get_string('gradesofar', 'mod_playercross', $a),
+            'showranking'          => true,
+            'rankingtitle'         => get_string('ranking_title', 'mod_playercross'),
+            'rankingpositionlabel' => get_string('ranking_position', 'mod_playercross'),
+            'rankingplayerlabel'   => get_string('ranking_player', 'mod_playercross'),
+            'rankingpointslabel'   => get_string('ranking_points', 'mod_playercross'),
+            'rankingrows'          => $ranking['rows'],
+            'rankinghasoutsider'   => $ranking['hasoutsider'],
+            'rankingoutsiderrow'   => $ranking['outsiderrow'] ?? $blank['rankingoutsiderrow'],
+            'rankingempty'         => $ranking['isempty'],
+            'rankingemptylabel'    => get_string('ranking_empty', 'mod_playercross'),
+        ];
+    }
+
+    /**
+     * Structurally blank inline-ranking shape — matches every key
+     * build_ranking_summary_context() ever populates, for callers that need the
+     * ranking fields present (the external API schema requires every declared key)
+     * without actually having a finished round to rank yet.
+     *
+     * @return array
+     */
+    private static function blank_ranking_summary(): array {
+        return [
+            'showranking'          => false,
+            'rankingtitle'         => '',
+            'rankingpositionlabel' => '',
+            'rankingplayerlabel'   => '',
+            'rankingpointslabel'   => '',
+            'rankingrows'          => [],
+            'rankinghasoutsider'   => false,
+            'rankingoutsiderrow'   => ['position' => 0, 'fullname' => '', 'totalscore' => '', 'iscurrentuser' => false],
+            'rankingempty'         => true,
+            'rankingemptylabel'    => '',
         ];
     }
 
@@ -732,6 +758,7 @@ class round_presenter {
             'revealthemeword'     => '',
             'revealthemewordlabel' => get_string('revealthemewordlabel', 'mod_playercross'),
             'resulttermslabel'    => get_string('resulttermslabel', 'mod_playercross'),
+            'showscoreachieved'   => false,
             'scoreachieved'       => '',
             'scoreachievedlabel'  => get_string('scoreachievedlabel', 'mod_playercross'),
             'cooldownuntil'       => 0,
@@ -739,11 +766,9 @@ class round_presenter {
             'cooldowncountdownlabel' => get_string('cooldowncountdownlabel', 'mod_playercross'),
             'cooldownactive'      => false,
             'newroundlabel'       => get_string('newroundlabel', 'mod_playercross'),
-            'showgradesofar'      => false,
-            'gradesofarmessage'   => '',
             'roundsplayedlabel'   => '',
             'huditemrewardedlabel' => '',
-        ];
+        ] + self::blank_ranking_summary();
 
         if (!$roundfinished) {
             return $blank;
@@ -757,6 +782,7 @@ class round_presenter {
             'revealthemeword'      => s(core_text::strtoupper($state['themeclue'])),
             'revealthemewordlabel' => $blank['revealthemewordlabel'],
             'resulttermslabel'     => $blank['resulttermslabel'],
+            'showscoreachieved'    => (float)$instance->grade > 0,
             'scoreachieved'        => format_float((float)($state['score'] ?? 0.0), 2),
             'scoreachievedlabel'   => $blank['scoreachievedlabel'],
             'cooldownuntil'        => $cooldownuntil,
@@ -766,6 +792,6 @@ class round_presenter {
             'newroundlabel'        => $blank['newroundlabel'],
             'roundsplayedlabel'    => self::build_rounds_played_label($instance, $userid),
             'huditemrewardedlabel' => self::build_hud_reward_label($instance, $state),
-        ] + self::build_grade_so_far($instance, $userid);
+        ] + self::build_ranking_summary_context($instance, $cm, $userid);
     }
 }

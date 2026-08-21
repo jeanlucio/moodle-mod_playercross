@@ -140,6 +140,11 @@ final class end_round_test extends \advanced_testcase {
         $this->assertFalse($result['error']);
         $this->assertTrue($result['data']['finished']);
         $this->assertSame('ESCOLA', $result['data']['panel']['revealthemeword']);
+        // Regression guard: build_round_result_context()/build_ranking_summary_context()
+        // must keep returning exactly the keys panel_structure()'s roundresult_structure()
+        // declares, or the external API silently strips them on this dispatch path.
+        $this->assertArrayHasKey('showranking', $result['data']['panel']);
+        $this->assertArrayHasKey('showscoreachieved', $result['data']['panel']);
         $this->assertSame(1, $DB->count_records('playercross_attempts', ['playercrossid' => $instance->id]));
         $record = $DB->get_record('playercross_attempts', ['id' => $reservedid], '*', MUST_EXIST);
         $this->assertGreaterThan(0, (int)$record->timefinished);

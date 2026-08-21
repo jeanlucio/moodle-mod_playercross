@@ -150,6 +150,7 @@ class submit_term_guess extends external_api {
             'revealthemeword'        => new external_value(PARAM_TEXT, 'The mystery phrase, empty until finished'),
             'revealthemewordlabel'   => new external_value(PARAM_TEXT, 'Label for the revealed mystery phrase'),
             'resulttermslabel'       => new external_value(PARAM_TEXT, 'Heading label for the per-term recap list'),
+            'showscoreachieved'      => new external_value(PARAM_BOOL, 'Whether the achieved-score line is shown'),
             'scoreachieved'          => new external_value(PARAM_TEXT, 'Score achieved, formatted to 2 decimals'),
             'scoreachievedlabel'     => new external_value(PARAM_TEXT, 'Label for the achieved score'),
             'cooldownuntil'          => new external_value(PARAM_INT, 'Cooldown expiry epoch, 0 if inactive'),
@@ -157,11 +158,6 @@ class submit_term_guess extends external_api {
             'cooldowncountdownlabel' => new external_value(PARAM_TEXT, 'Label for the cooldown countdown'),
             'cooldownactive'         => new external_value(PARAM_BOOL, 'Whether a cooldown is currently active'),
             'newroundlabel'          => new external_value(PARAM_TEXT, 'Label for the new-round action'),
-            'showgradesofar'         => new external_value(PARAM_BOOL, 'Whether the grade-so-far summary is shown'),
-            'gradesofarmessage'      => new external_value(
-                PARAM_TEXT,
-                'Grading method and current computed grade, empty when not applicable'
-            ),
             'roundsplayedlabel' => new external_value(
                 PARAM_TEXT,
                 'Rounds played counter, e.g. "3 / 10", empty until finished'
@@ -170,6 +166,46 @@ class submit_term_guess extends external_api {
                 PARAM_TEXT,
                 'PlayerHUD item rewarded for winning, empty when not applicable'
             ),
+        ] + self::ranking_summary_structure()->keys);
+    }
+
+    /**
+     * Returns the inline ranking summary structure shown on the round-result screen,
+     * matching mod_playercross/round_result's ranking block — the same fields
+     * ranking.php's own page already declares, minus the tie-break caption that page
+     * alone shows.
+     *
+     * @return external_single_structure
+     */
+    public static function ranking_summary_structure(): external_single_structure {
+        $rowstructure = new external_single_structure([
+            'position'     => new external_value(PARAM_INT, 'Row position'),
+            'fullname'     => new external_value(PARAM_TEXT, 'Player full name'),
+            'totalscore'   => new external_value(PARAM_TEXT, 'Total ranking points'),
+            'iscurrentuser' => new external_value(PARAM_BOOL, 'Whether this row is the current user'),
+        ]);
+
+        return new external_single_structure([
+            'showranking'          => new external_value(PARAM_BOOL, 'Whether the inline ranking is shown'),
+            'rankingtitle'         => new external_value(PARAM_TEXT, 'Ranking heading', VALUE_DEFAULT, ''),
+            'rankingpositionlabel' => new external_value(PARAM_TEXT, 'Position column header', VALUE_DEFAULT, ''),
+            'rankingplayerlabel'   => new external_value(PARAM_TEXT, 'Player column header', VALUE_DEFAULT, ''),
+            'rankingpointslabel'   => new external_value(PARAM_TEXT, 'Points column header', VALUE_DEFAULT, ''),
+            'rankingrows'          => new external_multiple_structure($rowstructure, 'Top ranking rows', VALUE_DEFAULT, []),
+            'rankinghasoutsider' => new external_value(
+                PARAM_BOOL,
+                'Whether the current user sits outside the top rows',
+                VALUE_DEFAULT,
+                false
+            ),
+            'rankingoutsiderrow' => $rowstructure,
+            'rankingempty' => new external_value(
+                PARAM_BOOL,
+                'Whether no rounds have been completed yet',
+                VALUE_DEFAULT,
+                false
+            ),
+            'rankingemptylabel' => new external_value(PARAM_TEXT, 'Empty-ranking label', VALUE_DEFAULT, ''),
         ]);
     }
 

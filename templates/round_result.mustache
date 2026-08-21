@@ -44,25 +44,39 @@
                 "revealword": "CADERNO"
             }
         ],
+        "showscoreachieved": true,
         "scoreachievedlabel": "Score achieved:",
         "scoreachieved": "85.00",
         "cooldowntext": "23h 59m 45s",
         "cooldowncountdownlabel": "Next round in",
         "cooldownactive": false,
         "newroundlabel": "Start a new round",
-        "showgradesofar": true,
-        "gradesofarmessage": "Average grade: 6.50 / 10.00.",
         "roundsplayedlabel": "Rounds played: 3 / 10.",
-        "huditemrewardedlabel": "You received 1× Gold Key!"
+        "huditemrewardedlabel": "You received 1× Gold Key!",
+        "showranking": true,
+        "rankingtitle": "Ranking",
+        "rankingemptylabel": "No rounds completed yet.",
+        "rankingempty": false,
+        "rankingpositionlabel": "Position",
+        "rankingplayerlabel": "Player",
+        "rankingpointslabel": "Points",
+        "rankingrows": [
+            {"position": 1, "fullname": "Ana Silva", "totalscore": "300.00", "iscurrentuser": false},
+            {"position": 2, "fullname": "You", "totalscore": "200.00", "iscurrentuser": true}
+        ],
+        "rankinghasoutsider": false,
+        "rankingoutsiderrow": {"position": 0, "fullname": "", "totalscore": "", "iscurrentuser": false}
     }
 }}
 <div id="playercross-round-result" tabindex="-1">
     {{#feedbackmessage}}
         <p class="mod-playercross-feedback fw-bold mt-3 text-center">{{feedbackmessage}}</p>
     {{/feedbackmessage}}
-    <div class="mod-playercross-reveal alert alert-secondary mt-3 text-center">
-        <p class="mb-0">{{scoreachievedlabel}} {{scoreachieved}}</p>
-    </div>
+    {{#showscoreachieved}}
+        <div class="mod-playercross-reveal alert alert-secondary mt-3 text-center">
+            <p class="mb-0">{{scoreachievedlabel}} {{scoreachieved}}</p>
+        </div>
+    {{/showscoreachieved}}
     <p class="fw-bold text-center mt-3 mb-2">{{resulttermslabel}}</p>
     <ul class="mod-playercross-terms list-unstyled">
         {{#terms}}
@@ -72,9 +86,6 @@
             </li>
         {{/terms}}
     </ul>
-    {{#showgradesofar}}
-        <p class="mt-2 text-center">{{gradesofarmessage}}</p>
-    {{/showgradesofar}}
     {{#huditemrewardedlabel}}
         <p class="mt-2 text-center">{{huditemrewardedlabel}}</p>
     {{/huditemrewardedlabel}}
@@ -89,6 +100,44 @@
             </strong>
         </p>
     {{/cooldowntext}}
+    {{#showranking}}
+        <div class="mod-playercross-ranking-inline mt-3">
+            <h6 class="mb-2">{{rankingtitle}}</h6>
+            {{#rankingempty}}
+                <p class="text-muted small">{{rankingemptylabel}}</p>
+            {{/rankingempty}}
+            {{^rankingempty}}
+                <table class="table table-sm mod-playercross-ranking-table">
+                    <thead>
+                        <tr>
+                            <th scope="col"><i class="fa fa-trophy" role="img" aria-label="{{rankingpositionlabel}}"></i></th>
+                            <th scope="col">{{rankingplayerlabel}}</th>
+                            <th scope="col" class="text-end">{{rankingpointslabel}}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#rankingrows}}
+                            <tr class="{{#iscurrentuser}}pc-ranking-you{{/iscurrentuser}}">
+                                <td>{{position}}</td>
+                                <td>{{fullname}}</td>
+                                <td class="text-end">{{totalscore}}</td>
+                            </tr>
+                        {{/rankingrows}}
+                        {{#rankinghasoutsider}}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted pc-ranking-sep">&hellip;</td>
+                            </tr>
+                            <tr class="pc-ranking-you">
+                                <td>{{rankingoutsiderrow.position}}</td>
+                                <td>{{rankingoutsiderrow.fullname}}</td>
+                                <td class="text-end">{{rankingoutsiderrow.totalscore}}</td>
+                            </tr>
+                        {{/rankinghasoutsider}}
+                    </tbody>
+                </table>
+            {{/rankingempty}}
+        </div>
+    {{/showranking}}
     {{^cooldownactive}}
     <div class="text-center">
         <button type="button" id="playercross-new-round-button" class="btn btn-secondary mt-2">{{newroundlabel}}</button>

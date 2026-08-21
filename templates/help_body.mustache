@@ -59,8 +59,8 @@
         "gradingtext": "Grading method: Highest grade.",
         "showgradescoringmode": true,
         "gradescoringmodetext": "Grade scoring mode: Binary. In Binary mode, you get full credit for winning the round and zero for losing. In Linear mode, credit starts full and decreases with every wrong guess, on any term or the mystery phrase.",
-        "showscoringformula": true,
-        "scoringformulatext": "Ranking uses linear scoring: you earn full points with no wrong guesses, and points decrease with every wrong guess across every term and the mystery phrase — the grade itself stays in Binary mode (full credit on a win, zero on a loss).",
+        "showrankingscoringmode": true,
+        "rankingscoringmodetext": "Ranking scoring mode: Binary. In Binary mode, you earn full points for winning the round and zero for losing. In Linear mode, points start full and decrease with every wrong guess, on any term or the mystery phrase.",
         "reviewhint": "You can review these instructions anytime by clicking the help icon at the top of the game."
     }
 }}
@@ -102,8 +102,8 @@
     {{#showgradescoringmode}}
         <p>{{gradescoringmodetext}}</p>
     {{/showgradescoringmode}}
-    {{#showscoringformula}}
-        <p>{{scoringformulatext}}</p>
-    {{/showscoringformula}}
+    {{#showrankingscoringmode}}
+        <p>{{rankingscoringmodetext}}</p>
+    {{/showrankingscoringmode}}
     <p>{{reviewhint}}</p>
 </div>

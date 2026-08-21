@@ -607,8 +607,6 @@ final class view_page_service_test extends \advanced_testcase {
      * The help modal always explains the grade's own scoring mode when grading is
      * enabled, regardless of whether it is Binary or Linear — the student needs the
      * comparison to understand what the mode they were not given would have meant.
-     * When the grade itself is Linear, the ranking-only formula variant must stay
-     * hidden: it would restate the exact same rule a second time.
      *
      * @return void
      */
@@ -630,8 +628,6 @@ final class view_page_service_test extends \advanced_testcase {
             ),
             $ctx['gradescoringmodetext']
         );
-        $this->assertFalse($ctx['showscoringformula']);
-        $this->assertSame('', $ctx['scoringformulatext']);
     }
 
     /**
@@ -676,21 +672,18 @@ final class view_page_service_test extends \advanced_testcase {
     }
 
     /**
-     * The help modal also explains the Linear scoring formula when it is only active
-     * for the ranking (not the grade), as long as the ranking is actually shown — but
-     * with wording specific to that case, since the grade itself stays Binary and the
-     * grade-describing string would misstate how the student's own grade is computed.
+     * The help modal always explains the ranking's own scoring mode when ranking is
+     * shown — independent of grading being enabled at all, since ranking uses its own
+     * fixed-base formula (see gameplay_service::calculate_ranking_points()).
      *
-     * grade=0 (ungraded) here deliberately: showscoringformula used to be gated behind
-     * $showgrading, so an ungraded activity with a Linear ranking never saw this
-     * paragraph at all — exactly the scenario the ranking/grade decoupling fix covers.
+     * grade=0 (ungraded) here deliberately: the ranking explanation must not depend on
+     * grading being on.
      *
      * @return void
      */
-    public function test_build_page_data_shows_scoring_formula_when_ranking_is_linear(): void {
+    public function test_build_page_data_explains_ranking_scoring_mode_when_shown(): void {
         [$instance, $cm, $context] = $this->make_instance([
             'grade' => 0,
-            'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
             'rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR,
             'show_ranking' => 1,
         ]);
@@ -698,31 +691,55 @@ final class view_page_service_test extends \advanced_testcase {
         $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
         $ctx = $pagedata['templatecontext'];
 
-        $this->assertTrue($ctx['showscoringformula']);
+        $this->assertTrue($ctx['showrankingscoringmode']);
         $this->assertSame(
-            get_string('help_scoringformula_rankingonly', 'mod_playercross'),
-            $ctx['scoringformulatext']
+            get_string(
+                'help_rankingscoringmode',
+                'mod_playercross',
+                get_string('scoringmode_linear', 'mod_playercross')
+            ),
+            $ctx['rankingscoringmodetext']
         );
     }
 
     /**
-     * The help modal hides the scoring-formula explanation when both scoring modes
-     * are Binary.
+     * The help modal hides the ranking scoring-mode explanation when ranking itself
+     * is turned off.
      *
      * @return void
      */
-    public function test_build_page_data_hides_scoring_formula_when_both_binary(): void {
+    public function test_build_page_data_hides_ranking_scoring_mode_when_ranking_off(): void {
+        [$instance, $cm, $context] = $this->make_instance(['show_ranking' => 0]);
+
+        $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
+        $ctx = $pagedata['templatecontext'];
+
+        $this->assertFalse($ctx['showrankingscoringmode']);
+        $this->assertSame('', $ctx['rankingscoringmodetext']);
+    }
+
+    /**
+     * The grade and ranking scoring-mode explanations are independent settings, each
+     * with its own wording ("nota" vs "ranking") — both must show at once when both
+     * are enabled, even with the same underlying mode, since neither text restates
+     * the other's subject.
+     *
+     * @return void
+     */
+    public function test_build_page_data_shows_both_scoring_mode_explanations_together(): void {
         [$instance, $cm, $context] = $this->make_instance([
             'grade' => 100,
-            'gradescoringmode' => PLAYERCROSS_SCORING_BINARY,
-            'rankingscoringmode' => PLAYERCROSS_SCORING_BINARY,
+            'gradescoringmode' => PLAYERCROSS_SCORING_LINEAR,
+            'rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR,
+            'show_ranking' => 1,
         ]);
 
         $pagedata = view_page_service::build_page_data($cm, $instance, $context, $this->user->id);
         $ctx = $pagedata['templatecontext'];
 
-        $this->assertFalse($ctx['showscoringformula']);
-        $this->assertSame('', $ctx['scoringformulatext']);
+        $this->assertTrue($ctx['showgradescoringmode']);
+        $this->assertTrue($ctx['showrankingscoringmode']);
+        $this->assertNotSame($ctx['gradescoringmodetext'], $ctx['rankingscoringmodetext']);
     }
 
     /**

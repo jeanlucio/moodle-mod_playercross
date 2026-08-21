@@ -85,6 +85,23 @@
 }
 
 /*
+ * Shared by ranking.mustache's own page and round_result.mustache's inline summary —
+ * both render the same row shape, so one rule covers either place it appears.
+ */
+.path-mod-playercross .pc-ranking-you {
+    font-weight: 700;
+    background-color: var(--gray-100, #f8f9fa);
+}
+
+.path-mod-playercross .pc-ranking-you td:first-child {
+    box-shadow: inset 3px 0 0 var(--primary, #0f6cbf);
+}
+
+.path-mod-playercross .pc-ranking-sep {
+    padding-block: 0.125rem;
+}
+
+/*
  * Bootstrap 4's (Moodle 4.5) .form-check-input is position: absolute with a negative
  * margin-left, designed to sit under an adjacent .form-check-label's reserved
  * padding-left — a checkbox used alone, with only an aria-label and no visible label
