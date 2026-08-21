@@ -47,6 +47,22 @@ $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
 $PAGE->requires->css('/mod/playercross/styles.css');
 
+if (optional_param('bulkaction', '', PARAM_ALPHA) === 'delete') {
+    require_sesskey();
+    require_capability('mod/playercross:deleteattempts', $context);
+    require_once(__DIR__ . '/lib.php');
+
+    $attemptids = optional_param_array('attemptid', [], PARAM_INT);
+    $affecteduserids = attempts_history_service::delete_attempts($attemptids, $cm, $instance, $context, (int)$USER->id);
+    foreach ($affecteduserids as $affecteduserid) {
+        playercross_update_grades($instance, $affecteduserid);
+    }
+
+    redirect(new moodle_url('/mod/playercross/attemptsreport.php', [
+        'id' => $cm->id, 'sort' => $sort, 'dir' => $dir, 'studentid' => $filteruserid, 'page' => $page,
+    ]));
+}
+
 $history = attempts_history_service::get_all_history(
     $cm,
     $instance,
@@ -60,6 +76,8 @@ $history = attempts_history_service::get_all_history(
 );
 $players = attempts_history_service::get_players_for_filter($cm, $instance, $context, (int)$USER->id);
 $showranking = !empty($instance->show_ranking);
+$candelete = has_capability('mod/playercross:deleteattempts', $context);
+$showhudwarning = $candelete && ((int)($instance->hud_win_reward_item ?? 0) > 0);
 
 $columns = [
     ['key' => 'student', 'label' => get_string('myattempts_student', 'mod_playercross'), 'alignend' => false],
@@ -129,8 +147,24 @@ $templatecontext = [
     'filterurl'         => (new moodle_url('/mod/playercross/attemptsreport.php'))->out(false),
     'currentsort'       => $sort,
     'currentdir'        => $dir,
+    'currentpage'       => $page,
+    'filteruserid'      => $filteruserid,
     'pagingbar'         => $pagingbar,
+    'candelete'         => $candelete,
+    'sesskey'           => sesskey(),
+    'selectalllabel'    => get_string('attemptsreport_selectall', 'mod_playercross'),
+    'bulkdeletebutton'  => get_string('attemptsreport_bulkdeletebutton', 'mod_playercross'),
+    'bulkdeletetitle'   => get_string('attemptsreport_bulkdeletetitle', 'mod_playercross'),
+    'bulkdeleteconfirm' => get_string('attemptsreport_bulkdeleteconfirm', 'mod_playercross'),
+    'deleteattemptlabel' => get_string('attemptsreport_deleteattempt', 'mod_playercross'),
+    'deleteattemptconfirm' => get_string('attemptsreport_deleteattemptconfirm', 'mod_playercross'),
+    'showhudwarning'    => $showhudwarning,
+    'hudwarningtext'    => $showhudwarning ? get_string('attemptsreport_huditemsnotremoved', 'mod_playercross') : '',
 ];
+
+if ($candelete) {
+    $PAGE->requires->js_call_amd('mod_playercross/attemptsreport', 'init');
+}
 
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('mod_playercross/attempts_report', $templatecontext);

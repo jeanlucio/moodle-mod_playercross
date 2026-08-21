@@ -34,6 +34,15 @@ $capabilities = [
             'manager'        => CAP_ALLOW,
         ],
     ],
+    'mod/playercross:deleteattempts' => [
+        'riskbitmask'  => RISK_DATALOSS,
+        'captype'      => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes'   => [
+            'editingteacher' => CAP_ALLOW,
+            'manager'        => CAP_ALLOW,
+        ],
+    ],
     'mod/playercross:managewords' => [
         'riskbitmask'  => RISK_XSS,
         'captype'      => 'write',

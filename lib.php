@@ -258,7 +258,21 @@ function playercross_update_grades(stdClass $instance, int $userid = 0): void {
     $attempts = $DB->get_records_sql($sql, $params);
 
     if (empty($attempts)) {
-        playercross_grade_item_update($instance);
+        // A specific $userid with no attempts left (their last one was just deleted) must
+        // have their stale grade actually cleared — passing no $grades here would only
+        // touch the grade_item's own settings, leaving the old value stuck in the
+        // gradebook forever, which in turn keeps has_grades() true and mod_form's
+        // attempt-gated field locks permanently frozen. A global recompute ($userid == 0,
+        // e.g. after a grading-setting change) has no single user to clear, so it keeps
+        // the item-only update.
+        if ($userid > 0) {
+            $grade = new stdClass();
+            $grade->userid = $userid;
+            $grade->rawgrade = null;
+            playercross_grade_item_update($instance, [$userid => $grade]);
+        } else {
+            playercross_grade_item_update($instance);
+        }
         return;
     }
 
