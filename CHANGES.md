@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [v1.0.0] — 2026-08-16
+## [v1.0.0] — 2026-08-22
 
 ### Added
 - Initial stable release: a deduction crossword-style vocabulary activity for Moodle. Each
