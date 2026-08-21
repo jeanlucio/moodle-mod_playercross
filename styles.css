@@ -55,6 +55,21 @@
     user-select: none;
 }
 
+/*
+ * #playercross-round-result carries tabindex="-1" purely so game.js can move the
+ * accessibility focus there after an AJAX round finish, announcing the result to
+ * screen-reader users the same way a full page reload naturally would. It is never
+ * reachable by Tab — it exists solely as this one JS-driven focus target, not as an
+ * interactive control a sighted keyboard user navigates to — so the browser's default
+ * focus rectangle here has no navigational purpose for them, and visually reads as a
+ * layout glitch (looking like the panel's own content is misaligned) rather than as a
+ * helpful indicator. Suppressing it does not affect screen readers: .focus() still
+ * moves their reading position regardless of any visible outline.
+ */
+.path-mod-playercross #playercross-round-result:focus {
+    outline: none;
+}
+
 .path-mod-playercross .mod-playercross-game {
     width: fit-content;
     max-width: 100%;
