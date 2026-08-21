@@ -26,6 +26,7 @@
 require(__DIR__ . '/../../config.php');
 
 use mod_playercross\local\ranking_service;
+use mod_playercross\local\round_presenter;
 
 $id = required_param('id', PARAM_INT);
 $cm = get_coursemodule_from_id('playercross', $id, 0, false, MUST_EXIST);
@@ -62,6 +63,7 @@ $templatecontext = [
     'rankingempty'          => $ranking['isempty'],
     'rankingemptylabel'     => get_string('ranking_empty', 'mod_playercross'),
     'rankingtiebreaktext'   => get_string('ranking_tiebreak', 'mod_playercross'),
+    'rankingscoringexplanation' => round_presenter::ranking_scoring_explanation($instance),
 ];
 
 echo $OUTPUT->header();

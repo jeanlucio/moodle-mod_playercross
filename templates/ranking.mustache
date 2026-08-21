@@ -37,7 +37,8 @@
         "rankingoutsiderrow": null,
         "rankingempty": false,
         "rankingemptylabel": "No rounds completed yet.",
-        "rankingtiebreaktext": "Ties are broken by fewer attempts used on average, then less time spent on average."
+        "rankingtiebreaktext": "Ties are broken by fewer attempts used on average, then less time spent on average.",
+        "rankingscoringexplanation": "Ranking points always use a base of 100. In Binary mode, you earn all 100 points for winning the round, and zero for losing."
     }
 }}
 <div class="mod-playercross-ranking-page">
@@ -45,6 +46,7 @@
         <a href="{{activityurl}}" class="btn btn-secondary btn-sm">{{backlabel}}</a>
     </p>
     <h2>{{rankingtitle}}</h2>
+    <p>{{rankingscoringexplanation}}</p>
     <p>{{rankingtiebreaktext}}</p>
     {{#rankingempty}}
         <p class="text-muted">{{rankingemptylabel}}</p>

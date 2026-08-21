@@ -576,6 +576,34 @@ final class round_presenter_test extends \advanced_testcase {
         );
     }
 
+    /**
+     * Tests that the ranking scoring explanation embeds the matching Binary/Linear
+     * detail string for each configured mode.
+     *
+     * @return void
+     */
+    public function test_ranking_scoring_explanation(): void {
+        $binary = $this->make_instance(['rankingscoringmode' => PLAYERCROSS_SCORING_BINARY]);
+        $linear = $this->make_instance(['rankingscoringmode' => PLAYERCROSS_SCORING_LINEAR]);
+
+        $this->assertSame(
+            get_string(
+                'ranking_scoringexplanation',
+                'mod_playercross',
+                get_string('ranking_scoringexplanation_binary', 'mod_playercross')
+            ),
+            round_presenter::ranking_scoring_explanation($binary)
+        );
+        $this->assertSame(
+            get_string(
+                'ranking_scoringexplanation',
+                'mod_playercross',
+                get_string('ranking_scoringexplanation_linear', 'mod_playercross')
+            ),
+            round_presenter::ranking_scoring_explanation($linear)
+        );
+    }
+
     /** @var int|null Memoized PlayerHUD block instance ID for $this->course. */
     private ?int $hudblockinstanceid = null;
 

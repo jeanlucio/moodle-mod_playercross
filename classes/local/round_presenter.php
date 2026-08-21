@@ -356,6 +356,27 @@ class round_presenter {
     }
 
     /**
+     * Builds the "ranking points always use a base of 100, and here is how Binary/
+     * Linear affect that" explanation shown on the standalone ranking page — the
+     * ranking's own base is fixed and independent of the grade, so this is meaningful
+     * regardless of whether the activity is graded at all.
+     *
+     * @param \stdClass $instance Activity instance.
+     * @return string
+     */
+    public static function ranking_scoring_explanation(\stdClass $instance): string {
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/playercross/lib.php');
+
+        $mode = (int)($instance->rankingscoringmode ?? PLAYERCROSS_SCORING_BINARY);
+        $detailkey = $mode === PLAYERCROSS_SCORING_LINEAR
+            ? 'ranking_scoringexplanation_linear'
+            : 'ranking_scoringexplanation_binary';
+
+        return get_string('ranking_scoringexplanation', 'mod_playercross', get_string($detailkey, 'mod_playercross'));
+    }
+
+    /**
      * Builds the "worth up to N points — scoring mode" summary shown in the lobby
      * before a round starts. Unlike build_grading_method_info(), this is not gated on
      * more than one round being possible: the point value and scoring mode are
