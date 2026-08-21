@@ -124,6 +124,41 @@ final class submit_term_guess_test extends \advanced_testcase {
     }
 
     /**
+     * The key-set comparison above catches a field missing from panel_structure(), but
+     * only a real dispatch through the external API actually runs clean_returnvalue()
+     * against the declared types — a field present under both names but with a type
+     * mismatch (e.g. an array returned where a structure declares PARAM_TEXT) would
+     * pass the key-diff check yet still throw here.
+     *
+     * @return void
+     */
+    public function test_real_dispatch_validates_execute_returns_schema(): void {
+        [$instance, $cm] = $this->make_ready_instance();
+        $this->setUser($this->student);
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->student->id),
+            $instance,
+            $cm->cmid,
+            $this->student->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
+        round_service::save_state($cm->cmid, $this->student->id, $state);
+        $termid = (int)$state['terms'][0]['wordid'];
+
+        $_POST['sesskey'] = sesskey();
+        $result = \core_external\external_api::call_external_function(
+            'mod_playercross_submit_term_guess',
+            ['cmid' => $cm->cmid, 'termid' => $termid, 'guess' => $state['terms'][0]['word']]
+        );
+
+        $this->assertFalse($result['error']);
+        $this->assertTrue($result['data']['resolved']);
+        $this->assertArrayHasKey('showscoreachieved', $result['data']['panel']);
+        $this->assertArrayHasKey('showranking', $result['data']['panel']);
+    }
+
+    /**
      * Skips the current test when block_playerhud is not installed.
      *
      * @return void

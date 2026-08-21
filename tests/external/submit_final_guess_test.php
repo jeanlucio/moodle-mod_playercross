@@ -373,4 +373,40 @@ final class submit_final_guess_test extends \advanced_testcase {
         $this->assertFalse($result['finished']);
         $this->assertNotEmpty($result['notification']);
     }
+
+    /**
+     * Every other test in this file calls execute() directly, which never exercises
+     * execute_returns() — Moodle's external API only validates/cleans a response
+     * against that schema when dispatched through the real web service layer. This is
+     * the one test that goes through it, so a field genuinely missing from
+     * execute_returns() (as opposed to one merely absent from a hand-built context
+     * array) would surface here as a thrown exception, not a silently stripped key.
+     *
+     * @return void
+     */
+    public function test_real_dispatch_validates_execute_returns_schema(): void {
+        [$instance, $cm] = $this->make_ready_instance(['win_condition' => PLAYERCROSS_WINCONDITION_FINALONLY]);
+        $this->setUser($this->student);
+
+        $state = round_service::ensure_round_state(
+            round_service::load_state($cm->cmid, $this->student->id),
+            $instance,
+            $cm->cmid,
+            $this->student->id
+        );
+        [$state] = round_service::start_round($state, $instance, $this->student->id);
+        round_service::save_state($cm->cmid, $this->student->id, $state);
+
+        $_POST['sesskey'] = sesskey();
+        $result = \core_external\external_api::call_external_function(
+            'mod_playercross_submit_final_guess',
+            ['cmid' => $cm->cmid, 'guess' => implode(' ', $state['themewords'])]
+        );
+
+        $this->assertFalse($result['error']);
+        $this->assertTrue($result['data']['correct']);
+        $this->assertTrue($result['data']['finished']);
+        $this->assertArrayHasKey('showscoreachieved', $result['data']['panel']);
+        $this->assertArrayHasKey('showranking', $result['data']['panel']);
+    }
 }
