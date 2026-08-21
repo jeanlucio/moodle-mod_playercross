@@ -34,19 +34,24 @@
     }
 }}
 <div id="playercross-lobby-body" class="mod-playercross-lobby text-center my-3">
-    <p class="text-muted">{{termsthisround}}</p>
+    <p>{{termsthisround}}</p>
     {{#timerenabled}}
-        <p class="text-muted">{{lobbytimerinfo}}</p>
+        <p>{{lobbytimerinfo}}</p>
     {{/timerenabled}}
     {{#roundsplayedlabel}}
-        <p class="text-muted small">{{roundsplayedlabel}}</p>
+        <p class="small">{{roundsplayedlabel}}</p>
     {{/roundsplayedlabel}}
-    {{#hudstartcost}}
-        <p class="mb-2">{{hudstartcostlabel}}</p>
-    {{/hudstartcost}}
     {{#showgradingmethodinfo}}
-        <p class="text-muted small">{{gradingmethodinfo}}</p>
+        <p class="small">{{gradingmethodinfo}}</p>
     {{/showgradingmethodinfo}}
+    {{#hudstartcost}}
+        {{#canstart}}
+            <p class="pc-lobby-cost mb-2">{{hudstartcostlabel}}</p>
+        {{/canstart}}
+        {{^canstart}}
+            <p class="pc-lobby-cost pc-lobby-cost-warn mb-2">{{hudstartcostlabel}}</p>
+        {{/canstart}}
+    {{/hudstartcost}}
     <button type="button"
             id="playercross-start-round-button"
             class="btn btn-primary btn-lg"

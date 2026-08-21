@@ -65,6 +65,21 @@
 }
 
 /*
+ * The pre-round cost line is the one lobby text that can gate the start button, so it
+ * is styled apart from the surrounding text-muted metadata lines instead of inheriting
+ * their subdued weight. The warn variant only applies when the student cannot afford
+ * the round, keeping the colour tied to an actual blocking condition rather than being
+ * decorative.
+ */
+.path-mod-playercross .pc-lobby-cost {
+    font-weight: 600;
+}
+
+.path-mod-playercross .pc-lobby-cost-warn {
+    color: var(--bs-danger, #dc3545);
+}
+
+/*
  * Bootstrap 4's (Moodle 4.5) .form-check-input is position: absolute with a negative
  * margin-left, designed to sit under an adjacent .form-check-label's reserved
  * padding-left — a checkbox used alone, with only an aria-label and no visible label
