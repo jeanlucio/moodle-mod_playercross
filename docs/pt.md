@@ -10,7 +10,7 @@ lang: pt
 [![Latest Release](https://img.shields.io/github/v/release/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/releases)
 [![PlayerGames Ecosystem](https://img.shields.io/badge/PlayerGames-Ecosystem-6f42c1?style=flat&logo=gamepad&logoColor=white)](https://jeanlucio.github.io/playergames/)
 ![Game Activity](https://img.shields.io/badge/Role-Game_Activity-198754?style=flat)
-[![Author](https://img.shields.io/badge/by-Jean_Lucio-6f42c1?style=flat)](https://marketplace.moodle.com/user/984)
+[![Author](https://img.shields.io/badge/by-Jean_Lucio-6f42c1?style=flat)](https://github.com/jeanlucio/)
 
 [![Moodle Plugin CI](https://github.com/jeanlucio/moodle-mod_playercross/actions/workflows/ci.yml/badge.svg)](https://github.com/jeanlucio/moodle-mod_playercross/actions/workflows/ci.yml)
 [![Last Commit](https://img.shields.io/github/last-commit/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/commits)
@@ -21,9 +21,7 @@ sorteia uma **frase-mistério** e um conjunto de **termos** montado a partir de 
 relacionados do curso; resolver um termo revela as letras que ele compartilha com todo outro
 termo pendente e com a própria frase-mistério.
 
-Use a barra lateral para pular direto a qualquer seção desta página.
-
-Código-fonte: [github.com/jeanlucio/moodle-mod_playercross](https://github.com/jeanlucio/moodle-mod_playercross)
+<p class="page-hint">👈 Use a barra lateral para pular direto a qualquer seção desta página.</p>
 
 ---
 

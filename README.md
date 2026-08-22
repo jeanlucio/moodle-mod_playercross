@@ -6,7 +6,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/releases)
 [![PlayerGames Ecosystem](https://img.shields.io/badge/PlayerGames-Ecosystem-6f42c1?style=flat&logo=gamepad&logoColor=white)](https://jeanlucio.github.io/playergames/)
 ![Game Activity](https://img.shields.io/badge/Role-Game_Activity-198754?style=flat)
-[![Author](https://img.shields.io/badge/by-Jean_Lucio-6f42c1?style=flat)](https://marketplace.moodle.com/user/984)
+[![Author](https://img.shields.io/badge/by-Jean_Lucio-6f42c1?style=flat)](https://github.com/jeanlucio/)
 
 [![Moodle Plugin CI](https://github.com/jeanlucio/moodle-mod_playercross/actions/workflows/ci.yml/badge.svg)](https://github.com/jeanlucio/moodle-mod_playercross/actions/workflows/ci.yml)
 [![Last Commit](https://img.shields.io/github/last-commit/jeanlucio/moodle-mod_playercross?style=flat)](https://github.com/jeanlucio/moodle-mod_playercross/commits)
