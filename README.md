@@ -73,6 +73,7 @@ informational notice about it — there's nothing to configure there either way.
 
 Found a bug or have a question? Open an issue on the
 [issue tracker](https://github.com/jeanlucio/moodle-mod_playercross/issues).
+For general questions or ideas, use [GitHub Discussions](https://github.com/jeanlucio/moodle-mod_playercross/discussions).
 
 ### 📄 License
 
@@ -146,6 +147,7 @@ qualquer forma.
 
 Encontrou um bug ou tem alguma dúvida? Abra uma issue no
 [rastreador de issues](https://github.com/jeanlucio/moodle-mod_playercross/issues).
+Para perguntas gerais ou ideias, use as [Discussions do GitHub](https://github.com/jeanlucio/moodle-mod_playercross/discussions).
 
 ### 📄 Licença
 
