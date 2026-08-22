@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [v1.0.1] — 2026-08-22
+
+### Fixed
+- Restored `db/upgrade.php`, with no upgrade steps yet — the Moodle Plugins directory
+  submission validator requires this file to exist in the plugin archive even when there
+  is no migration to run.
+
+---
+
 ## [v1.0.0] — 2026-08-22
 
 ### Added

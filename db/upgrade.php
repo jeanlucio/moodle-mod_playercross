@@ -15,18 +15,24 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Version details.
+ * Database upgrade steps for mod_playercross.
  *
  * @package    mod_playercross
  * @copyright  2026 Jean Lúcio
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'mod_playercross';
-$plugin->version   = 2026082201;
-$plugin->requires  = 2024100700; // Moodle 4.5+.
-$plugin->supported = [405, 502];
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = 'v1.0.1';
+/**
+ * Upgrade the plugin from one version to the next.
+ *
+ * No upgrade steps yet: every schema change up to the current release is already
+ * reflected directly in install.xml, since the plugin has not shipped a version that
+ * needed a real migration. Add steps here, guarded by $oldversion, the next time a
+ * released version needs one.
+ *
+ * @param int $oldversion The old plugin version.
+ * @return bool True on success.
+ */
+function xmldb_playercross_upgrade(int $oldversion): bool {
+    return true;
+}
