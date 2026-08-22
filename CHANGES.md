@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [v1.0.2] — 2026-08-22
+
+### Fixed
+- Item spends to start a round or reveal a clue's hint were recorded in PlayerHUD's ledger
+  without attribution to PlayerCross, showing up in a student's history and reports as a
+  generic transaction instead of tied to the activity.
+- The PlayerHUD integration could throw a fatal error on a site running `block_playerhud` older
+  than v1.7.1, instead of falling back to no integration as intended. The plugin's own settings
+  page now also tells an outdated PlayerHUD apart from a missing one, pointing the admin at the
+  real fix (upgrade the block) instead of a misleading "not installed" message.
+
+---
+
 ## [v1.0.1] — 2026-08-22
 
 ### Fixed
