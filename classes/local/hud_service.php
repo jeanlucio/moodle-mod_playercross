@@ -154,7 +154,13 @@ class hud_service {
         if (!self::is_installed()) {
             return true;
         }
-        return \block_playerhud\local\external_items::consume($blockinstanceid, $itemid, $userid, $qty) !== false;
+        return \block_playerhud\local\external_items::consume(
+            $blockinstanceid,
+            $itemid,
+            $userid,
+            $qty,
+            'playercross'
+        ) !== false;
     }
 
     /**
