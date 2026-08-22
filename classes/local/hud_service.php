@@ -73,6 +73,21 @@ class hud_service {
     }
 
     /**
+     * Whether block_playerhud is installed on this site at a version older than the v1.7.1
+     * floor is_installed() requires — i.e. \block_playerhud\game exists but
+     * \block_playerhud\local\external_items does not.
+     *
+     * Lets settings.php tell an admin who already installed PlayerHUD that their version is
+     * too old, instead of the misleading "the plugin is not installed" message is_installed()
+     * alone would otherwise imply.
+     *
+     * @return bool
+     */
+    public static function is_outdated(): bool {
+        return class_exists('\block_playerhud\game') && !self::is_installed();
+    }
+
+    /**
      * Whether PlayerHUD integration should be offered for this course: the block
      * plugin must be installed, and a block_playerhud instance must actually exist
      * at course level in this specific course.

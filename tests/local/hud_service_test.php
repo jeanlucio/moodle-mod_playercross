@@ -163,6 +163,17 @@ final class hud_service_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that is_outdated reflects the definition it exists to check: PlayerHUD's
+     * always-present class exists but the item API class is_installed() checks does not.
+     *
+     * @return void
+     */
+    public function test_is_outdated_matches_definition(): void {
+        $expected = class_exists('\block_playerhud\game') && !hud_service::is_installed();
+        $this->assertSame($expected, hud_service::is_outdated());
+    }
+
+    /**
      * Tests that get_available_quantity, get_item_name, consume_items and grant_items all
      * return their documented neutral values instead of fataling when block_playerhud is
      * not installed. Ported from the same regression test in mod_playerwords, whose

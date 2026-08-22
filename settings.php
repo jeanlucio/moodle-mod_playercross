@@ -25,7 +25,13 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-    if (!\mod_playercross\local\hud_service::is_installed()) {
+    if (\mod_playercross\local\hud_service::is_outdated()) {
+        $settings->add(new admin_setting_heading(
+            'mod_playercross/hudoutdated',
+            get_string('hud_outdated_heading', 'mod_playercross'),
+            get_string('hud_outdated_desc', 'mod_playercross')
+        ));
+    } else if (!\mod_playercross\local\hud_service::is_installed()) {
         $settings->add(new admin_setting_heading(
             'mod_playercross/hudnotinstalled',
             get_string('hud_notinstalled_heading', 'mod_playercross'),
