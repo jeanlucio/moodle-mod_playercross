@@ -159,7 +159,7 @@ final class hud_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_is_installed_matches_class_presence(): void {
-        $this->assertSame(class_exists('\block_playerhud\game'), hud_service::is_installed());
+        $this->assertSame(class_exists('\block_playerhud\local\external_items'), hud_service::is_installed());
     }
 
     /**

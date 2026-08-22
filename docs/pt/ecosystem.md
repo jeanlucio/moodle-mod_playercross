@@ -2,7 +2,7 @@
 
 O PlayerCross faz parte do ecossistema de gamificação **PlayerGames** para Moodle. Sua principal integração direta é com o bloco PlayerHUD:
 
-* **Bloco PlayerHUD (Opcional):** Configure custos em itens para iniciar uma rodada ou revelar a dica de um termo, e uma concessão de item por rodada vencida.
+* **Bloco PlayerHUD (Opcional, v1.7.1+):** Configure custos em itens para iniciar uma rodada ou revelar a dica de um termo, e uma concessão de item por rodada vencida.
 
   👉 <https://github.com/jeanlucio/moodle-block_playerhud>
 

@@ -56,13 +56,20 @@ class hud_service {
     }
 
     /**
-     * Whether the block_playerhud plugin is installed on this site at all, regardless of
-     * whether any course has actually added a block instance yet.
+     * Whether the block_playerhud plugin is installed on this site at a version that
+     * exposes the item API this class actually calls (v1.7.1+), regardless of whether
+     * any course has actually added a block instance yet.
+     *
+     * \block_playerhud\local\external_items is checked rather than an older, always-present
+     * class such as \block_playerhud\game: that class exists in every PlayerHUD release, so
+     * checking it would report "installed" even against a pre-v1.7.1 site that has no
+     * external_items class at all, and every item method below would fatal with a missing
+     * class error instead of degrading gracefully.
      *
      * @return bool
      */
     public static function is_installed(): bool {
-        return class_exists('\block_playerhud\game');
+        return class_exists('\block_playerhud\local\external_items');
     }
 
     /**
