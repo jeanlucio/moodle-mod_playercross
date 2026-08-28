@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [v1.0.3] — 2026-08-28
+
+### Fixed
+- A pass grade set on the activity was accepted by the form but never actually applied to the
+  gradebook item, because core's grade update function silently drops that field. Grades below
+  the configured pass mark could show as passed everywhere the gradebook reports pass/fail
+  status.
+
+---
+
 ## [v1.0.2] — 2026-08-22
 
 ### Fixed
