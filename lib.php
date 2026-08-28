@@ -134,16 +134,13 @@ function playercross_grade_item_update(stdClass $instance, mixed $grades = null)
         $params['gradetype'] = GRADE_TYPE_NONE;
     }
 
-    if (!empty($instance->gradepass)) {
-        $params['gradepass'] = (float)$instance->gradepass;
-    }
-
-    if ($grades === 'reset') {
+    $isreset = $grades === 'reset';
+    if ($isreset) {
         $params['reset'] = true;
         $grades = null;
     }
 
-    return grade_update(
+    $result = grade_update(
         'mod/playercross',
         $instance->course,
         'mod',
@@ -153,6 +150,27 @@ function playercross_grade_item_update(stdClass $instance, mixed $grades = null)
         $grades,
         $params
     );
+
+    // The core grade_update() function silently ignores a 'gradepass' key in
+    // $itemdetails: its own internal allow-list (lib/gradelib.php) only lets
+    // itemname/idnumber/gradetype/grademax/grademin/scaleid/multfactor/plusfactor/
+    // deleted/hidden through. The pass grade has to be applied directly on the
+    // grade_item instead, mirroring how mod_workshop does it.
+    if ($result === GRADE_UPDATE_OK && !$isreset && !empty($instance->gradepass)) {
+        $gradeitem = grade_item::fetch([
+            'itemtype' => 'mod',
+            'itemmodule' => 'playercross',
+            'iteminstance' => $instance->id,
+            'itemnumber' => 0,
+            'courseid' => $instance->course,
+        ]);
+        if ($gradeitem && (float)$gradeitem->gradepass !== (float)$instance->gradepass) {
+            $gradeitem->gradepass = (float)$instance->gradepass;
+            $gradeitem->update();
+        }
+    }
+
+    return $result;
 }
 
 /**
