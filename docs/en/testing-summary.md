@@ -18,7 +18,8 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `privacy/provider_test.php` | 21 |
 | `lib_update_grades_test.php` | 2 |
 | `mod_form_test.php` | 4 |
-| **Subtotal** | **57** |
+| `lib_grade_item_update_test.php` | 2 |
+| **Subtotal** | **59** |
 
 ### Local Business-Logic Tests (`tests/local/`)
 
@@ -27,7 +28,7 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `ai_word_generator_test.php` | 19 |
 | `attempts_history_service_test.php` | 21 |
 | `gameplay_service_test.php` | 16 |
-| `hud_service_test.php` | 27 |
+| `hud_service_test.php` | 28 |
 | `intro_service_test.php` | 5 |
 | `puzzle_builder_test.php` | 9 |
 | `ranking_service_test.php` | 9 |
@@ -36,7 +37,7 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `view_page_service_test.php` | 40 |
 | `word_normalizer_test.php` | 38 |
 | `words_repository_test.php` | 67 |
-| **Subtotal** | **378** |
+| **Subtotal** | **379** |
 
 ### Web Services Tests (`tests/external/`)
 
@@ -53,7 +54,7 @@ matrix (Moodle 4.5 → 5.x, PostgreSQL & MariaDB).
 | `submit_final_guess_test.php` | 7 |
 | **Subtotal** | **56** |
 
-| **Grand Total** | **491** |
+| **Grand Total** | **494** |
 
 ```bash
 vendor/bin/phpunit --testsuite mod_playercross
