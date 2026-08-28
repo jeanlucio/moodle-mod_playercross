@@ -78,7 +78,7 @@ vendor/bin/phpunit --testsuite mod_playercross
 | `local\ai_word_generator` | 37% |
 | `local\attempts_history_service` | 98% |
 | `local\gameplay_service` | 100% |
-| `local\hud_service` | 89% |
+| `local\hud_service` | 91% |
 | `local\intro_service` | 100% |
 | `local\puzzle_builder` | 98% |
 | `local\ranking_service` | 98% |
@@ -88,7 +88,7 @@ vendor/bin/phpunit --testsuite mod_playercross
 | `local\word_normalizer` | 100% |
 | `local\words_repository` | 99% |
 | `privacy\provider` | 95% |
-| **Overall** | **90%** |
+| **Overall** | **91%** |
 
 Most `event/*.php` classes aren't listed at all — Moodle only loads them lazily when the
 corresponding event actually fires, so the instrumentation never sees them. `attempt_deleted`
