@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [v1.0.4] — 2026-08-31
+
+### Fixed
+- Uninstalling the activity left every `mod_playercross_*` entry behind in the site's user
+  preferences table (including the site-wide "seen intro" flag) instead of removing them,
+  because the pre-uninstall cleanup hook was defined under a function name core never calls.
+
+---
+
 ## [v1.0.3] — 2026-08-28
 
 ### Fixed
