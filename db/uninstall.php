@@ -34,7 +34,7 @@
  *
  * @return bool
  */
-function xmldb_mod_playercross_uninstall(): bool {
+function xmldb_playercross_uninstall(): bool {
     global $DB;
 
     $DB->delete_records_select(
