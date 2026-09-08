@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [v1.0.5] — 2026-09-08
+
+### Fixed
+- A page load requested the activity's own stylesheet manually, on top of the copy Moodle
+  already loads automatically for every plugin — a harmless but unnecessary duplicate request,
+  flagged by a Moodle Plugin Directory review.
+- Round state (the mystery phrase, clues, revealed letters, timer) moved from the raw session
+  object to Moodle's Cache API in session mode, the platform's recommended approach for this
+  kind of per-student data — no change in behaviour for players.
+
+---
+
 ## [v1.0.4] — 2026-08-31
 
 ### Fixed
