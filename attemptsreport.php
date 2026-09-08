@@ -45,7 +45,6 @@ $PAGE->set_url('/mod/playercross/attemptsreport.php', ['id' => $cm->id]);
 $PAGE->set_title(get_string('attemptsreport_title', 'mod_playercross') . ' — ' . format_string($instance->name));
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
-$PAGE->requires->css('/mod/playercross/styles.css');
 
 if (optional_param('bulkaction', '', PARAM_ALPHA) === 'delete') {
     require_sesskey();

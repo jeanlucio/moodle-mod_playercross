@@ -24,6 +24,8 @@
 
 namespace mod_playercross\local;
 
+use cache;
+use cache_store;
 use completion_info;
 
 /**
@@ -48,6 +50,17 @@ class round_service {
     private const TIMEOUT_TOLERANCE_SECONDS = 5;
 
     /**
+     * Returns the session-scoped cache backing every round state. Ad-hoc (no
+     * db/caches.php definition needed) via MODE_SESSION, so state stays exactly as
+     * ephemeral and per-user-session as the $SESSION storage it replaces.
+     *
+     * @return cache
+     */
+    private static function get_cache(): cache {
+        return cache::make_from_params(cache_store::MODE_SESSION, 'mod_playercross', 'roundstate');
+    }
+
+    /**
      * Gets session state, creating defaults when missing. Also discards state left
      * over from an older, structurally incompatible version of puzzle_builder, or a
      * finished round whose attempt row a teacher has since deleted from the attempts
@@ -59,17 +72,16 @@ class round_service {
      * @return array
      */
     public static function load_state(int $cmid, int $userid): array {
-        global $SESSION;
-
+        $cache = self::get_cache();
         $sessionkey = gameplay_service::build_session_key($cmid, $userid);
-        if (!isset($SESSION->mod_playercross)) {
-            $SESSION->mod_playercross = [];
-        }
-        if (!isset($SESSION->mod_playercross[$sessionkey]) || !self::state_is_valid($SESSION->mod_playercross[$sessionkey])) {
-            $SESSION->mod_playercross[$sessionkey] = self::default_state();
+        $state = $cache->get($sessionkey);
+
+        if ($state === false || !self::state_is_valid($state)) {
+            $state = self::default_state();
+            $cache->set($sessionkey, $state);
         }
 
-        return $SESSION->mod_playercross[$sessionkey];
+        return $state;
     }
 
     /**
@@ -170,10 +182,8 @@ class round_service {
      * @return void
      */
     public static function save_state(int $cmid, int $userid, array $state): void {
-        global $SESSION;
-
         $sessionkey = gameplay_service::build_session_key($cmid, $userid);
-        $SESSION->mod_playercross[$sessionkey] = $state;
+        self::get_cache()->set($sessionkey, $state);
     }
 
     /**

@@ -45,7 +45,6 @@ $PAGE->set_url('/mod/playercross/ranking.php', ['id' => $cm->id]);
 $PAGE->set_title(get_string('ranking_title', 'mod_playercross') . ' — ' . format_string($instance->name));
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
-$PAGE->requires->css('/mod/playercross/styles.css');
 
 $ranking = ranking_service::get_ranking($instance, $cm, (int)$USER->id);
 

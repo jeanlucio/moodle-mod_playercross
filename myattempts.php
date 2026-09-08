@@ -39,7 +39,6 @@ $PAGE->set_url('/mod/playercross/myattempts.php', ['id' => $cm->id]);
 $PAGE->set_title(get_string('myattempts_title', 'mod_playercross') . ' — ' . format_string($instance->name));
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
-$PAGE->requires->css('/mod/playercross/styles.css');
 
 // Always the logged-in user's own data — never a userid read from the request.
 $history = attempts_history_service::get_history($instance, (int)$USER->id);

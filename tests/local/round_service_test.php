@@ -25,6 +25,8 @@
 
 namespace mod_playercross\local;
 
+use cache;
+use cache_store;
 use mod_playercross\event\round_completed;
 use mod_playercross\event\round_started;
 
@@ -96,12 +98,12 @@ final class round_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_load_state_discards_structurally_stale_state(): void {
-        global $SESSION;
-
         $cmid = 42;
         $sessionkey = gameplay_service::build_session_key($cmid, $this->user->id);
-        $SESSION->mod_playercross = [
-            $sessionkey => [
+        $cache = cache::make_from_params(cache_store::MODE_SESSION, 'mod_playercross', 'roundstate');
+        $cache->set(
+            $sessionkey,
+            [
                 'themewordid'      => 1,
                 'themeword'        => 'escola',
                 'themeslots'       => [1, 2, 3, 4, 5, 6],
@@ -132,8 +134,8 @@ final class round_service_test extends \advanced_testcase {
                 'forfeited'        => false,
                 'timedout'         => false,
                 'finalguessed'     => false,
-            ],
-        ];
+            ]
+        );
 
         $state = round_service::load_state($cmid, $this->user->id);
 
@@ -151,12 +153,12 @@ final class round_service_test extends \advanced_testcase {
      * @return void
      */
     public function test_load_state_discards_state_missing_reveal_spelling_fields(): void {
-        global $SESSION;
-
         $cmid = 43;
         $sessionkey = gameplay_service::build_session_key($cmid, $this->user->id);
-        $SESSION->mod_playercross = [
-            $sessionkey => [
+        $cache = cache::make_from_params(cache_store::MODE_SESSION, 'mod_playercross', 'roundstate');
+        $cache->set(
+            $sessionkey,
+            [
                 'themewordid'      => 1,
                 'themeconcept'     => 'Escola',
                 'themewords'       => ['escola'],
@@ -188,8 +190,8 @@ final class round_service_test extends \advanced_testcase {
                 'forfeited'        => false,
                 'timedout'         => false,
                 'finalguessed'     => false,
-            ],
-        ];
+            ]
+        );
 
         $state = round_service::load_state($cmid, $this->user->id);
 

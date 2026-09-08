@@ -51,7 +51,6 @@ $PAGE->set_url('/mod/playercross/view.php', ['id' => $cm->id]);
 $PAGE->set_title($instance->name);
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
-$PAGE->requires->css('/mod/playercross/styles.css');
 
 $pagedata = view_page_service::build_page_data($cm, $instance, $context, (int)$USER->id);
 
