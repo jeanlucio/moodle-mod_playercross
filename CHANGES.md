@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [v1.0.6] — 2026-09-25
+
+### Confirmed
+- Tested and confirmed compatible with Moodle 5.3.
+
 ## [v1.0.5] — 2026-09-08
 
 ### Fixed
