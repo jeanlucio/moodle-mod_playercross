@@ -247,6 +247,47 @@ function playercross_calculate_user_grade(stdClass $instance, array $attempts): 
 }
 
 /**
+ * Returns when the student submitted the work behind their current grade.
+ *
+ * This is the finish time of the round that produces the grade under the instance's
+ * grading method. Average methods depend on every round, so they use the latest finish
+ * (the same rule mod_quiz applies to averaged attempts). A tie for the highest score
+ * resolves to the earliest round, so a later round with the same score never moves
+ * the submission date.
+ *
+ * @param stdClass $instance Activity instance.
+ * @param array $attempts Attempt records for this user, ordered by timecreated ASC.
+ * @return int|null Unix timestamp, or null when there are no attempts.
+ */
+function playercross_get_grade_datesubmitted(stdClass $instance, array $attempts): ?int {
+    if (empty($attempts)) {
+        return null;
+    }
+
+    $attempts = array_values($attempts);
+    $grademethod = (int)($instance->grademethod ?? PLAYERCROSS_GRADE_HIGHEST);
+
+    switch ($grademethod) {
+        case PLAYERCROSS_GRADE_FIRST:
+            return (int)$attempts[0]->timefinished;
+        case PLAYERCROSS_GRADE_LAST:
+            return (int)$attempts[count($attempts) - 1]->timefinished;
+        case PLAYERCROSS_GRADE_AVERAGE:
+        case PLAYERCROSS_GRADE_AVERAGE_ALL:
+            return max(array_map(fn($a) => (int)$a->timefinished, $attempts));
+        case PLAYERCROSS_GRADE_HIGHEST:
+        default:
+            $source = $attempts[0];
+            foreach ($attempts as $attempt) {
+                if ((float)$attempt->score > (float)$source->score) {
+                    $source = $attempt;
+                }
+            }
+            return (int)$source->timefinished;
+    }
+}
+
+/**
  * Updates gradebook grades for one or all users of a playercross instance.
  *
  * @param stdClass $instance Activity instance.
@@ -261,7 +302,7 @@ function playercross_update_grades(stdClass $instance, int $userid = 0): void {
     // right now, or abandoned without ever finishing) — neither has a real outcome yet,
     // so counting either would incorrectly drag a "highest" or "average" grade toward a
     // 0 the student never actually earned.
-    $sql = "SELECT a.id, a.userid, a.score, a.timecreated
+    $sql = "SELECT a.id, a.userid, a.score, a.timecreated, a.timefinished
               FROM {playercross_attempts} a
              WHERE a.playercrossid = :instanceid
                    AND a.timefinished > 0";
@@ -272,7 +313,9 @@ function playercross_update_grades(stdClass $instance, int $userid = 0): void {
         $params['userid'] = $userid;
     }
 
-    $sql .= ' ORDER BY a.timecreated ASC';
+    // The id tiebreak keeps "first", "last" and the highest-score tie stable when two
+    // rounds start within the same second.
+    $sql .= ' ORDER BY a.timecreated ASC, a.id ASC';
     $attempts = $DB->get_records_sql($sql, $params);
 
     if (empty($attempts)) {
@@ -304,6 +347,7 @@ function playercross_update_grades(stdClass $instance, int $userid = 0): void {
         $grade = new stdClass();
         $grade->userid = $uid;
         $grade->rawgrade = playercross_calculate_user_grade($instance, $userattemptlist);
+        $grade->datesubmitted = playercross_get_grade_datesubmitted($instance, $userattemptlist);
         $grades[$uid] = $grade;
     }
 
@@ -375,9 +419,23 @@ function playercross_update_instance(stdClass $data): bool {
     playercross_normalise_instance_data($data);
     $data->id = $data->instance;
     $data->timemodified = time();
+    $old = $DB->get_record('playercross', ['id' => $data->id], 'grademethod, max_rounds', MUST_EXIST);
+    $data->grademethod = $data->grademethod ?? $old->grademethod;
+    $data->max_rounds = $data->max_rounds ?? $old->max_rounds;
     $result = $DB->update_record('playercross', $data);
 
-    playercross_grade_item_update($data);
+    // Grades already in the gradebook were computed with the old method (and, for the
+    // average over required rounds, the old max_rounds denominator). Recompute them now,
+    // as quiz_update_instance() does, instead of leaving them stale until each student
+    // plays another round. mod_form freezes grademethod once grades exist, but max_rounds
+    // stays editable.
+    $grademethodchanged = (int)$data->grademethod !== (int)$old->grademethod;
+    $maxroundschanged = (int)$data->max_rounds !== (int)$old->max_rounds;
+    if ($grademethodchanged || $maxroundschanged) {
+        playercross_update_grades($data);
+    } else {
+        playercross_grade_item_update($data);
+    }
     \mod_playercross\local\words_repository::sync_glossary_words($data);
 
     return $result;
