@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [v1.0.7] — 2026-10-02
+
+### Fixed
+- Changing the "Maximum rounds per student" while "Average over all required rounds" is the
+  grading method now recalculates every student's grade right away. Previously the grades
+  already in the gradebook kept the old number of rounds as their divisor until each student
+  played another round.
+- Grades sent to the gradebook now carry their submission date: the time the student finished
+  the round that produced the grade (for the average methods, the latest round). Moodle's
+  reports, and plugins that read the gradebook such as late-penalty tools, no longer mistake a
+  later recalculation for a new submission.
+
 ## [v1.0.6] — 2026-09-25
 
 ### Confirmed
