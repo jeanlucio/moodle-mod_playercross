@@ -472,7 +472,7 @@ class round_presenter {
             return '';
         }
 
-        $itemname = hud_service::get_item_name(hud_service::resolve_block_instance_id($instance), $rewarditem);
+        $itemname = hud_service::get_item_name_plain(hud_service::resolve_block_instance_id($instance), $rewarditem);
         if ($itemname === '') {
             return '';
         }
@@ -500,7 +500,7 @@ class round_presenter {
             return $blank;
         }
 
-        $itemname = hud_service::get_item_name($blockinstanceid, $itemid);
+        $itemname = hud_service::get_item_name_plain($blockinstanceid, $itemid);
         if ($itemname === '') {
             return $blank;
         }

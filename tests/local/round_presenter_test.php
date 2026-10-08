@@ -678,6 +678,35 @@ final class round_presenter_test extends \advanced_testcase {
     }
 
     /**
+     * The lobby cost text and the win reward text carry the item name as typed: their templates
+     * escape it, so an HTML-escaped name would show "&amp;" on screen.
+     *
+     * @return void
+     */
+    public function test_hud_labels_carry_the_item_name_as_plain_text(): void {
+        $itemid = $this->make_hud_item('Cafe & "Co"');
+        $instance = $this->make_instance([
+            'hud_round_cost_item' => $itemid, 'hud_round_cost_qty' => 1,
+            'hud_win_reward_item' => $itemid, 'hud_win_reward_qty' => 1,
+        ]);
+        $user = $this->getDataGenerator()->create_user();
+
+        $lobby = round_presenter::build_lobby_context($instance, $this->make_state(), (int) $user->id);
+        $result = round_presenter::build_round_result_context(
+            $instance,
+            (object) ['id' => 5],
+            $this->make_state(['finished' => true, 'won' => true]),
+            (int) $user->id,
+            true
+        );
+
+        $this->assertStringContainsString('Cafe & "Co"', $lobby['hudstartcostlabel']);
+        $this->assertStringNotContainsString('&amp;', $lobby['hudstartcostlabel']);
+        $this->assertStringContainsString('Cafe & "Co"', $result['huditemrewardedlabel']);
+        $this->assertStringNotContainsString('&amp;', $result['huditemrewardedlabel']);
+    }
+
+    /**
      * The guest account plays a free demo: round_service::start_round() never actually
      * charges it, so the lobby must not show a cost it won't apply, nor block starting
      * on a PlayerHUD balance the guest doesn't have (it has none at all).

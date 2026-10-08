@@ -159,6 +159,30 @@ class hud_service {
     }
 
     /**
+     * Returns the display name of an item as plain text, or empty string if it does not belong to
+     * $blockinstanceid.
+     *
+     * Use it for a template variable, attribute or get_string() parameter that is escaped later;
+     * {@see self::get_item_name()} returns HTML and would be escaped twice there.
+     *
+     * @param int $blockinstanceid Block instance ID the item must belong to.
+     * @param int $itemid Item ID.
+     * @return string
+     */
+    public static function get_item_name_plain(int $blockinstanceid, int $itemid): string {
+        if (!self::is_installed()) {
+            return '';
+        }
+        if (method_exists(\block_playerhud\local\external_items::class, 'get_name_plain')) {
+            return \block_playerhud\local\external_items::get_name_plain($blockinstanceid, $itemid);
+        }
+
+        // Older block_playerhud without get_name_plain(): same result from the HTML name.
+        $name = \block_playerhud\local\external_items::get_name($blockinstanceid, $itemid);
+        return html_entity_decode(strip_tags($name), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
      * Atomically consumes $qty items of $itemid from $userid's inventory, FIFO (oldest first).
      *
      * Returns true both on a genuine successful consumption and when the item does not belong
