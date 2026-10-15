@@ -25,14 +25,37 @@
 /**
  * Upgrade the plugin from one version to the next.
  *
- * No upgrade steps yet: every schema change up to the current release is already
- * reflected directly in install.xml, since the plugin has not shipped a version that
- * needed a real migration. Add steps here, guarded by $oldversion, the next time a
- * released version needs one.
- *
  * @param int $oldversion The old plugin version.
  * @return bool True on success.
  */
 function xmldb_playercross_upgrade(int $oldversion): bool {
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    if ($oldversion < 2026101501) {
+        // Each of these columns had a second index identical to the one Moodle creates for its
+        // foreign key. drop_index() removes every index on the field, the key's own included, so
+        // the key is added back afterwards; add_key() only creates its index when the column has
+        // none, which also leaves a column with a single index as it was.
+        $redundant = [
+            'playercross' => ['fk_course', 'course', 'course'],
+            'playercross_words' => ['fk_playercross', 'playercrossid', 'playercross'],
+        ];
+        foreach ($redundant as $tablename => [$keyname, $field, $reftable]) {
+            $table = new xmldb_table($tablename);
+            $sameindexes = array_filter(
+                $DB->get_indexes($tablename),
+                fn(array $index): bool => !$index['unique'] && $index['columns'] === [$field]
+            );
+            if (count($sameindexes) > 1) {
+                $dbman->drop_index($table, new xmldb_index($keyname, XMLDB_INDEX_NOTUNIQUE, [$field]));
+            }
+            $dbman->add_key($table, new xmldb_key($keyname, XMLDB_KEY_FOREIGN, [$field], $reftable, ['id']));
+        }
+
+        upgrade_mod_savepoint(true, 2026101501, 'playercross');
+    }
+
     return true;
 }
