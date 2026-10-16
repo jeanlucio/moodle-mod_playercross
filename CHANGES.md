@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [v1.0.8] — 2026-10-15
+
+### Fixed
+- The name of a PlayerHUD item no longer shows entities such as `&amp;` in the lobby cost
+  and in the "you received" text: an item called "Tom & Jerry" is now shown as typed.
+- The course and word-list columns each had a second index identical to the one Moodle already
+  creates for the foreign key, so the database held two identical indexes on each. The upgrade
+  removes the duplicate and leaves exactly one index on each column.
+
 ## [v1.0.7] — 2026-10-02
 
 ### Fixed
