@@ -197,4 +197,37 @@ final class mod_form_test extends \advanced_testcase {
         $this->assertFalse($mform->isElementFrozen('gradescoringmode'));
         $this->assertTrue($mform->isElementFrozen('rankingscoringmode'));
     }
+
+    /**
+     * The completion rule elements carry the form's suffix.
+     *
+     * The core shows the form on the "Default activity completion" page with a suffix and removes any
+     * custom rule whose name lacks it, which would erase the rule from the defaults of every new activity.
+     *
+     * @return void
+     */
+    public function test_completion_rule_elements_carry_the_form_suffix(): void {
+        global $CFG, $PAGE;
+        require_once($CFG->dirroot . '/mod/playercross/mod_form.php');
+
+        $instance = $this->getDataGenerator()->create_module('playercross', ['course' => $this->course->id]);
+        $cm = get_coursemodule_from_instance('playercross', $instance->id);
+        $PAGE->set_course($this->course);
+        $form = new \mod_playercross_mod_form((object) [
+            'instance' => $instance->id, 'id' => $cm->id, 'course' => $this->course->id,
+        ], 0, $cm, $this->course);
+        $quickform = (new \ReflectionProperty(\mod_playercross_mod_form::class, '_form'))->getValue($form);
+
+        $form->set_suffix('_playercross');
+        $names = $form->add_completion_rules();
+
+        $this->assertSame(['completionroundsgroup_playercross'], $names);
+        $this->assertTrue($quickform->elementExists('completionroundsgroup_playercross'));
+        $this->assertFalse($quickform->elementExists('completionroundsgroup'));
+        $this->assertTrue($form->completion_rule_enabled([
+            'completionroundsenabled_playercross' => 1,
+            'completionrounds_playercross' => 2,
+        ]));
+        $this->assertFalse($form->completion_rule_enabled(['completionroundsenabled' => 1, 'completionrounds' => 2]));
+    }
 }

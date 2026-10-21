@@ -658,11 +658,12 @@ class mod_playercross_mod_form extends moodleform_mod {
             $errors['cooldowngroup'] = get_string('error_cooldown', 'mod_playercross');
         }
 
+        $suffix = $this->get_suffix();
         if (
-            !empty($data['completionroundsenabled']) &&
-            ((int)$data['completionrounds'] < 1)
+            !empty($data['completionroundsenabled' . $suffix]) &&
+            ((int)$data['completionrounds' . $suffix] < 1)
         ) {
-            $errors['completionroundsgroup'] = get_string('error_completionrounds', 'mod_playercross');
+            $errors['completionroundsgroup' . $suffix] = get_string('error_completionrounds', 'mod_playercross');
         }
 
         // Irrelevant, and must not block saving, once grading is off: grademethod has no
@@ -683,27 +684,32 @@ class mod_playercross_mod_form extends moodleform_mod {
     /**
      * Adds custom completion rules to Moodle completion section.
      *
+     * The element names carry the form's suffix. The core shows this form on the "Default activity
+     * completion" page with the suffix "_playercross" and drops any custom rule whose name lacks it,
+     * which would also erase the rule from the defaults of every new activity.
+     *
      * @return array
      */
     public function add_completion_rules(): array {
         $mform = $this->_form;
+        $suffix = $this->get_suffix();
 
         $group = [];
-        $group[] = $mform->createElement('checkbox', 'completionroundsenabled', '', '');
-        $group[] = $mform->createElement('text', 'completionrounds', '', ['size' => 3]);
+        $group[] = $mform->createElement('checkbox', 'completionroundsenabled' . $suffix, '', '');
+        $group[] = $mform->createElement('text', 'completionrounds' . $suffix, '', ['size' => 3]);
         $mform->addGroup(
             $group,
-            'completionroundsgroup',
+            'completionroundsgroup' . $suffix,
             get_string('completionroundsgroup', 'mod_playercross'),
             [' '],
             false
         );
 
-        $mform->setType('completionrounds', PARAM_INT);
-        $mform->setDefault('completionrounds', 1);
-        $mform->disabledIf('completionrounds', 'completionroundsenabled', 'notchecked');
+        $mform->setType('completionrounds' . $suffix, PARAM_INT);
+        $mform->setDefault('completionrounds' . $suffix, 1);
+        $mform->disabledIf('completionrounds' . $suffix, 'completionroundsenabled' . $suffix, 'notchecked');
 
-        return ['completionroundsgroup'];
+        return ['completionroundsgroup' . $suffix];
     }
 
     /**
@@ -713,7 +719,9 @@ class mod_playercross_mod_form extends moodleform_mod {
      * @return bool
      */
     public function completion_rule_enabled($data): bool {
-        return !empty($data['completionroundsenabled']) && (int)$data['completionrounds'] > 0;
+        $suffix = $this->get_suffix();
+
+        return !empty($data['completionroundsenabled' . $suffix]) && (int)$data['completionrounds' . $suffix] > 0;
     }
 
     /**
@@ -734,8 +742,9 @@ class mod_playercross_mod_form extends moodleform_mod {
             $defaultvalues['source_glossary'] = (int)(($defaultvalues['sources'] & self::SOURCE_GLOSSARY) !== 0);
         }
 
-        if (!empty($defaultvalues['completionrounds'])) {
-            $defaultvalues['completionroundsenabled'] = 1;
+        $suffix = $this->get_suffix();
+        if (!empty($defaultvalues['completionrounds' . $suffix])) {
+            $defaultvalues['completionroundsenabled' . $suffix] = 1;
         }
 
         if (isset($defaultvalues['cooldown_seconds'])) {
