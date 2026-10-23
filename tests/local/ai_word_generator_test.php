@@ -315,4 +315,30 @@ final class ai_word_generator_test extends \basic_testcase {
         $this->assertStringContainsString('accent', $prompt);
         $this->assertStringContainsString('do not strip them', $prompt);
     }
+
+    /**
+     * A term or clue that is not text is empty instead of the word "Array".
+     *
+     * Regression test: a (string) cast of a list gave "Array", which passes the term filter and was
+     * saved as a word of the game.
+     *
+     * @return void
+     */
+    public function test_parse_words_treats_fields_of_the_wrong_type_as_empty(): void {
+        $response = json_encode(['words' => [
+            ['term' => ['x'], 'clue' => 'Kept clue'],
+            ['term' => 'planeta', 'clue' => ['a' => 'b'], 'definition' => 'Fallback definition'],
+            ['term' => 'atomo', 'clue' => ['a'], 'definition' => ['b']],
+            ['term' => 42, 'clue' => true],
+        ]]);
+
+        $items = $this->parse_words($response);
+
+        $this->assertSame([
+            ['term' => '', 'clue' => 'Kept clue'],
+            ['term' => 'planeta', 'clue' => 'Fallback definition'],
+            ['term' => 'atomo', 'clue' => ''],
+            ['term' => '42', 'clue' => '1'],
+        ], $items);
+    }
 }
