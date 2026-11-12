@@ -176,8 +176,38 @@ final class custom_completion_test extends advanced_testcase {
         $completion = new custom_completion($cminfo, 0);
 
         $this->assertSame(
-            ['completionview', 'completionusegrade', 'completionrounds'],
+            ['completionview', 'completionusegrade', 'completionpassgrade', 'completionrounds'],
             $completion->get_sort_order()
         );
+    }
+
+    /**
+     * The completion details are built when the pass-grade condition is combined with the custom rule.
+     *
+     * The core sorts the details with get_sort_order() and throws a coding_exception for any condition the list
+     * omits, which takes down the course page and the activity header for everyone. Driving the real details
+     * object is the only way to catch a missing key: the sort order alone looks right either way.
+     *
+     * @return void
+     */
+    public function test_completion_details_are_built_with_pass_grade_and_the_custom_rule(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        [$course, $cm] = $this->create_fixture(1);
+        $DB->set_field('course_modules', 'completionpassgrade', 1, ['id' => $cm->cmid]);
+        $DB->set_field('course_modules', 'completiongradeitemnumber', 0, ['id' => $cm->cmid]);
+        rebuild_course_cache($course->id, true);
+        $user = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $this->setUser($user);
+
+        $cminfo = get_fast_modinfo($course, $user->id)->get_cm($cm->cmid);
+        $details = (new \core_completion\cm_completion_details(
+            new \completion_info($course),
+            $cminfo,
+            $user->id
+        ))->get_details();
+
+        $this->assertSame(['completionusegrade', 'completionpassgrade', 'completionrounds'], array_keys($details));
     }
 }
