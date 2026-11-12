@@ -5,6 +5,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [v1.0.9] — 2026-11-12
+
+### Fixed
+- The course page and the activity page no longer fail with a "missing completion conditions"
+  error when "Receive a passing grade" is ticked together with the activity's own completion
+  rule (rounds).
+- Saving Moodle's "Default activity completion" page no longer erases the rounds rule from
+  the defaults of every new activity.
+- A term or clue that the AI answers with a list or an object instead of text is no longer saved
+  as the word "Array": a term left empty is dropped as before, and a clue falls back to the
+  definition field.
+
+### Changed
+- The activity icon is a new joystick drawing, in the plugin's own colours.
+
 ## [v1.0.8] — 2026-10-15
 
 ### Fixed
