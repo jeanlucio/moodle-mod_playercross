@@ -10,7 +10,7 @@ O PlayerCross faz parte do ecossistema de gamificação **PlayerGames** para Moo
 
   👉 <https://github.com/jeanlucio/moodle-mod_playergroup>
 
-* **PlayerWords (Atividade irmã):** Também parte do ecossistema, o PlayerWords testa a recordação de **um** conceito por rodada em formato estilo Wordle. O PlayerCross reaproveita a mesma arquitetura de pool de palavras/PlayerHUD/diário de notas para adicionar um puzzle que conecta **vários** conceitos em uma única rodada.
+* **PlayerWords (Atividade irmã):** Também parte do ecossistema, o PlayerWords testa a recordação de **um** conceito por rodada, adivinhado letra por letra. O PlayerCross reaproveita a mesma arquitetura de pool de palavras/PlayerHUD/diário de notas para adicionar um puzzle que conecta **vários** conceitos em uma única rodada.
 
   👉 <https://github.com/jeanlucio/moodle-mod_playerwords>
 

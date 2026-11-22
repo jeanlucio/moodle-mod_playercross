@@ -10,7 +10,7 @@ PlayerCross is part of the **PlayerGames** gamification ecosystem for Moodle. It
 
   👉 <https://github.com/jeanlucio/moodle-mod_playergroup>
 
-* **PlayerWords (Sibling Activity):** Also part of the ecosystem, PlayerWords tests recall of **one** concept per round in a Wordle-style format. PlayerCross builds on the same word-pool/PlayerHUD/gradebook architecture to add a puzzle that connects **several** concepts in a single round.
+* **PlayerWords (Sibling Activity):** Also part of the ecosystem, PlayerWords tests recall of **one** concept per round, guessed letter by letter. PlayerCross builds on the same word-pool/PlayerHUD/gradebook architecture to add a puzzle that connects **several** concepts in a single round.
 
   👉 <https://github.com/jeanlucio/moodle-mod_playerwords>
 
